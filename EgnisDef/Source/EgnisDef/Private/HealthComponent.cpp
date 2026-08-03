@@ -1,4 +1,4 @@
-//#include "HealthComponent.h"
+#include "HealthComponent.h"
 #include "CharacterBase.h"
 
 // Sets default values for this component's properties

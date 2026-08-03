@@ -6,6 +6,7 @@ ACharacterBase::ACharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	HealthComp = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComp"));
+	MovementComp = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MovementComp"));
 }
 
 void ACharacterBase::BeginPlay()

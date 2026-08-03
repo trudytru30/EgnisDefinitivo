@@ -7,15 +7,14 @@
 // TODO: Descomentar cuando se migre EColorType al nuevo proyecto
 // #include "ColorType.h"
 #include "HealthComponent.h"
+#include "GridMovementComponent.h"
 #include "CharacterBase.generated.h"
 
 // De momento no se usa: UEnergyComponent aun no existe en el proyecto nuevo
 // class UEnergyComponent;
 
-// NOTA: EGNIS_API corresponde al macro de exportacion del modulo del proyecto viejo.
-// Revisar y sustituir por el macro _API del nuevo modulo antes de compilar.
 UCLASS()
-class ACharacterBase : public ACharacter
+class EGNISDEF_API ACharacterBase : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -26,6 +25,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UHealthComponent* HealthComp;
+
+	// Segun el GDD todas las tropas (aliadas y enemigas) se mueven con rango+patron,
+	// no hay personajes estaticos, asi que se engancha igual que HealthComp.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
+	UGridMovementComponent* MovementComp;
 
 	// ===== Funciones =====
 	UFUNCTION(BlueprintCallable, Category="Stats")
@@ -43,7 +47,7 @@ public:
 
 	// ===== Grid / Board =====
 	// Todo este bloque depende de ABoard / FTileCoord, que de momento no existen en este proyecto.
-	// Queda comentado para evitar errores de compilacion. Descomentar al migrar Board.
+	// Descomentar al migrar Board.
 
 	// UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Grid")
 	// TObjectPtr<ABoard> Board = nullptr;
@@ -76,5 +80,4 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Team")
 	int32 Team = 0; // 0 para el jugador, 1 para los enemigos, etc.
-	
 };
