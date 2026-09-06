@@ -11,7 +11,7 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 		return;
 	}
 
-	// Comprobar que la carta hace danio y que el objetivo es tipo characterBase
+	// Comprueba que la carta hace danio y que el objetivo es tipo characterBase
 	if (DamageAmount >= 0 && Enemy->GetTeam() != Self->GetTeam())
 	{
 		Enemy->LossHealth(DamageAmount);

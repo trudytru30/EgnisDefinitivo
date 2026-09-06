@@ -28,7 +28,7 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 	}
 }
 
-// NUEVO (petición de la reunión): hooks de mano, delegan en cada efecto igual que Execute()
+//hooks de mano, delegan en cada efecto igual que Execute()
 void UBaseCard::NotifyHandEnter(ACharacterBase* Owner)
 {
 	for (UCardEffect* Effect : Effects)

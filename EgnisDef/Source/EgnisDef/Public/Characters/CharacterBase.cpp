@@ -144,10 +144,7 @@ void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
 
 	FVector NewLocation = Board->TileToWorldCenter(CurrentTile);
 
-	// NOTA: igual que en el original, bKeepCurrentZ no cambia nada (las dos ramas hacen lo mismo:
-	// conservar la Z actual del actor). Si el comportamiento pretendido era usar TileZOffset cuando
-	// bKeepCurrentZ es false, no estaba implementado asi en el proyecto viejo; lo dejo identico a
-	// como estaba para no cambiar comportamiento sin que lo confirmes.
+	// bkeepCurrentZ
 	if (bKeepCurrentZ)
 	{
 		NewLocation.Z = GetActorLocation().Z;

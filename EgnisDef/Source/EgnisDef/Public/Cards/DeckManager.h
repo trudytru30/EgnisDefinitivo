@@ -39,11 +39,8 @@ public:
 	TArray<UBaseCard*> GetHand();
 	void SetDeck(const TArray<UBaseCard*>& InDeck);
 
-	// nuevo reunion: ¿hay algún personaje en CharactersInPlay cuyo arquetipo
-	// coincide con el color de esta carta? Grey (arquetipo común) siempre cuenta como disponible.
-	// Pensado para que la UI (WBP_Card, cuando migremos BoardPlayerController/el HUD) decida si
-	// mostrar la carta en gris. No se guarda la lista aquí: DeckManager no tiene referencia a las
-	// unidades en juego — eso lo tiene BattleManager::GetCharactersOnField(), se le pasa cada vez.
+	// si hay algún personaje en CharactersInPlay cuyo arquetipo
+	// coincide con el color de esta carta: Grey (arquetipo común) siempre cuenta como disponible.
 	UFUNCTION(BlueprintCallable, Category="Cards")
 	bool IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<ACharacterBase*>& CharactersInPlay) const;
 #pragma endregion

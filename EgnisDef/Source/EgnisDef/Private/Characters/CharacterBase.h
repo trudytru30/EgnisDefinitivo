@@ -22,12 +22,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UHealthComponent* HealthComp;
 
-	// NOTA (corregido tras revisar la rama progra): el movimiento NO va aqui.
-	// En el codigo real, UGridMovementComponent solo se engancha en AAlly (ver AAlly::MoveComp).
-	// AEnemy no lo usa: se mueve con logica propia (Manhattan distance) en Enemy::MoveTowardClosesPlayer.
-	// BattleManager::RequestMove lo busca con Unit->FindComponentByClass<UGridMovementComponent>(),
-	// asi que solo hace falta que exista en las unidades que realmente lo necesitan.
-
 	// ===== Funciones =====
 	UFUNCTION(BlueprintCallable, Category="Stats")
 	void LossHealth(float HealthToLoss);
@@ -57,7 +51,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid")
 	bool bSnapToTileOnBeginPlay = true;
 
-	// La lee y escribe BattleManager (RequestMove / StartPlayerTurn) para permitir un solo movimiento por turno.
+	// La lee y escribe BattleManager (RequestMove / StartPlayerTurn) para permitir un solo movimiento por turno
 	UPROPERTY(BlueprintReadOnly, Category="Grid")
 	bool bHasMoved = false;
 
@@ -81,7 +75,7 @@ protected:
 	int32 Team = 0; // 0 para el jugador, 1 para los enemigos, etc.
 
 private:
-	// PARCHE TEMPORAL (task #16, ver nota en HealthComponent::OnDeath): guarda de seguridad para
+	// PARCHE TEMPORAL (ver nota en HealthComponent::OnDeath): guarda de seguridad para
 	// que HandleDeath() no se ejecute dos veces si algo lo llamara por partida doble. Se sustituira
 	// cuando la muerte pase a gestionarse desde GAS.
 	bool bDeathHandled = false;

@@ -310,8 +310,7 @@ void ABoardPlayerController::HandleLeftClick()
 		}
 		else
 		{
-			// Si aquí entras, significa que el actor golpeado NO es tu ABoard.
-			// O estás golpeando otro actor distinto, o el mesh que bloquea no pertenece a ABoard.
+			// No esta dando a Board o no esta en ella
 			UE_LOG(LogTemp, Warning, TEXT("HitActor is not ABoard. Actor=%s"), *Result.HitActor->GetName());
 		}
 	}
@@ -338,7 +337,7 @@ void ABoardPlayerController::HandleLeftClick()
 		DrawDebugSphere(GetWorld(), Result.WorldPoint, 10.f, 12, FColor::Green, false, 1.0f);
 	}
 
-	// Ver nota en el .h del onclickresolvd: este evento no debe implementarse con logica de movimiento en Blueprint.
+	
 	BP_OnclickResolved(Result);
 }
 

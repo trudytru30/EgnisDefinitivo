@@ -77,7 +77,7 @@ public:
 	UFUNCTION(BlueprintPure, Category="Battle|Cards")
 	TArray<UBaseCard*> GetCurrentHand() const;
 
-	// NOTA (verBP_OnclickResolved): este evento existe para que un futuro
+	// (verBP_OnclickResolved): este evento existe para que un futuro
 	// Blueprint pueda reaccionar a un click (por ejemplo, efectos visuales), pero NO debe
 	// implementar logica de movimiento — eso ya lo hace HandleLeftClick en C++ via
 	// BattleManager::RequestMove, que sí valida turno/rango/ocupacion. Si no se implementa en

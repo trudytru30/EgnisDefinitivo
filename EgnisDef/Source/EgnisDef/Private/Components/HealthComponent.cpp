@@ -60,6 +60,6 @@ void UHealthComponent::OnDeath()
 	// dejamos que HandleDeath()/Destroy() sea el unico camino que gestiona la muerte de verdad.
 	// Cuando se meta GAS, la muerte pasara a gestionarse desde el AttributeSet
 	// (PostGameplayEffectExecute) y este parche se sustituira por ese diseño — no es la solucion
-	// definitiva, solo evita el bug mientras tanto.
+	// definitiva, solo evita el bug por ahora.
 	bDead = true;
 }

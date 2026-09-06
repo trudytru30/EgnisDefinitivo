@@ -3,6 +3,7 @@
 #include "Characters/Ally.h"
 
 // Aniadir cartas al mazo
+//Construye el mazo desde cero
 void UDeckManager::GenerateDeck(const TArray<TSubclassOf<UBaseCard>>& SelectedCarts)
 {
 	if (SelectedCarts.Num() < InitialDeckSize)
@@ -11,7 +12,7 @@ void UDeckManager::GenerateDeck(const TArray<TSubclassOf<UBaseCard>>& SelectedCa
 		return;
 	}
 
-	// Limpiar mazo y aniadir las cartas
+	// Limpia mazo y aniadir las cartas
 	ResetDeck();
 	for (TSubclassOf<UBaseCard> Card : SelectedCarts)
 	{
@@ -21,6 +22,7 @@ void UDeckManager::GenerateDeck(const TArray<TSubclassOf<UBaseCard>>& SelectedCa
 }
 
 // Inicializar mazo al principio de la batalla
+//Se llama al empezar cada combate(coge todo el deck y lo convierte en drawPile
 void UDeckManager::InitializeDeck()
 {
 	DrawPile = Deck;
@@ -41,6 +43,7 @@ void UDeckManager::ShuffleDeck()
 }
 
 // Robar cartas mediante habilidades
+//Recorre drawPile e intercambia
 void UDeckManager::DrawCard()
 {
 	if (DrawPile.Num() <= 0)
@@ -57,7 +60,7 @@ void UDeckManager::DrawCard()
 	Hand.Add(DrawPile.Last());
 	DrawPile.Pop();
 
-	// NUEVO reunion: avisar a la carta recien robada de que ha entrado en mano,
+	// Avisa a la carta recien robada de que ha entrado en mano,
 	// por si alguno de sus efectos hace algo solo por estar disponible (sin jugarla). De momento
 	// se llama sin dueño concreto (nullptr) — DeckManager representa el mazo del equipo, no esta
 	// atado a una unidad. Revisar esta llamada si el primer efecto real que implemente el hook

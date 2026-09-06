@@ -50,10 +50,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Movement")
 	bool canMoveToTile(const FTileCoord& Target);
 
-	// NOTA: BattleManager::RequestMove (ya migrado en el proyecto viejo) NO llama a esta funcion —
-	// valida con canMoveToTile() y luego mueve la unidad via CharacterBase::SetCurrentTile +
-	// SnapToCurrentTile. moveToTile queda aqui por si algun Blueprint la invoca directamente, pero
-	// el camino real de movimiento del juego es el de BattleManager. Ojo si algo la llama sin pasar
+	// moveToTile queda aqui por si algun Blueprint la invoca directamente, pero
+	// el real de movimiento del juego es el de BattleManager.Si algo la llama sin pasar
 	// por BattleManager: no respeta turno/bHasMoved.
 	UFUNCTION(BlueprintCallable, Category="Movement")
 	bool moveToTile(const FTileCoord& Target);

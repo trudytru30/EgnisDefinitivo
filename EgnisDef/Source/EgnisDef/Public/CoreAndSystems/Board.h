@@ -69,12 +69,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Board|Occupancy")
 	AActor* GetTileOccupant(const FTileCoord& Tile) const;
 
-	/*en el proyecto viejo esto escribia en un TMap
-	distinto (TileOccupants) al que usan IsTileOccupied/RegisterOccupant/UnregisterOccupant
-	(OccupiedBy), asi que una unidad movida via SetTileOccupant no se reflejaba como
-	ocupada para el resto de calculos (bloqueo de movimiento, vecinos libres...)
-	 Aqui los dos unifican sobre el mismo mapa (OccupiedBy) para que no se desincronicen
-	*/
+	//Aqui los dos unifican sobre el mismo mapa (OccupiedBy) para que no se desincronicen
 	UFUNCTION(BlueprintCallable, Category="Board|Occupancy")
 	void SetTileOccupant(const FTileCoord& Tile, AActor* Occupant);
 

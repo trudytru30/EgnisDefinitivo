@@ -121,7 +121,7 @@ void AEnemy::MoveTowardClosesPlayer()
 	const FTileCoord SecondStep(Start.X + 2 * BestDir.X, Start.Y + 2 * BestDir.Y);
 
 
-	// Nota: SecondStep está definido respecto al Start (origen), por la regla de “misma dirección originaria”
+	// SecondStep está definido respecto al Start (origen), por la regla de “misma dirección originaria”
 	if (!Board->IsInside(SecondStep) || Board->IsTileOccupied(SecondStep))
 	{
 		UE_LOG(LogTemp, Log, TEXT("[%s] Step2 blocked after Step1. Stops at (%d,%d)."),

@@ -32,10 +32,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	UGridMovementComponent* MoveComp;
 
-	// nuevo reunion: arquetipo/color de este aliado. Reutiliza EColorType (ya
+	// Aarquetipo/color de este aliado
+	// Reutiliza EColorType (ya
 	// definido para las cartas: Grey=comun, Turquoise=area, Indigo=utilidad, DarkMagenta=ataque
-	// fuerte, Vermillion=ataque ligero) en vez de crear un enum nuevo, porque el GDD ya describe
-	// los arquetipos como esos mismos colores. Lo usa DeckManager::IsCardArchetypeAvailable para
+	// fuerte, Vermillion=ataque ligero)
+	// Lo usa DeckManager::IsCardArchetypeAvailable para
 	// saber si hay que pintar en gris una carta cuyo arquetipo no tiene dueño en el equipo.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card Archetype")
 	EColorType ArchetypeColor = EColorType::Grey;
