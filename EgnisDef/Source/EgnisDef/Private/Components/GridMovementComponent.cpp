@@ -1,10 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "GridMovementComponent.h"
-// TODO: Descomentar cuando se migre ABoard. Solo se usaban para localizar/leer el tablero.
-// #include "Engine.h"
-// #include "Kismet/GameplayStatics.h"
-// #include "GameFramework/Actor.h"
+#include "Components/GridMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/Actor.h"
 
 UGridMovementComponent::UGridMovementComponent(){}
 
@@ -12,14 +10,8 @@ void UGridMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Depende de ABoard, comentado de momento. Descomentar al migrar Board.
-	// EnsureBoardActor();
+	EnsureBoardActor();
 }
-
-/*
- * ===== TODO: TODO EL BLOQUE SIGUIENTE DEPENDE DE ABoard / FTileCoord =====
- * Descomentar y adaptar cuando se migre Board.h al nuevo proyecto.
- * Se deja el codigo original completo como referencia.
 
 void UGridMovementComponent::EnsureBoardActor()
 {
@@ -79,6 +71,7 @@ bool UGridMovementComponent::getCurrentTile(FTileCoord& OutTile)
 
 
 // A FUTURO:
+// TOCAR AL FINAL SOLO CUANDO YA ESTE TODO MIGRADO Y FUNCIONAL ( ZONA SENSIBLE)
 // - separar cálculo de patrón de ocupación o bloqueos
 // - permitir orientación elegida por jugador (triangulo apuntando al click)
 // - Extraer patrones a strategy
@@ -473,6 +466,3 @@ void UGridMovementComponent::AddDiagonalPlusRing1Tiles(const FTileCoord& Current
 		OutTiles.AddUnique(Target);
 	}
 }
-
- * ===== FIN DEL BLOQUE COMENTADO =====
- */

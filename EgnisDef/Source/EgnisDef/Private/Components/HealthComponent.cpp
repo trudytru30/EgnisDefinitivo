@@ -1,5 +1,5 @@
-#include "HealthComponent.h"
-#include "CharacterBase.h"
+#include "Components/HealthComponent.h"
+#include "Characters/CharacterBase.h"
 
 // Sets default values for this component's properties
 UHealthComponent::UHealthComponent()
@@ -52,7 +52,14 @@ float UHealthComponent::ApplyDelta(float Delta)
 
 void UHealthComponent::OnDeath()
 {
+	// PARCHE TEMPORAL  — mientras no exista GAS: antes esto llamaba manualmente a
+	// Owner->EndPlay(...), pero CharacterBase::LossHealth() ya comprueba la vida tras aplicar el
+	// delta y llama a HandleDeath() -> Destroy() (que dispara EndPlay de verdad, al destruirse el
+	// actor). Llamar a EndPlay aqui ademas de eso hacia que se disparara dos veces, la primera
+	// mientras el actor seguia "vivo" (sin haberse destruido todavia). Quitamos esa llamada y
+	// dejamos que HandleDeath()/Destroy() sea el unico camino que gestiona la muerte de verdad.
+	// Cuando se meta GAS, la muerte pasara a gestionarse desde el AttributeSet
+	// (PostGameplayEffectExecute) y este parche se sustituira por ese diseño — no es la solucion
+	// definitiva, solo evita el bug mientras tanto.
 	bDead = true;
-	ACharacterBase* Owner = GetOwner<ACharacterBase>();
-	Owner->EndPlay(EEndPlayReason::Destroyed);
 }
