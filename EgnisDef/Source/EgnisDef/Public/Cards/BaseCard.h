@@ -30,6 +30,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Card")
 	ECardTarget GetTarget() const;
+	
+	UFUNCTION(BlueprintPure, Category="Card")
+	FText GetDescription() const;
+	
 #pragma region Functions
 	// Acciones de las cartas
 	void Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location);
@@ -46,6 +50,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	FText CardName;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
+	FText Description;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	ECardType CardType;
 

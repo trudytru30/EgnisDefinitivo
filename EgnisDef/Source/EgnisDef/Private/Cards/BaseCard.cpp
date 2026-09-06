@@ -57,6 +57,11 @@ FText UBaseCard::GetCardName() const
 	return CardName;
 }
 
+FText UBaseCard::GetDescription() const
+{
+	return Description;
+}
+
 int32 UBaseCard::GetCost() const
 {
 	return Cost;
