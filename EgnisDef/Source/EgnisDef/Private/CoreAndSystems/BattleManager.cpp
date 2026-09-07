@@ -46,7 +46,9 @@ void UBattleManager::StartPlayerTurn()
 	for (ACharacterBase* Character : CharactersOnField)
 	{
 		if (AAlly* Ally = Cast<AAlly>(Character))
-			Ally->GainPoints(-1);	// Para reiniciar los puntos al valor default (mirar EnergyComponent)
+			//
+			//Ally->GainPoints(-1);	// Para reiniciar los puntos al valor default (mirar EnergyComponent)
+			Ally->ResetEnergyForTurn();	 
 	}
 
 	// Resetear bHasMoved para todos los aliados al inicio del turno

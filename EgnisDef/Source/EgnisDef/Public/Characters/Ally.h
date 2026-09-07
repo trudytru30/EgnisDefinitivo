@@ -21,6 +21,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void LossPoints(int32 Cost);
 	void GainPoints(int32 Bonus);
+	void ResetEnergyForTurn();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UEnergyComponent* EnergyComp;

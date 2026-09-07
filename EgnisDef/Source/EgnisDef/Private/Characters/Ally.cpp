@@ -38,16 +38,16 @@ void AAlly::LossPoints(int32 Cost)
 
 void AAlly::GainPoints(int32 Bonus)
 {
-	if (!EnergyComp)
+	if (!EnergyComp || Bonus <= 0)
 	{
 		return;
 	}
+	EnergyComp->ApplyDelta(+Bonus);
+}
 
-	if (Bonus > 0)
-	{
-		EnergyComp->ApplyDelta(+Bonus);
-	}
-	else
+void AAlly::ResetEnergyForTurn()
+{
+	if (EnergyComp)
 	{
 		EnergyComp->ResetPoints();
 	}

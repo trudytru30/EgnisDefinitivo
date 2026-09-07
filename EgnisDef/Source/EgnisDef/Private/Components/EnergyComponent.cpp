@@ -16,7 +16,7 @@ void UEnergyComponent::BeginPlay()
 // Aniadir puntos de energia
 int32 UEnergyComponent::ApplyDelta(int32 Delta)
 {
-	CurrentPoints += Delta; // Por si a futuro se quiren cartas que sumen puntos de energia
+	CurrentPoints = FMath::Clamp(CurrentPoints + Delta, 0, MaxPoints);
 	return CurrentPoints;
 }
 

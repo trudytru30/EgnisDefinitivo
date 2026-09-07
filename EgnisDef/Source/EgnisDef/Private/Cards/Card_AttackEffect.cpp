@@ -5,9 +5,9 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 {
 	Super::Execute_Enemy(Self, Enemy);
 
-	if (!Enemy)
+	if (!Self ||!Enemy)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AttackEffect: Enemy is null"));
+		UE_LOG(LogTemp, Warning, TEXT("AttackEffect: Self or Enemy is null"));
 		return;
 	}
 

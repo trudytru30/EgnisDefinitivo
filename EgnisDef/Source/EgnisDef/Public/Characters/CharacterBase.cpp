@@ -1,5 +1,6 @@
 #include "Characters/CharacterBase.h"
-#include "Kismet/GameplayStatics.h" // Para localizar el Board en el nivel (ya migrado, task #3).
+#include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h" // Para localizar el Board en el nivel
 
 ACharacterBase::ACharacterBase()
 {
@@ -134,7 +135,29 @@ bool ACharacterBase::SetCurrentTile(const FTileCoord& NewTile)
 	CurrentTile = NewTile;
 	return true;
 }
+void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
+{
+	if (!Board) return;
 
+	FVector NewLocation = Board->TileToWorldCenter(CurrentTile);
+
+	if (bKeepCurrentZ)
+	{
+		NewLocation.Z = GetActorLocation().Z;
+	}
+	else
+	{
+		float BaseOffset = TileZOffset;
+		if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
+		{
+			BaseOffset += Capsule->GetScaledCapsuleHalfHeight();
+		}
+		NewLocation.Z += BaseOffset;
+	}
+
+	SetActorLocation(NewLocation);
+}
+/*
 void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
 {
 	if (!Board)
@@ -156,6 +179,7 @@ void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
 
 	SetActorLocation(NewLocation);
 }
+*/
 
 // Getter para obtener el equipo del personaje
 int32 ACharacterBase::GetTeam()
