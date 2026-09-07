@@ -118,6 +118,18 @@ void ABoardPlayerController::HandleLeftClick()
 
 			PendingSource = ClickedAlly;
 
+			//Gris para asegurar arqueotipo completo
+			/*
+			 *si de verdad se intenta jugar con un aliado que no es del arquetipo correcto,
+			 *el juego lo rechaza en el momento de elegir quién la juega
+			 */
+			if (PendingCard && PendingCard->GetColor() != EColorType::Grey &&ClickedAlly->GetArchetypeColor() != PendingCard->GetColor())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s no puede jugar una carta de arquetipo distinto"),*ClickedAlly->GetName());
+				PendingSource = nullptr;
+				return;
+			}
+			//
 			// Jugar carta si no necesita target
 			if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
 			{

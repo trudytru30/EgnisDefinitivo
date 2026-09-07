@@ -39,7 +39,7 @@ public:
 	// fuerte, Vermillion=ataque ligero)
 	// Lo usa DeckManager::IsCardArchetypeAvailable para
 	// saber si hay que pintar en gris una carta cuyo arquetipo no tiene dueño en el equipo.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card Archetype")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Card Archetype")
 	EColorType ArchetypeColor = EColorType::Grey;
 
 	UFUNCTION(BlueprintPure, Category="Card Archetype")
