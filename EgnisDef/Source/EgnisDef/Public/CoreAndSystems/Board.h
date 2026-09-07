@@ -73,6 +73,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Board|Occupancy")
 	void SetTileOccupant(const FTileCoord& Tile, AActor* Occupant);
 
+	UFUNCTION(BlueprintCallable, Category="Board|Grid")
+	void GetTilesInRange(const FTileCoord& From, int32 Range, TArray<FTileCoord>& OutTiles) const;
+	
 	bool IsInside(const FTileCoord& Tile) const;
 
 protected:

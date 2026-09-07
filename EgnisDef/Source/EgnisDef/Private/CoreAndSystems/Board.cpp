@@ -128,6 +128,34 @@ void ABoard::SetTileOccupant(const FTileCoord& Tile, AActor* Occupant)
 	}
 }
 
+void ABoard::GetTilesInRange(const FTileCoord& From, int32 Range, TArray<FTileCoord>& OutTiles) const
+{
+	OutTiles.Reset();
+
+	if (Range <= 0)
+	{
+		return;
+	}
+
+	for (int32 DX = -Range; DX <= Range; ++DX)
+	{
+		for (int32 DY = -Range; DY <= Range; ++DY)
+		{
+			const int32 Dist = FMath::Abs(DX) + FMath::Abs(DY);
+			if (Dist == 0 || Dist > Range)
+			{
+				continue;
+			}
+
+			const FTileCoord Candidate(From.X + DX, From.Y + DY);
+			if (IsInside(Candidate))
+			{
+				OutTiles.Add(Candidate);
+			}
+		}
+	}
+}
+
 bool ABoard::IsInside(const FTileCoord& Tile) const
 {
 	return Tile.X >= 0 && Tile.X < BoardSizeX && Tile.Y >= 0 && Tile.Y < BoardSizeY;

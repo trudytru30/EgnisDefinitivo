@@ -23,7 +23,8 @@ public:
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) {};
 	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) {};
 	virtual void Execute_Self(ACharacterBase* Source) {};
-	virtual void Execute_Tile(FVector Location) {};
+	//virtual void Execute_Tile(FVector Location) {};
+	virtual void Execute_Tile(ACharacterBase* Self,FVector Location){};
 
 	// Hooks para cartas/efectos que hacen algo por el simple
 	// hecho de estar en la mano, sin necesidad de jugarlas

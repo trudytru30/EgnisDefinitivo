@@ -33,6 +33,8 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category="Card")
 	FText GetDescription() const;
+	UFUNCTION(BlueprintPure, Category="Card")
+	int32 GetRange() const;
 	
 #pragma region Functions
 	// Acciones de las cartas
@@ -61,6 +63,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	int32 Cost;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
+	int32 Range = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	ECardTarget Target = ECardTarget::None;

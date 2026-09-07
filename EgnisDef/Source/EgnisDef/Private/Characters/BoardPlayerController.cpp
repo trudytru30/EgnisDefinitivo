@@ -484,6 +484,19 @@ TArray<UBaseCard*> ABoardPlayerController::GetCurrentHand() const
 	UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: GetCurrentHand: DeckManager NULL"));
 	return TArray<UBaseCard*>();
 }
+bool ABoardPlayerController::GetPendingCardRangeTiles(TArray<FTileCoord>& OutTiles) const
+{
+	OutTiles.Reset();
+
+	if (!PendingCard || !PendingSource || !PendingSource->Board)
+	{
+		return false;
+	}
+
+	PendingSource->Board->GetTilesInRange(PendingSource->CurrentTile, PendingCard->GetRange(), OutTiles);
+	return true;
+}
+
 bool ABoardPlayerController::IsCardArchetypeAvailable(const UBaseCard* Card) const
 {
 	if (!DeckManager || !Card) return false;

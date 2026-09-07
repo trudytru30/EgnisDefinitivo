@@ -20,7 +20,8 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 			Effect->Execute_Self(Self);
 			break;
 		case ECardTarget::Tile:
-			Effect->Execute_Tile(Location);
+			//Effect->Execute_Tile(Location);
+			Effect->Execute_Tile(Self,Location);
 			break;
 		default:
 			break;
@@ -80,4 +81,8 @@ EColorType UBaseCard::GetColor() const
 ECardTarget UBaseCard::GetTarget() const
 {
 	return Target;
+}
+int32 UBaseCard::GetRange() const
+{
+	return Range;
 }

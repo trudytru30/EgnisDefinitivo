@@ -77,6 +77,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="Battle|Cards")
 	TArray<UBaseCard*> GetCurrentHand() const;
 
+	UFUNCTION(BlueprintCallable, Category="Battle|Cards")
+	bool GetPendingCardRangeTiles(TArray<FTileCoord>& OutTiles) const;
+
 	// (verBP_OnclickResolved): este evento existe para que un futuro
 	// Blueprint pueda reaccionar a un click (por ejemplo, efectos visuales), pero NO debe
 	// implementar logica de movimiento — eso ya lo hace HandleLeftClick en C++ via
