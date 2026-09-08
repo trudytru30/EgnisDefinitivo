@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="Workspace" id="{71624bd6-4425-4e04-aae8-61da0fec26d6}">
+		<property name="builtBanksOutputDirectory">
+			<value>../EgnisDef/Content/Plugins/FMOD</value>
+		</property>
+		<relationship name="masterEventFolder">
+			<destination>{f693e34b-875e-46e4-9a3e-0b58ab2239d4}</destination>
+		</relationship>
+		<relationship name="masterTagFolder">
+			<destination>{02f223ff-5314-4561-9703-a91bd8732231}</destination>
+		</relationship>
+		<relationship name="masterEffectPresetFolder">
+			<destination>{453def3e-9a32-4c9c-b50e-b1b05b69eb1e}</destination>
+		</relationship>
+		<relationship name="masterParameterPresetFolder">
+			<destination>{08a4511a-b862-4e08-a71c-6cb2815ef909}</destination>
+		</relationship>
+		<relationship name="masterBankFolder">
+			<destination>{a9d15f9f-89f8-4cf3-b9d9-03444a6073d6}</destination>
+		</relationship>
+		<relationship name="masterSandboxFolder">
+			<destination>{10e9014c-2f38-45e5-9af8-234c22f6d586}</destination>
+		</relationship>
+		<relationship name="masterAssetFolder">
+			<destination>{f7ef5fa1-db4d-49c5-9f6b-dab4f65cbded}</destination>
+		</relationship>
+		<relationship name="mixer">
+			<destination>{2205a9ca-0236-4d7f-80df-23e4c48308fc}</destination>
+		</relationship>
+		<relationship name="profilerSessionFolder">
+			<destination>{08e99ea9-10ac-4e8c-b55b-98958df4d177}</destination>
+		</relationship>
+		<relationship name="platforms">
+			<destination>{91b19ef0-cfe7-4494-aa4f-545d07feee52}</destination>
+		</relationship>
+	</object>
+</objects>
