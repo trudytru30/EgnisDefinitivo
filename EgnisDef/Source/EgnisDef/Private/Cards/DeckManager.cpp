@@ -148,7 +148,7 @@ bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<
 	for (const ACharacterBase* Character : CharactersInPlay)
 	{
 		const AAlly* CharAsAlly = Cast<const AAlly>(Character);
-		if (CharAsAlly && CharAsAlly->GetArchetypeColor() == Card->GetColor())
+		if (CharAsAlly && CharAsAlly->HasArchetypeColor(Card->GetColor()))
 		{
 			return true;
 		}

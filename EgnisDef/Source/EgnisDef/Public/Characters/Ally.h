@@ -40,10 +40,12 @@ public:
 	// Lo usa DeckManager::IsCardArchetypeAvailable para
 	// saber si hay que pintar en gris una carta cuyo arquetipo no tiene dueño en el equipo.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Card Archetype")
-	EColorType ArchetypeColor = EColorType::Grey;
+	//EColorType ArchetypeColor = EColorType::Grey;
+	TArray<EColorType> ArchetypeColors;
 
 	UFUNCTION(BlueprintPure, Category="Card Archetype")
-	EColorType GetArchetypeColor() const { return ArchetypeColor; }
+	//EColorType GetArchetypeColor() const { return ArchetypeColor; }
+	bool HasArchetypeColor(EColorType Color) const { return ArchetypeColors.Contains(Color); }
 
 protected:
 	virtual void BeginPlay() override;
