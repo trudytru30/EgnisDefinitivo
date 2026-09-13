@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{909050a8-55f0-4e9b-9aaf-2f65fcf1d8ce}">
+		<property name="assetPath">
+			<value>SFX/Movement/Land/Land_02.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>2.2008843537414964</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{f7ef5fa1-db4d-49c5-9f6b-dab4f65cbded}</destination>
+		</relationship>
+	</object>
+</objects>

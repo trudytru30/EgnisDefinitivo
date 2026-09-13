@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{aef34d43-9881-451f-8fe3-34e12ccc8ef8}">
+		<property name="assetPath">
+			<value>SFX/Movement/Elevate/Elevate_02.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>2.080362811791383</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{f7ef5fa1-db4d-49c5-9f6b-dab4f65cbded}</destination>
+		</relationship>
+	</object>
+</objects>
