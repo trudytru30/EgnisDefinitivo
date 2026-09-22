@@ -5,8 +5,8 @@
 #include "GameFramework/Character.h"
 #include "CoreAndSystems/ColorType.h"
 #include "Components/HealthComponent.h"
+#include "CoreAndSystems/HealthAttributeSet.h"
 #include "CharacterBase.generated.h"
-
 
 
 UCLASS()
@@ -21,6 +21,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UHealthComponent* HealthComp;
+	
+	// El AttributeSet solo contiene los datos (Health, MaxHealth). No decide nada por sí solo,
+	// necesita el ASC para que los GameplayEffects lo modifiquen. Presente en ACharacterBase
+	// porque tanto AAlly como AEnemy necesitan vida.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
+	class UHealthAttributeSet* HealthAttributeSet;
 
 	// ===== Funciones =====
 	UFUNCTION(BlueprintCallable, Category="Stats")

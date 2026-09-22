@@ -4,6 +4,7 @@
 #include "Characters/CharacterBase.h"
 #include "Components/GridMovementComponent.h"
 #include "GameFramework/Character.h"
+#include "CoreAndSystems/EnergyAttributeSet.h"
 #include "Ally.generated.h"
 
 class UAudioManager;
@@ -25,6 +26,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UEnergyComponent* EnergyComp;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
+	class UEnergyAttributeSet* EnergyAttributeSet;
 
 	// Componente de movimiento en grid: va aqui, en Ally, y no en CharacterBase — AEnemy no lo usa
 	// (tiene su propia logica de movimiento, ver Enemy::MoveTowardClosesPlayer), y BattleManager::

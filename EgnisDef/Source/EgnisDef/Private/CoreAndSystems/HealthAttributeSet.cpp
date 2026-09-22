@@ -1,4 +1,6 @@
 #include "CoreAndSystems/HealthAttributeSet.h"
+#include "GameplayEffectExtension.h" // Trae la definición completa de FGameplayEffectModCallbackData
+#include "Characters/CharacterBase.h" // Para poder llamar a HandleDeath()
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -26,7 +28,33 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 {
 	Super::PostGameplayEffectExecute(Data);
 
-	// Vacío a propósito: Aquí Health <= 0 y se llamará a algo equivalente
-	//  a HandleDeath(). Se deja así ahora para que este paso compile de forma
-	// aislada y se pueda probar que el ASC funciona antes de tocar la lógica de muerte.
+	// Solo interesa reaccionar cuando el atributo modificado es Health — este mismo
+	// PostGameplayEffectExecute se dispara para CUALQUIER atributo de este AttributeSet,
+	// así que hay que filtrar cuál cambió antes de actuar.
+	if (Data.EvaluatedData.Attribute != GetHealthAttribute())
+	{
+		return;
+	}
+
+	// AbilityActorInfo->AvatarActor es el actor "físico" al que pertenece este AttributeSet —
+	// en este proyecto, siempre el propio ACharacterBase (Ally o Enemy), porque
+	// InitAbilityActorInfo(this, this) se llamó con el mismo actor como owner y avatar.
+	AActor* OwnerActor = Data.Target.AbilityActorInfo.IsValid()
+		? Data.Target.AbilityActorInfo->AvatarActor.Get()
+		: nullptr;
+
+	ACharacterBase* OwnerCharacter = Cast<ACharacterBase>(OwnerActor);
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+
+	// Equivalente exacto a la comprobación "HealthComp->GetCurrentHealth() <= 0" que había
+	// en LossHealth(). GetHealth() ya lee el CurrentValue post-clamp gracias a PreAttributeChange.
+	if (GetHealth() <= 0.f)
+	{
+		// Reutiliza HandleDeath() tal cual — la guarda bDeathHandled ya evita que se ejecute
+		// dos veces si el camino viejo (LossHealth) también llegó a dispararla.
+		OwnerCharacter->HandleDeath();
+	}
 }

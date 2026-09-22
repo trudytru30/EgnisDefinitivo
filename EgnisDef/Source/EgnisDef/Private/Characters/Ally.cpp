@@ -9,6 +9,10 @@ AAlly::AAlly()
 	// CREAR SI O SI AQUI PARA QUE FUNCIONE
 	EnergyComp = CreateDefaultSubobject<UEnergyComponent>(TEXT("EnergyComp"));
 	MoveComp = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MoveComp"));
+	
+	// El ASC vive en ACharacterBase (compartido con AEnemy), pero EnergyAttributeSet solo
+	// tiene sentido en AAlly, así que se crea aquí en vez de en la clase base.
+	EnergyAttributeSet = CreateDefaultSubobject<UEnergyAttributeSet>(TEXT("EnergyAttributeSet"));
 }
 
 void AAlly::BeginPlay()
