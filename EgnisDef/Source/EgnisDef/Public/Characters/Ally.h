@@ -51,6 +51,12 @@ public:
 	//EColorType GetArchetypeColor() const { return ArchetypeColor; }
 	bool HasArchetypeColor(EColorType Color) const { return ArchetypeColors.Contains(Color); }
 
+	UFUNCTION(BlueprintPure, Category="Energy")
+	int32 GetCurrentEnergy() const;
+
+	UFUNCTION(BlueprintPure, Category="Energy")
+	int32 GetMaxEnergy() const;
+	
 protected:
 	virtual void BeginPlay() override;
 };

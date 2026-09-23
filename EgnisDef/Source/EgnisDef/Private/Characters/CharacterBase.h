@@ -1,16 +1,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CoreAndSystems/Board.h" // Board ya migrado (task #3): FTileCoord y ABoard disponibles.
+#include "CoreAndSystems/Board.h"
 #include "GameFramework/Character.h"
 #include "CoreAndSystems/ColorType.h"
 #include "Components/HealthComponent.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
+#include "AbilitySystemInterface.h"
 #include "CharacterBase.generated.h"
 
-
 UCLASS()
-class EGNISDEF_API ACharacterBase : public ACharacter
+// Se añade IAbilitySystemInterface: es como GAS localiza el ASC de un actor sin necesidad
+// de castear. BattleManager y las futuras GameplayAbility lo usarán para preguntar
+// "¿qué ASC tiene este personaje?" sin saber si es AAlly, AEnemy, etc.
+class EGNISDEF_API ACharacterBase : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -21,12 +24,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
 	UHealthComponent* HealthComp;
-	
-	// El AttributeSet solo contiene los datos (Health, MaxHealth). No decide nada por sí solo,
-	// necesita el ASC para que los GameplayEffects lo modifiquen. Presente en ACharacterBase
-	// porque tanto AAlly como AEnemy necesitan vida.
+
+	// El ASC es el "motor" de GAS: gestiona qué abilities tiene el personaje, qué GameplayEffects
+	// tiene activos, y contiene una referencia al AttributeSet. Sin este campo, HealthAttributeSet
+	// existe como objeto suelto pero nunca recibe GameplayEffects reales.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
+	class UAbilitySystemComponent* AbilitySystemComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UHealthAttributeSet* HealthAttributeSet;
+
+	// Implementación obligatoria de la interfaz: así es como cualquier código externo
+	// (BattleManager, AAlly::LossPoints, futuras abilities) obtiene el ASC de este actor
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 
 	// ===== Funciones =====
 	UFUNCTION(BlueprintCallable, Category="Stats")
@@ -43,11 +53,6 @@ public:
 	int32 GetTeam();
 
 	// ===== Grid / Board =====
-	// Reconciliado con el Board real (task #4). BattleManager::RequestMove usa
-	// Unit->Board, Unit->bHasMoved, Unit->SetCurrentTile y Unit->SnapToCurrentTile
-	// directamente (no pasa por GridMovementComponent::moveToTile), asi que esto
-	// tenia que descomentarse a la vez que GridMovementComponent.
-
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Grid")
 	TObjectPtr<ABoard> Board = nullptr;
 
@@ -57,7 +62,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid")
 	bool bSnapToTileOnBeginPlay = true;
 
-	// La lee y escribe BattleManager (RequestMove / StartPlayerTurn) para permitir un solo movimiento por turno
 	UPROPERTY(BlueprintReadOnly, Category="Grid")
 	bool bHasMoved = false;
 
@@ -78,11 +82,8 @@ protected:
 	EColorType Type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Team")
-	int32 Team = 0; // 0 para el jugador, 1 para los enemigos, etc.
+	int32 Team = 0;
 
 private:
-	// PARCHE TEMPORAL (ver nota en HealthComponent::OnDeath): guarda de seguridad para
-	// que HandleDeath() no se ejecute dos veces si algo lo llamara por partida doble. Se sustituira
-	// cuando la muerte pase a gestionarse desde GAS.
 	bool bDeathHandled = false;
 };

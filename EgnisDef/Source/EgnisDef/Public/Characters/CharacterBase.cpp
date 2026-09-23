@@ -1,17 +1,30 @@
 #include "Characters/CharacterBase.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h" // Para localizar el Board en el nivel
+#include "AbilitySystemComponent.h" // Necesario para CreateDefaultSubobject<UAbilitySystemComponent>
 
 ACharacterBase::ACharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	HealthComp = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComp"));
 	HealthAttributeSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthAttributeSet"));
+	// Igual patrón que HealthComp/HealthAttributeSet: se crea en construcción para que
+	// exista desde el primer frame
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 }
 
 void ACharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (AbilitySystemComponent)
+	{
+		// InitAbilityActorInfo(Owner, Avatar) le dice al ASC "quién es el dueño lógico" y "quién
+		// es el cuerpo físico en el mundo" de las abilities. Sin este proyecto tener PlayerState
+		// propio, lo más simple es pasar 'this' en ambos. Es obligatorio: sin esta llamada el
+		// ASC existe como componente pero no funciona
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
 
 	if (!Board)
 	{
@@ -24,7 +37,6 @@ void ACharacterBase::BeginPlay()
 		return;
 	}
 
-	// Intentamos registrar a la unidad en su casilla de inicio
 	const bool bRegistered = Board->RegisterOccupant(CurrentTile, this);
 
 	if (!bRegistered)
@@ -158,29 +170,6 @@ void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
 
 	SetActorLocation(NewLocation);
 }
-/*
-void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
-{
-	if (!Board)
-	{
-		return;
-	}
-
-	FVector NewLocation = Board->TileToWorldCenter(CurrentTile);
-
-	// bkeepCurrentZ
-	if (bKeepCurrentZ)
-	{
-		NewLocation.Z = GetActorLocation().Z;
-	}
-	else
-	{
-		NewLocation.Z = GetActorLocation().Z;
-	}
-
-	SetActorLocation(NewLocation);
-}
-*/
 
 // Getter para obtener el equipo del personaje
 int32 ACharacterBase::GetTeam()

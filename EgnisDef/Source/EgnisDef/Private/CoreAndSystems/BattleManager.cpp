@@ -145,34 +145,32 @@ void UBattleManager::EndTurn()
 bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 	ACharacterBase* TargetCharacter, FVector Location)
 {
-	if (!Character || !Character->EnergyComp)
+	if (!Character || !Character->EnergyAttributeSet)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyComp is null"));
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
 
-	// Comprobaciones
 	if (CurrentTurn != ETurnEnum::PlayerTurn || !Card || !DeckManager)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not player turn or card is null"));
 		return false;
 	}
 
-	if (Character->EnergyComp->GetCurrentPoints() < Card->GetCost())
+	if (Character->GetCurrentEnergy() < Card->GetCost())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
 	}
 
-	// Jugar carta y restar coste
-	if (!Character || !Character->EnergyComp)
+	if (!Character || !Character->EnergyAttributeSet)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyComp is null"));
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
 	Character->LossPoints(Card->GetCost());
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
-		Character->EnergyComp->GetCurrentPoints());
+		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);
 	UpdateUnitsAlive();
 
