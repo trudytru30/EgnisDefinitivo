@@ -55,6 +55,16 @@ class EGNISDEF_API ABoardPlayerController : public APlayerController
 public:
 	ABoardPlayerController();
 
+	// PROPIEDAD TEMPORAL
+	UPROPERTY(EditDefaultsOnly, Category="Debug")
+	TSubclassOf<class UGameplayEffect> DebugDamageEffect;
+	
+	// TEMPORAL: para probar de forma aislada que el daño vía ASC dispara la muerte por GAS
+	// sin depender de que las cartas ya usen abilities.
+	// UFUNCTION(Exec) permite llamarlo escribiendo el nombre directamente en la consola de PIE.
+	UFUNCTION(Exec)
+	void DebugDamageSelectedUnit(float Amount = 150.f);
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	EInputIntent CurrentIntent = EInputIntent::Move;
 
