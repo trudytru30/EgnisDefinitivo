@@ -17,5 +17,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "HealEffect")
 	float HealAmount = 10.0f;
 
+	// Reutiliza el mismo GE_CardDamage de Card_AttackEffect — Add + Set by
+	// Caller funciona igual para curar que para dañar, solo cambia el signo del valor pasado.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "HealEffect")
+	TSubclassOf<class UGameplayEffect> HealEffect;
+	
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) override;
 };

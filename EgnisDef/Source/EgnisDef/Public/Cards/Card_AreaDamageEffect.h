@@ -17,6 +17,10 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AreaDamageEffect")
 	int32 AreaRadius = 1;
+	
+	// Mismo GE_CardDamage otra vez, en negativo (igual que en Card_AttackEffect)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AreaDamageEffect")
+	TSubclassOf<class UGameplayEffect> DamageEffect;
 
 	virtual void Execute_Tile(ACharacterBase* Self, FVector Location) override;
 };

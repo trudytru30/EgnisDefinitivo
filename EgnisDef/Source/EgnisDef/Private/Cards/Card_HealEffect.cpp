@@ -1,5 +1,7 @@
 #include "Cards/Card_HealEffect.h"
 #include "CoreAndSystems/AudioManager.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "AbilitySystemComponent.h"
 
 void UCard_HealEffect::Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally)
 {
@@ -25,8 +27,24 @@ void UCard_HealEffect::Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally)
 		return;
 	}
 
-	// Aplica la curación
-	Ally->GainHealth(HealAmount);
+	// Aplicar curación
+	UAbilitySystemComponent* TargetASC = Ally->GetAbilitySystemComponent();
+	if (TargetASC && HealEffect)
+	{
+		FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+		FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(HealEffect, 1.f, Context);
+		if (Spec.IsValid())
+		{
+			Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, HealAmount);
+			TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] HealEffect: falta ASC o HealEffect, no se aplica curación."),
+			*Ally->GetName());
+	}
+
 	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayDoruSpellSound(0);
 
 	UE_LOG(LogTemp, Log, TEXT("HealEffect: %s healed %s for %.1f HP"), *Self->GetName(), *Ally->GetName(), HealAmount);
