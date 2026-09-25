@@ -8,8 +8,6 @@
 #include "Ally.generated.h"
 
 class UAudioManager;
-class UEnergyComponent;
-
 
 UCLASS()
 class EGNISDEF_API AAlly : public ACharacterBase
@@ -23,9 +21,6 @@ public:
 	void LossPoints(int32 Cost);
 	void GainPoints(int32 Bonus);
 	void ResetEnergyForTurn();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
-	UEnergyComponent* EnergyComp;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UEnergyAttributeSet* EnergyAttributeSet;

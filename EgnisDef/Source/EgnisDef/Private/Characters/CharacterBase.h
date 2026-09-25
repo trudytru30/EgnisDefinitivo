@@ -4,7 +4,6 @@
 #include "CoreAndSystems/Board.h"
 #include "GameFramework/Character.h"
 #include "CoreAndSystems/ColorType.h"
-#include "Components/HealthComponent.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
 #include "AbilitySystemInterface.h"
 #include "CharacterBase.generated.h"
@@ -22,9 +21,6 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
-	UHealthComponent* HealthComp;
-
 	// El ASC es el "motor" de GAS: gestiona qué abilities tiene el personaje, qué GameplayEffects
 	// tiene activos, y contiene una referencia al AttributeSet. Sin este campo, HealthAttributeSet
 	// existe como objeto suelto pero nunca recibe GameplayEffects reales.
@@ -39,13 +35,8 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 
 	// ===== Funciones =====
-	UFUNCTION(BlueprintCallable, Category="Stats")
-	void LossHealth(float HealthToLoss);
 
 	void HandleDeath();
-
-	UFUNCTION(BlueprintCallable, Category="Stats")
-	void GainHealth(float AmountHealed);
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -74,6 +65,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Grid")
 	void SnapToCurrentTile(bool bKeepCurrentZ = false);
 
+	
+	// Sustituyen a HealthComp->GetCurrentHealth()/GetMaxHealth() de cara a Blueprint.
+	UFUNCTION(BlueprintPure, Category="Health")
+	float GetCurrentHealth() const;
+
+	UFUNCTION(BlueprintPure, Category="Health")
+	float GetMaxHealth() const;
+	
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;

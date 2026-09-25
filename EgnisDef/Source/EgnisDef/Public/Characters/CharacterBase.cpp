@@ -6,10 +6,8 @@
 ACharacterBase::ACharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	HealthComp = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComp"));
 	HealthAttributeSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthAttributeSet"));
-	// Igual patrón que HealthComp/HealthAttributeSet: se crea en construcción para que
-	// exista desde el primer frame
+	// Igual patrón que HealthComp/HealthAttributeSet: se crea en construcción para que exista desde el primer frame
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 }
 
@@ -74,40 +72,13 @@ void ACharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-void ACharacterBase::GainHealth(float AmountHealed)
-{
-	if (!HealthComp)
-	{
-		return;
-	}
-
-	HealthComp->ApplyDelta(+AmountHealed);
-}
-
-void ACharacterBase::LossHealth(float HealthToLoss)
-{
-	if (!HealthComp)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] LossHealth failed: HealthComp is null."), *GetName());
-		return;
-	}
-
-	HealthComp->ApplyDelta(-HealthToLoss);
-
-	if (HealthComp->GetCurrentHealth() <= 0)
-	{
-		HandleDeath();
-	}
-}
-
 // Logica de muerte: desregistrarse del tablero y destruir actor
 void ACharacterBase::HandleDeath()
 {
-	// PARCHE TEMPORAL : guarda para que esto no se ejecute dos veces. Antes,
-	// HealthComponent::OnDeath() llamaba a EndPlay() por su cuenta ADEMAS de que LossHealth()
-	// llamara aqui — con esa llamada ya quitada (ver HealthComponent.cpp), este HandleDeath()
-	// deberia ser ya el unico camino, pero dejamos la guarda por seguridad ante cualquier otra
-	// via que lo dispare dos veces. Se sustituira cuando la muerte pase a gestionarse desde GAS.
+	// Guarda para que esto no se ejecute dos veces: HandleDeath() puede dispararse desde varios
+	// sitios (PostGameplayEffectExecute de HealthAttributeSet al morir por daño real, o una
+	// llamada directa vía debug/consola), y sin esta guarda una segunda llamada intentaria
+	// desregistrar y destruir un actor que ya no está en el tablero.
 	if (bDeathHandled)
 	{
 		return;
@@ -170,6 +141,18 @@ void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
 
 	SetActorLocation(NewLocation);
 }
+
+
+float ACharacterBase::GetCurrentHealth() const
+{
+	return HealthAttributeSet ? HealthAttributeSet->GetHealth() : 0.f;
+}
+
+float ACharacterBase::GetMaxHealth() const
+{
+	return HealthAttributeSet ? HealthAttributeSet->GetMaxHealth() : 0.f;
+}
+
 
 // Getter para obtener el equipo del personaje
 int32 ACharacterBase::GetTeam()

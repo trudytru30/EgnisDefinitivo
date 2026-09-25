@@ -5,7 +5,6 @@
 #include "Cards/BaseCard.h"
 #include "Characters/CharacterBase.h"
 #include "Characters/Enemy.h"
-#include "Components/EnergyComponent.h"
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
 

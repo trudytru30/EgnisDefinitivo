@@ -1,14 +1,11 @@
 #include "Characters/Ally.h"
 #include "CoreAndSystems/AudioManager.h"
-#include "Components/EnergyComponent.h"
 #include "Components/GridMovementComponent.h"
 #include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
 
 AAlly::AAlly()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	// CREAR SI O SI AQUI PARA QUE FUNCIONE
-	EnergyComp = CreateDefaultSubobject<UEnergyComponent>(TEXT("EnergyComp"));
 	MoveComp = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MoveComp"));
 	
 	// El ASC vive en ACharacterBase (compartido con AEnemy), pero EnergyAttributeSet solo
@@ -72,11 +69,6 @@ void AAlly::GainPoints(int32 Bonus)
 
 void AAlly::ResetEnergyForTurn()
 {
-	if (EnergyComp)
-	{
-		EnergyComp->ResetPoints();	// En principio no se usa, pero por si acaso
-	}
-
 	if (EnergyAttributeSet && GetAbilitySystemComponent())
 	{
 		// Vuelve a poner Energy al máximo. SetNumericAttributeBase toca el BaseValue directamente,
