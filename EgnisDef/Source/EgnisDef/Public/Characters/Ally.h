@@ -4,11 +4,10 @@
 #include "Characters/CharacterBase.h"
 #include "Components/GridMovementComponent.h"
 #include "GameFramework/Character.h"
+#include "CoreAndSystems/EnergyAttributeSet.h"
 #include "Ally.generated.h"
 
 class UAudioManager;
-class UEnergyComponent;
-
 
 UCLASS()
 class EGNISDEF_API AAlly : public ACharacterBase
@@ -22,9 +21,9 @@ public:
 	void LossPoints(int32 Cost);
 	void GainPoints(int32 Bonus);
 	void ResetEnergyForTurn();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
-	UEnergyComponent* EnergyComp;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
+	class UEnergyAttributeSet* EnergyAttributeSet;
 
 	// Componente de movimiento en grid: va aqui, en Ally, y no en CharacterBase — AEnemy no lo usa
 	// (tiene su propia logica de movimiento, ver Enemy::MoveTowardClosesPlayer), y BattleManager::
@@ -47,6 +46,12 @@ public:
 	//EColorType GetArchetypeColor() const { return ArchetypeColor; }
 	bool HasArchetypeColor(EColorType Color) const { return ArchetypeColors.Contains(Color); }
 
+	UFUNCTION(BlueprintPure, Category="Energy")
+	int32 GetCurrentEnergy() const;
+
+	UFUNCTION(BlueprintPure, Category="Energy")
+	int32 GetMaxEnergy() const;
+	
 protected:
 	virtual void BeginPlay() override;
 };

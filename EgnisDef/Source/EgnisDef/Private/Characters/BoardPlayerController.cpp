@@ -13,6 +13,9 @@
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Characters/Ally.h"
+#include "AbilitySystemComponent.h"
+#include "CoreAndSystems/HealthAttributeSet.h"
+#include "Characters/CharacterBase.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -514,4 +517,34 @@ bool ABoardPlayerController::IsCardArchetypeAvailable(const UBaseCard* Card) con
 	}
 
 	return DeckManager->IsCardArchetypeAvailable(Card, CharactersInPlay);
+}
+
+// FUNCION DE DEBUG
+void ABoardPlayerController::DebugDamageSelectedUnit(float Amount)
+{
+	if (!SelectedAlly)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Debug] No hay ninguna unidad seleccionada."));
+		return;
+	}
+
+	UAbilitySystemComponent* ASC = SelectedAlly->GetAbilitySystemComponent();
+	if (!ASC || !DebugDamageEffect)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Debug] Falta ASC o DebugDamageEffect (asígnalo en los defaults del BP)."));
+		return;
+	}
+
+	// A diferencia de ApplyModToAttribute, esto SÍ construye un GameplayEffectSpec real y
+	// SÍ dispara Pre/PostGameplayEffectExecute — el camino correcto para que la muerte
+	// (Fase 4) se active.
+	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+	FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(DebugDamageEffect, 1.f, Context);
+	if (Spec.IsValid())
+	{
+		ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Debug] GE aplicado a %s. Vida restante: %.0f"),
+		*SelectedAlly->GetName(), SelectedAlly->HealthAttributeSet->GetHealth());
 }
