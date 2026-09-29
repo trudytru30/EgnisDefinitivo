@@ -30,8 +30,6 @@ public:
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, MaxHealth)
 
 	// Se llama automáticamente después de que un GameplayEffect haya modificado un atributo.
-	// Aquí es donde en la Fase 4 se meterá "si Health llega a 0, dispara la muerte", equivalente
-	// GAS a lo que hoy hace HandleDeath(), pero centralizado en vez de disperso por el código.
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
 protected:

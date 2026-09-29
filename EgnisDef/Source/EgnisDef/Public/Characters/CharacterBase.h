@@ -18,6 +18,13 @@ class EGNISDEF_API ACharacterBase : public ACharacter, public IAbilitySystemInte
 
 public:
 	ACharacterBase();
+	
+	// Valores por defecto asignables desde el editor para inicializar el AttributeSet
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health")
+	float Health = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health")
+	float MaxHealth = 100.f;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 

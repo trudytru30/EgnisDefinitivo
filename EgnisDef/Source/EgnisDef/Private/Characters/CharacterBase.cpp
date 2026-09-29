@@ -6,9 +6,9 @@
 ACharacterBase::ACharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	HealthAttributeSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthAttributeSet"));
 	// Igual patrón que HealthComp/HealthAttributeSet: se crea en construcción para que exista desde el primer frame
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	HealthAttributeSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthAttributeSet"));
 }
 
 void ACharacterBase::BeginPlay()
@@ -23,16 +23,17 @@ void ACharacterBase::BeginPlay()
 		// ASC existe como componente pero no funciona
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	}
-
-	if (!Board)
+	
+	// Aplicar los valores por defecto editados desde el Blueprint/Detalles
+	if (HealthAttributeSet)
 	{
-		Board = Cast<ABoard>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoard::StaticClass()));
+		HealthAttributeSet->InitMaxHealth(MaxHealth);
+		HealthAttributeSet->InitHealth(Health);
 	}
 
 	if (!Board)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Board not found in level."), *GetName());
-		return;
+		Board = Cast<ABoard>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoard::StaticClass()));
 	}
 
 	const bool bRegistered = Board->RegisterOccupant(CurrentTile, this);
