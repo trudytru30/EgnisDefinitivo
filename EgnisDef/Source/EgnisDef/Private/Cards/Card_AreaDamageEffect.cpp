@@ -2,6 +2,8 @@
 #include "Characters/CharacterBase.h"
 #include "CoreAndSystems/Board.h"
 #include "CoreAndSystems/AudioManager.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "AbilitySystemComponent.h"
 #include "Environment/ObstacleBase.h"
 
 void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
@@ -37,7 +39,17 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 		{
 			if (Character->GetTeam() != Self->GetTeam())
 			{
-				Character->LossHealth(DamageAmount);
+				UAbilitySystemComponent* TargetASC = Character->GetAbilitySystemComponent();
+				if (TargetASC && DamageEffect)
+				{
+					FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+					FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
+					if (Spec.IsValid())
+					{
+						Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, -DamageAmount);
+						TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+					}
+				}
 			}
 			continue;
 		}
