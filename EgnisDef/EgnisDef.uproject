@@ -24,8 +24,7 @@
 		},
 		{
 			"Name":"GameplayAbilities",
-			"Enabled":true,
-			"TargetAllowList":"Editor"
+			"Enabled":true
 		}
 	]
 }
