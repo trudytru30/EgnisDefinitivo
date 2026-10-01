@@ -38,7 +38,6 @@ void AGameManager::InitializeManagers()
 	BattleManager = NewObject<UBattleManager>(this);
 	check(BattleManager);
 	BattleManager->Initialize(DeckManager);	// Aqui se inicializa el mazo
-	BattleManager->StartBattle();
 
 	UE_LOG(LogTemp, Warning, TEXT("Hand after StartBattle: %d"), DeckManager->GetHand().Num());
 }

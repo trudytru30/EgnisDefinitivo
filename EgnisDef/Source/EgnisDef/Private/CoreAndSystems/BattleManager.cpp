@@ -12,15 +12,17 @@ class AAlly;
 // Iniciar combate
 void UBattleManager::Initialize(UDeckManager* InDeckManager)
 {
-	// Recibir el mazo de combate e inicializarlo, despues empieza el combate
+	// Recibir el mazo de combate
 	DeckManager = InDeckManager;
-	if (DeckManager)
-		DeckManager->InitializeDeck();
 }
 
 // Inicio del combate, se inicializa el mazo, la vida de los personajes y las posiciones
 void UBattleManager::StartBattle()
 {
+	
+	if (DeckManager)
+		DeckManager->InitializeDeck();
+	
 	TurnCount = 0;
 	CurrentTurn = ETurnEnum::PlayerTurn;
 
@@ -224,7 +226,7 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 			TEXT("[BattleManager]: PLAYER LOST"));
 	}
 
-	//TODO: Notificar al GameMode (no entra en prototipo)
+	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
 // Pedir movimiento

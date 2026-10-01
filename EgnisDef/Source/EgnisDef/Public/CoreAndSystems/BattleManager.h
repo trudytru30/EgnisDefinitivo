@@ -26,8 +26,14 @@ public:
 	// Conexión con la UI para la mano
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerTurnStarted);
 
+	//Evento que avisa del final del combate
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBattleEndedSignature, bool, bPlayerWon);
+
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerTurnStarted OnPlayerTurnStarted;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnBattleEndedSignature OnBattleEndedEvent;
 
 #pragma region Functions
 	void Initialize(UDeckManager* DeckManager);
