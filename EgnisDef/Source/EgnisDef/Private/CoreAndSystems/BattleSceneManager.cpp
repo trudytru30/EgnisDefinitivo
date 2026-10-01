@@ -3,28 +3,33 @@
 #include "CoreAndSystems/GameManager.h"
 #include "Kismet/GameplayStatics.h"
 
-ABattleSceneManager::ABattleSceneManager()
+UBattleSceneManager::UBattleSceneManager()
 {
-	PrimaryActorTick.bCanEverTick = false;
 	CurrentPhase = EScenePhase::Deployment;
 }
 
-void ABattleSceneManager::BeginPlay()
+UWorld* UBattleSceneManager::GetWorld() const
 {
-	Super::BeginPlay();
-
-	AGameManager* GM = Cast<AGameManager>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (GM)
+	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
-		BattleManager = GM->GetBattleManager();
+		return nullptr;
 	}
+	return GetOuter() ? GetOuter()->GetWorld() : nullptr;
+}
 
-	BattleManager->OnBattleEndedEvent.AddDynamic(this, &ABattleSceneManager::OnCombatEnded);
+void UBattleSceneManager::Initialize(UBattleManager* InBattleManager)
+{
+	BattleManager = InBattleManager;
+
+	if (BattleManager)
+	{
+		BattleManager->OnBattleEndedEvent.AddDynamic(this, &UBattleSceneManager::OnCombatEnded);
+	}
 
 	StartDeployment();
 }
 
-void ABattleSceneManager::StartDeployment()
+void UBattleSceneManager::StartDeployment()
 {
 	CurrentPhase = EScenePhase::Deployment;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE DESPLIEGUE ---"));
@@ -32,7 +37,7 @@ void ABattleSceneManager::StartDeployment()
 	ShowDeploymentUI();
 }
 
-void ABattleSceneManager::StartCombatPhase()
+void UBattleSceneManager::StartCombatPhase()
 {
 	if (CurrentPhase != EScenePhase::Deployment) return;
 
@@ -45,7 +50,7 @@ void ABattleSceneManager::StartCombatPhase()
 	}
 }
 
-void ABattleSceneManager::OnCombatEnded(bool bPlayerWon)
+void UBattleSceneManager::OnCombatEnded(bool bPlayerWon)
 {
 	CurrentPhase = EScenePhase::Rewards;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE RECOMPENSAS ---"));

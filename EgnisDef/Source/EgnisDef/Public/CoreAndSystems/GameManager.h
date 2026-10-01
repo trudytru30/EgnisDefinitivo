@@ -4,12 +4,13 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameManager.generated.h"
 
+class UBattleSceneManager;
 class UAudioDataAsset;
 class UAudioManager;
 class UBaseCard;
 class UBattleManager;
 class UDeckManager;
-
+class UBattleSceneManager;
 
 UCLASS()
 class EGNISDEF_API AGameManager : public AGameModeBase
@@ -33,6 +34,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TArray<UBaseCard*> InitialDeck;
 
+	UPROPERTY(EditDefaultsOnly, Category="Scene Director")
+	TSubclassOf<UBattleSceneManager> BattleSceneManagerClass;
+
 private:
 
 	UPROPERTY()
@@ -40,6 +44,9 @@ private:
 
 	UPROPERTY()
 	UBattleManager* BattleManager;
+
+	UPROPERTY()
+	UBattleSceneManager* BattleSceneManager;
 
 	void InitializeManagers();
 };

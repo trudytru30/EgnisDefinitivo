@@ -12,17 +12,13 @@ class AAlly;
 // Iniciar combate
 void UBattleManager::Initialize(UDeckManager* InDeckManager)
 {
-	// Recibir el mazo de combate
 	DeckManager = InDeckManager;
+	bBattleIsOver = false;
 }
 
 // Inicio del combate, se inicializa el mazo, la vida de los personajes y las posiciones
 void UBattleManager::StartBattle()
 {
-	
-	if (DeckManager)
-		DeckManager->InitializeDeck();
-	
 	TurnCount = 0;
 	CurrentTurn = ETurnEnum::PlayerTurn;
 
@@ -34,6 +30,13 @@ void UBattleManager::StartBattle()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
+
+	if (DeckManager)
+	{
+		DeckManager->InitializeDeck(); 
+
+		DeckManager->DrawCardAmount(DeckManager->GetInitialHandSize()); 
+	}
 
 	StartPlayerTurn();
 }

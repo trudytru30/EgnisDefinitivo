@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "UObject/NoExportTypes.h"
 #include "BattleSceneManager.generated.h"
 
 class UBattleManager;
@@ -15,14 +15,18 @@ enum class EScenePhase : uint8
 	Rewards    UMETA(DisplayName = "Fase de Recompensas")
 };
 
-UCLASS()
-class EGNISDEF_API ABattleSceneManager : public AActor
+UCLASS(Blueprintable, BlueprintType)
+class EGNISDEF_API UBattleSceneManager : public UObject
 {
 	GENERATED_BODY()
 	
 public:	
-	ABattleSceneManager();
+	UBattleSceneManager();
 
+	void Initialize(UBattleManager* InBattleManager);
+	
+	virtual UWorld* GetWorld() const override;
+	
 	// Estado actual
 	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
 	EScenePhase CurrentPhase;
@@ -50,7 +54,4 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Scene Director|UI")
 	void ShowRewardsUI(bool bPlayerWon);
-
-protected:
-	virtual void BeginPlay() override;
 };
