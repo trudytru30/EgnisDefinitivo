@@ -29,6 +29,16 @@ public:
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, MaxHealth)
 
+	// Escudo: absorbe el daño antes que Health. Vive en este AttributeSet porque
+	// PreGameplayEffectExecute solo se llama en el dueño del atributo que se va a modificar,
+	// y la absorcion hay que hacerla justo cuando un GE va a restar Health.
+	UPROPERTY(BlueprintReadOnly, Category = "Health")
+	FGameplayAttributeData Shield;
+	ATTRIBUTE_ACCESSORS(UHealthAttributeSet, Shield)
+	
+	// Se llama justo ANTES de aplicar un GE instantaneo. Aqui el escudo se come parte del daño.
+	virtual bool PreGameplayEffectExecute(struct FGameplayEffectModCallbackData& Data) override;
+	
 	// Se llama automáticamente después de que un GameplayEffect haya modificado un atributo.
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
