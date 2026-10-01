@@ -14,8 +14,8 @@ void URunProgressionSubsystem::InitializeRunRoster(const TArray<UHeroDataAsset*>
         
 		RuntimeData.bIsUnlocked = (PlayerRoster.Num() == 0); 
 		RuntimeData.CurrentHealth = 100.f;
-
-		PlayerRoster.Add(Asset->ExcelRowName, RuntimeData);
+		
+		PlayerRoster.Add(Asset->HeroStatsRow.RowName, RuntimeData);
 	}
 }
 
@@ -32,17 +32,17 @@ TArray<FHeroRuntimeData> URunProgressionSubsystem::GetUnlockedHeroes() const
 	return Result;
 }
 
-void URunProgressionSubsystem::UnlockHero(FName ExcelRowName)
+void URunProgressionSubsystem::UnlockHero(FName HeroRowName)
 {
-	if (FHeroRuntimeData* FoundHero = PlayerRoster.Find(ExcelRowName))
+	if (FHeroRuntimeData* FoundHero = PlayerRoster.Find(HeroRowName))
 	{
 		FoundHero->bIsUnlocked = true;
 	}
 }
 
-void URunProgressionSubsystem::UpdateHeroHealth(FName ExcelRowName, float NewHealth)
+void URunProgressionSubsystem::UpdateHeroHealth(FName HeroRowName, float NewHealth)
 {
-	if (FHeroRuntimeData* FoundHero = PlayerRoster.Find(ExcelRowName))
+	if (FHeroRuntimeData* FoundHero = PlayerRoster.Find(HeroRowName))
 	{
 		FoundHero->CurrentHealth = NewHealth;
 	}

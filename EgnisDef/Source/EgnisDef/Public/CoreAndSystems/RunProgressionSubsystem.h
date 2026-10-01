@@ -17,20 +17,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Run Progression")
 	void InitializeRunRoster(const TArray<UHeroDataAsset*>& AllHeroAssets);
 
-	// Devuelve solo los héroes que están desbloqueados (para pintarlos en la UI de despliegue)
+	// Devuelve solo los héroes que están desbloqueados (para la UI de despliegue)
 	UFUNCTION(BlueprintCallable, Category = "Run Progression")
 	TArray<FHeroRuntimeData> GetUnlockedHeroes() const;
 
-	// Desbloquear un personaje específico durante la partida
+	// Desbloquear un personaje específico por su clave FName de la fila
 	UFUNCTION(BlueprintCallable, Category = "Run Progression")
-	void UnlockHero(FName ExcelRowName);
+	void UnlockHero(FName HeroRowName);
 
 	// Actualizar la vida de un personaje tras un combate
 	UFUNCTION(BlueprintCallable, Category = "Run Progression")
-	void UpdateHeroHealth(FName ExcelRowName, float NewHealth);
+	void UpdateHeroHealth(FName HeroRowName, float NewHealth);
 
 private:
-	// Mapa interno para buscar de forma rápida por su clave única (el ExcelRowName)
 	UPROPERTY()
 	TMap<FName, FHeroRuntimeData> PlayerRoster;
 };
