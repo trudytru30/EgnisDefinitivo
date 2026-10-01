@@ -48,7 +48,7 @@ void ABattleSceneManager::StartCombatPhase()
 void ABattleSceneManager::OnCombatEnded(bool bPlayerWon)
 {
 	CurrentPhase = EScenePhase::Rewards;
-	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE RECOMPENSAS --- Victoria: %s"));
+	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE RECOMPENSAS ---"));
 
 	ShowRewardsUI(bPlayerWon);
 }
