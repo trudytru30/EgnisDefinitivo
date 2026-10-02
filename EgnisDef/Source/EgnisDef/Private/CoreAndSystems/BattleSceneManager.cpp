@@ -1,6 +1,9 @@
 #include "CoreAndSystems/BattleSceneManager.h"
+
+#include "Cards/DeckManager.h"
 #include "CoreAndSystems/BattleManager.h"
 #include "Characters/Ally.h"
+#include "CoreAndSystems/DeployManager.h"
 #include "CoreAndSystems/GameManager.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -9,69 +12,58 @@ UBattleSceneManager::UBattleSceneManager()
 	CurrentPhase = EScenePhase::Deployment;
 }
 
+void UBattleSceneManager::Initialize()
+{
+	// 1. Creamos el Gestor de Despliegue
+	DeployManager = NewObject<UDeployManager>(this);
+	check(DeployManager);
+
+	// 2. Creamos el Gestor de Cartas
+	DeckManager = NewObject<UDeckManager>(this);
+	check(DeckManager);
+
+	// 3. Creamos el Gestor de Batalla y le pasamos el mazo
+	BattleManager = NewObject<UBattleManager>(this);
+	check(BattleManager);
+	BattleManager->SetDeckManager(DeckManager);
+
+	// Nos suscribimos al final del combate
+	BattleManager->OnBattleEndedEvent.AddDynamic(this, &UBattleSceneManager::OnCombatEnded);
+
+	// Empezamos la escena
+	StartDeploymentPhase();
+}
+
 UWorld* UBattleSceneManager::GetWorld() const
 {
-	if (HasAnyFlags(RF_ClassDefaultObject))
+	// Si es el objeto por defecto de la clase (CDO), no tiene mundo
+	if (HasAllFlags(RF_ClassDefaultObject))
 	{
 		return nullptr;
 	}
+
+	// Devuelve el mundo del 'Outer' (que es el GameManager/GameMode que lo creó con NewObject)
 	return GetOuter() ? GetOuter()->GetWorld() : nullptr;
 }
 
-void UBattleSceneManager::Initialize(UBattleManager* InBattleManager)
-{
-	BattleManager = InBattleManager;
-
-	if (BattleManager)
-	{
-		BattleManager->OnBattleEndedEvent.AddDynamic(this, &UBattleSceneManager::OnCombatEnded);
-	}
-
-	StartDeployment();
-}
-
-void UBattleSceneManager::StartDeployment()
+void UBattleSceneManager::StartDeploymentPhase()
 {
 	CurrentPhase = EScenePhase::Deployment;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE DESPLIEGUE ---"));
-
+	DeployManager->Initialize(BaseAllyClass);
 	ShowDeploymentUI();
-}
-
-bool UBattleSceneManager::TryDeployHeroAtLocation(FVector SpawnLocation, FRotator SpawnRotation)
-{
-	if (CurrentPhase != EScenePhase::Deployment || !SelectedHero || !BaseAllyClass)
-	{
-		return false;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World) return false;
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-	// 1. Hacemos Spawn de la clase BASE genérica
-	AAlly* SpawnedAlly = World->SpawnActor<AAlly>(BaseAllyClass, SpawnLocation, SpawnRotation, SpawnParams);
-
-	if (SpawnedAlly)
-	{
-		// 2. Le inyectamos los datos para que "se convierta" en el héroe correcto
-		SpawnedAlly->InitializeFromData(SelectedHero);
-        
-		// 3. Limpiamos la selección
-		SelectedHero = nullptr; 
-        
-		return true;
-	}
-	return false;
 }
 
 void UBattleSceneManager::StartCombatPhase()
 {
 	if (CurrentPhase != EScenePhase::Deployment) return;
-
+	
 	HideDeploymentUI();
+
+	//Provisional de debug hasta que haya un sistema en run subsystems donde se guardan las cartas obtenidas
+	DeckManager->SetDeck(InitialDeck);
+	DeckManager->InitializeDeck();
+	
 	ShowHUD();
 
 	CurrentPhase = EScenePhase::Combat;

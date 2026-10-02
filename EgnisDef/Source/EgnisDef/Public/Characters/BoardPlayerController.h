@@ -14,7 +14,9 @@ class ACharacterBase;
 class UInputAction;
 class UInputMappingContext;
 class UBattleManager;
+class UDeckManager;
 class UBattleSceneManager;
+class UDeployManager;
 
 #pragma region Enums
 UENUM(BlueprintType)
@@ -141,7 +143,10 @@ private:
     TObjectPtr<UBattleManager> BM = nullptr;
 
     UPROPERTY()
-    TObjectPtr<class UBattleSceneManager> BSM = nullptr;
+    TObjectPtr<UBattleSceneManager> BSM = nullptr;
+
+    UPROPERTY()
+    TObjectPtr<UDeployManager> DPM = nullptr;
 
     bool bIsInMenu = false;
 
@@ -169,7 +174,7 @@ private:
     void TrySelectCardSource();
     void TrySelectCardTarget();
     bool TrySelectAlly();
-    void TryMoveSelectedAlly();
+    void TryMoveSelectedAlly(const FHitResult& Hit);
     void ExecuteCardPlay(ACharacterBase* TargetUnit, FVector TargetLocation);
     // -------------------------------------------
 #pragma endregion

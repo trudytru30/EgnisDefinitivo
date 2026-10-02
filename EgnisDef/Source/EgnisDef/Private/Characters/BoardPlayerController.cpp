@@ -14,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "AbilitySystemComponent.h"
 #include "CoreAndSystems/BattleSceneManager.h"
+#include "CoreAndSystems/DeployManager.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
 
 ABoardPlayerController::ABoardPlayerController()
@@ -32,34 +33,33 @@ void ABoardPlayerController::BeginPlay()
 
     if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
     {
-       if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-       {
-          if (IMCGameplay)
-             Subsystem->AddMappingContext(IMCGameplay, 0);
-          if (IMCUI)
-             Subsystem->AddMappingContext(IMCUI, 1);
-       }
+        if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+        {
+            if (IMCGameplay)
+                Subsystem->AddMappingContext(IMCGameplay, 0);
+            if (IMCUI)
+                Subsystem->AddMappingContext(IMCUI, 1);
+        }
     }
 
     if (AGameManager* GM = Cast<AGameManager>(GetWorld()->GetAuthGameMode()))
     {
-       BM = GM->GetBattleManager();
-       DeckManager = GM->GetDeckManager();
-        BSM = GM->BattleSceneManager;
+        
+        BSM = GM->GetBattleSceneManager();
+        DPM = BSM->GetDeployManager();
+        BM = BSM->GetBattleManager();
+        DeckManager = BSM->GetDeckManager();
     }
 
     if (BM)
-       BM->OnPlayerTurnStarted.AddDynamic(this, &ABoardPlayerController::BP_RefreshHandUI);
+        BM->OnPlayerTurnStarted.AddDynamic(this, &ABoardPlayerController::BP_RefreshHandUI);
     else
-       UE_LOG(LogTemp, Error, TEXT("[BoardPlayerController]: BattleManager is null"));
+        UE_LOG(LogTemp, Error, TEXT("[BoardPlayerController]: BattleManager is null"));
 
-    if (GameHUDClass)
+    if (DeckManager)
     {
-       HUDWidget = CreateWidget<UUserWidget>(this, GameHUDClass);
-       if (HUDWidget)
-          HUDWidget->AddToViewport();
+        DeckManager->OnHandChanged.AddDynamic(this, &ABoardPlayerController::BP_RefreshHandUI);
     }
-    BP_RefreshHandUI();
 }
 
 void ABoardPlayerController::SetupInputComponent()
@@ -71,8 +71,8 @@ void ABoardPlayerController::SetupInputComponent()
 
     if (!ClickAction || !PauseAction)
     {
-       UE_LOG(LogTemp, Warning, TEXT("ClickAction or PauseAction not found"));
-       return;
+        UE_LOG(LogTemp, Warning, TEXT("ClickAction or PauseAction not found"));
+        return;
     }
     
     EnhancedInput->BindAction(ClickAction, ETriggerEvent::Started, this, &ABoardPlayerController::HandleLeftClick);
@@ -114,38 +114,40 @@ void ABoardPlayerController::ProcessCardStateInput()
 
 void ABoardPlayerController::ProcessDefaultStateInput()
 {
-    FHitResult Hit;
-    if (TraceUnderCursor(BoardTraceChannel, Hit))
-    {
-        FVector FinalLocation = Hit.ImpactPoint;
-        FRotator FixedRotation = FRotator(0.f, 0.f, 0.f); // Tu rotación fija
-
-        // Centramos en la baldosa exacta y subimos un poco la Z para que no roce el suelo
-        if (ABoard* Board = Cast<ABoard>(Hit.GetActor()))
-        {
-            FTileCoord Tile;
-            if (Board->WorldPointToTile(Hit.ImpactPoint, Tile))
-            {
-                FinalLocation = Board->TileToWorldCenter(Tile);
-                FinalLocation.Z = 1.f; // Margen de altura
-            }
-        }
-
-        // Ejecutamos el despliegue con la posición limpia y centrada
-        BSM->TryDeployHeroAtLocation(FinalLocation, FixedRotation);
-        return; 
-    }
-
-    // 2. MODO NORMAL: Intentar seleccionar un aliado (si se selecciona, terminamos)
     if (TrySelectAlly()) 
     {
         return; 
     }
 
-    // 3. MODO NORMAL: Si no seleccionó nada nuevo, intentar mover al aliado que ya tenía
-    if (CurrentIntent == EInputIntent::Move)
+    //Comprobar si has hecho click en el tablero
+    FHitResult Hit;
+    if (TraceUnderCursor(BoardTraceChannel, Hit))
     {
-        TryMoveSelectedAlly();
+        //Si está en fase de despliegue intentará colocar un personaje
+        if (BSM && BSM->CurrentPhase == EScenePhase::Deployment) 
+        {
+            FVector FinalLocation = Hit.ImpactPoint;
+            FRotator FixedRotation = FRotator::ZeroRotator;
+
+            if (ABoard* Board = Cast<ABoard>(Hit.GetActor()))
+            {
+                FTileCoord Tile;
+                if (Board->WorldPointToTile(Hit.ImpactPoint, Tile))
+                {
+                    FinalLocation = Board->TileToWorldCenter(Tile);
+                    FinalLocation.Z = 1.f; // Margen de altura
+                }
+            }
+
+            DPM->TryDeployHeroAtLocation(FinalLocation, FixedRotation);
+            return; 
+        }
+        
+        //Si no está en fase de despliegue se intenta mover
+        if (CurrentIntent == EInputIntent::Move && SelectedAlly)
+        {
+            TryMoveSelectedAlly(Hit);
+        }
     }
 }
 
@@ -272,11 +274,8 @@ bool ABoardPlayerController::TrySelectAlly()
     return false;
 }
 
-void ABoardPlayerController::TryMoveSelectedAlly()
+void ABoardPlayerController::TryMoveSelectedAlly(const FHitResult& Hit)
 {
-    FHitResult Hit;
-    if (!TraceUnderCursor(BoardTraceChannel, Hit)) return;
-
     if (ABoard* Board = Cast<ABoard>(Hit.GetActor()))
     {
         FTileCoord Tile;
@@ -290,23 +289,20 @@ void ABoardPlayerController::TryMoveSelectedAlly()
 
             if (!BM) return;
 
-            BM->RequestMove(SelectedAlly, Tile);
-
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("Tile = (%d, %d)"), Tile.X, Tile.Y));
-            
-            // Construir el Result para enviar al Blueprint (Efectos visuales)
-            FClickResult Result;
-            Result.bHit = true; 
-            Result.bHitBoard = true;
-            Result.HitActor = Board; 
-            Result.WorldPoint = Hit.ImpactPoint;
-            BP_OnclickResolved(Result);
-            
-            DrawDebugSphere(GetWorld(), Result.WorldPoint, 10.f, 12, FColor::Green, false, 1.0f);
-        }
-        else
-        {
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Click fuera del tablero"));
+            // Intenta mover
+            if (BM->RequestMove(SelectedAlly, Tile))
+            {
+                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("Moved to Tile = (%d, %d)"), Tile.X, Tile.Y));
+                
+                FClickResult Result;
+                Result.bHit = true; 
+                Result.bHitBoard = true;
+                Result.HitActor = Board; 
+                Result.WorldPoint = Hit.ImpactPoint;
+                BP_OnclickResolved(Result);
+                
+                DrawDebugSphere(GetWorld(), Result.WorldPoint, 10.f, 12, FColor::Green, false, 1.0f);
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ public:
 	FOnHandChanged OnHandChanged;
 
 	int32 GetDrawPileSize() const { return DrawPile.Num(); }
+	
 #pragma region Functions
 	// Modificar las cartas del mazo elegidas por el player
 	void GenerateDeck(const TArray<TSubclassOf<UBaseCard>>& SelectedCarts);
@@ -29,10 +30,14 @@ public:
 	void DrawCard();
 	void DrawCardAmount(int32 Amount);
 	void ShuffleDeck();
+	
 	void DiscardCardFromHand(UBaseCard* Card);
 	void DiscardCardFromDrawPile(UBaseCard* Card);
+	void DiscardHand();
+
 	void AddCardToDeck(UBaseCard* Card);
 	void RemoveCardFromDeck(UBaseCard* Card);
+	
 	// Getters
 	int32 GetInitialHandSize();
 	int32 GetMaxHandSize();

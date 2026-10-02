@@ -7,22 +7,22 @@
 #include "Characters/Enemy.h"
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
+#include "CoreAndSystems/GameManager.h"
 
 class AAlly;
-// Iniciar combate
-void UBattleManager::Initialize(UDeckManager* InDeckManager)
+
+void UBattleManager::SetDeckManager(UDeckManager* InDeckManager)
 {
 	DeckManager = InDeckManager;
-	bBattleIsOver = false;
 }
 
 // Inicio del combate, se inicializa el mazo, la vida de los personajes y las posiciones
 void UBattleManager::StartBattle()
 {
+	bBattleIsOver = false;
 	TurnCount = 0;
 	CurrentTurn = ETurnEnum::PlayerTurn;
 
-	// Obtener numero de personajes en el campo
 	CharactersOnField.Empty();
 	for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It)
 	{
@@ -30,14 +30,7 @@ void UBattleManager::StartBattle()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
-
-	if (DeckManager)
-	{
-		DeckManager->InitializeDeck(); 
-
-		DeckManager->DrawCardAmount(DeckManager->GetInitialHandSize()); 
-	}
-
+	
 	StartPlayerTurn();
 }
 

@@ -6,11 +6,6 @@
 
 class UBattleSceneManager;
 class UAudioDataAsset;
-class UAudioManager;
-class UBaseCard;
-class UBattleManager;
-class UDeckManager;
-class UBattleSceneManager;
 
 UCLASS()
 class EGNISDEF_API AGameManager : public AGameModeBase
@@ -20,33 +15,21 @@ class EGNISDEF_API AGameManager : public AGameModeBase
 public:
 	AGameManager();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Scene Director")
-	UBattleSceneManager* BattleSceneManager;
-
-#pragma region Functions
-	UDeckManager* GetDeckManager() const { return DeckManager; }
-	UBattleManager* GetBattleManager() const { return BattleManager; }
-#pragma endregion
+	UFUNCTION(BlueprintPure, Category = "Managers")
+	UBattleSceneManager* GetBattleSceneManager() const { return BattleSceneManager; }
 
 protected:
-
 	virtual void BeginPlay() override;
+	
 	UPROPERTY(EditDefaultsOnly, Category="Audio")
 	TObjectPtr<UAudioDataAsset> AudioData;
-
-	UPROPERTY(EditDefaultsOnly)
-	TArray<UBaseCard*> InitialDeck;
 
 	UPROPERTY(EditDefaultsOnly, Category="Scene Director")
 	TSubclassOf<UBattleSceneManager> BattleSceneManagerClass;
 
 private:
-
-	UPROPERTY()
-	UDeckManager* DeckManager;
-
-	UPROPERTY()
-	UBattleManager* BattleManager;
-
 	void InitializeManagers();
+
+	UPROPERTY()
+	TObjectPtr<UBattleSceneManager> BattleSceneManager = nullptr;
 };

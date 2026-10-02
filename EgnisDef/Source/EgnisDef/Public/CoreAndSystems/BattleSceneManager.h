@@ -4,9 +4,10 @@
 #include "Characters/HeroDataAsset.h"
 #include "BattleSceneManager.generated.h"
 
+class UDeployManager;
 class UBattleManager;
-class AGameManager;
-class AAlly;
+class UDeckManager;
+class UBaseCard;
 
 UENUM(BlueprintType)
 enum class EScenePhase : uint8
@@ -24,39 +25,35 @@ class EGNISDEF_API UBattleSceneManager : public UObject
 public:	
 	UBattleSceneManager();
 
-	void Initialize(UBattleManager* InBattleManager);
-	
 	virtual UWorld* GetWorld() const override;
 
-	// Variable para guardar el héroe seleccionado desde la UI
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scene Director|Deployment")
-	UHeroDataAsset* SelectedHero;
+	UPROPERTY(EditDefaultsOnly)
+	TArray<UBaseCard*> InitialDeck;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Scene Director|Deployment")
-	TSubclassOf<AAlly> BaseAllyClass;
-	
-	// Estado actual
 	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
 	EScenePhase CurrentPhase;
 
-	// Referencia al Battle Manager
-	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
-	UBattleManager* BattleManager;
+	UFUNCTION(BlueprintPure, Category = "Managers")
+	UBattleManager* GetBattleManager() const { return BattleManager; }
+
+	UFUNCTION(BlueprintPure, Category = "Managers")
+	UDeckManager* GetDeckManager() const { return DeckManager; }
+
+	UFUNCTION(BlueprintPure, Category = "Managers")
+	UDeployManager* GetDeployManager() const { return DeployManager; }
+
+	void Initialize();
 
 	// --- FLUJO DEL JUEGO ---
     
 	UFUNCTION(BlueprintCallable, Category = "Scene Director|Flow")
-	void StartDeployment();
+	void StartDeploymentPhase();
 
 	UFUNCTION(BlueprintCallable, Category = "Scene Director|Flow")
 	void StartCombatPhase();
-
-	// Función que se ejecutará automáticamente cuando el combate termine
+	
 	UFUNCTION()
 	void OnCombatEnded(bool bPlayerWon);
-
-	UFUNCTION(BlueprintCallable, Category = "Scene Director|Deployment")
-	bool TryDeployHeroAtLocation(FVector SpawnLocation, FRotator SpawnRotation);
 
 	// --- EVENTOS DE INTERFAZ ---
     
@@ -74,4 +71,18 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Scene Director|UI")
 	void ShowRewardsUI(bool bPlayerWon);
+
+protected:
+	// Esta es la variable que configuras en tu Blueprint del BattleSceneManager en el Editor:
+	UPROPERTY(EditDefaultsOnly, Category = "Deployment")
+	TSubclassOf<AAlly> BaseAllyClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
+	UDeployManager* DeployManager;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
+	UBattleManager* BattleManager;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
+	UDeckManager* DeckManager;
 };

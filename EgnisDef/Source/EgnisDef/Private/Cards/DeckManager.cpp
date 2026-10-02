@@ -1,6 +1,7 @@
 #include "Cards/DeckManager.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "Characters/Ally.h"
+#include "Algo/RandomShuffle.h"
 
 // Aniadir cartas al mazo
 //Construye el mazo desde cero
@@ -21,6 +22,20 @@ void UDeckManager::GenerateDeck(const TArray<TSubclassOf<UBaseCard>>& SelectedCa
 	}
 }
 
+void UDeckManager::SetDeck(const TArray<UBaseCard*>& InDeck)
+{
+	ResetDeck();
+
+	for (UBaseCard* CardTemplate : InDeck)
+	{
+		if (CardTemplate)
+		{
+			UBaseCard* NewCardInstance = DuplicateObject<UBaseCard>(CardTemplate, this);
+			Deck.Add(NewCardInstance);
+		}
+	}
+}
+
 // Inicializar mazo al principio de la batalla
 //Se llama al empezar cada combate(coge todo el deck y lo convierte en drawPile
 void UDeckManager::InitializeDeck()
@@ -35,10 +50,9 @@ void UDeckManager::InitializeDeck()
 // Barajar cartas de forma aleatoria
 void UDeckManager::ShuffleDeck()
 {
-	for (int32 i = 0; i < DrawPile.Num(); i++)
+	if (DrawPile.Num() > 1)
 	{
-		int32 RandomIndex = FMath::RandRange(0, DrawPile.Num() - 1);
-		DrawPile.Swap(i, RandomIndex);
+		Algo::RandomShuffle(DrawPile);
 	}
 }
 
@@ -105,7 +119,7 @@ void UDeckManager::DiscardCardFromDrawPile(UBaseCard* Card)
 {
 	if (DrawPile.Contains(Card))
 	{
-		DrawPile.Remove(Card);
+		DrawPile.RemoveSingle(Card);
 		DiscardedPile.Add(Card);
 	}
 }
@@ -171,10 +185,4 @@ int32 UDeckManager::GetMaxHandSize()
 TArray<UBaseCard*> UDeckManager::GetHand()
 {
 	return Hand;
-}
-
-void UDeckManager::SetDeck(const TArray<UBaseCard*>& InDeck)
-{
-	ResetDeck();
-	Deck = InDeck;
 }

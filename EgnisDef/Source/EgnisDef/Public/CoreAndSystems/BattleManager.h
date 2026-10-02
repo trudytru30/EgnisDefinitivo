@@ -36,7 +36,7 @@ public:
 	FOnBattleEndedSignature OnBattleEndedEvent;
 
 #pragma region Functions
-	void Initialize(UDeckManager* DeckManager);
+	void SetDeckManager(UDeckManager* InDeckManager);
 	void StartBattle();
 	void StartPlayerTurn();
 	void StartEnemyTurn();
