@@ -1,11 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
+#include "Characters/HeroDataAsset.h"
 #include "BattleSceneManager.generated.h"
 
 class UBattleManager;
 class AGameManager;
+class AAlly;
 
 UENUM(BlueprintType)
 enum class EScenePhase : uint8
@@ -26,6 +27,13 @@ public:
 	void Initialize(UBattleManager* InBattleManager);
 	
 	virtual UWorld* GetWorld() const override;
+
+	// Variable para guardar el héroe seleccionado desde la UI
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scene Director|Deployment")
+	UHeroDataAsset* SelectedHero;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Scene Director|Deployment")
+	TSubclassOf<AAlly> BaseAllyClass;
 	
 	// Estado actual
 	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
@@ -47,10 +55,22 @@ public:
 	UFUNCTION()
 	void OnCombatEnded(bool bPlayerWon);
 
+	UFUNCTION(BlueprintCallable, Category = "Scene Director|Deployment")
+	bool TryDeployHeroAtLocation(FVector SpawnLocation, FRotator SpawnRotation);
+
 	// --- EVENTOS DE INTERFAZ ---
     
 	UFUNCTION(BlueprintImplementableEvent, Category = "Scene Director|UI")
 	void ShowDeploymentUI();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Scene Director|UI")
+	void HideDeploymentUI();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Scene Director|UI")
+	void ShowHUD();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Scene Director|UI")
+	void HideHUD();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Scene Director|UI")
 	void ShowRewardsUI(bool bPlayerWon);

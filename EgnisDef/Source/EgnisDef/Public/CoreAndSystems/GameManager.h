@@ -20,6 +20,9 @@ class EGNISDEF_API AGameManager : public AGameModeBase
 public:
 	AGameManager();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Scene Director")
+	UBattleSceneManager* BattleSceneManager;
+
 #pragma region Functions
 	UDeckManager* GetDeckManager() const { return DeckManager; }
 	UBattleManager* GetBattleManager() const { return BattleManager; }
@@ -44,9 +47,6 @@ private:
 
 	UPROPERTY()
 	UBattleManager* BattleManager;
-
-	UPROPERTY()
-	UBattleSceneManager* BattleSceneManager;
 
 	void InitializeManagers();
 };

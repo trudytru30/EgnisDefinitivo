@@ -21,6 +21,9 @@ public:
 	void LossPoints(int32 Cost);
 	void GainPoints(int32 Bonus);
 	void ResetEnergyForTurn();
+
+	UFUNCTION(BlueprintCallable, Category = "Setup")
+	void InitializeFromData(UHeroDataAsset* HeroData);
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UEnergyAttributeSet* EnergyAttributeSet;

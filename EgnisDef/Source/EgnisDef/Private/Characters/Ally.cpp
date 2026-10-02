@@ -1,4 +1,5 @@
 #include "Characters/Ally.h"
+#include "Characters/HeroDataAsset.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "Components/GridMovementComponent.h"
 #include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
@@ -28,9 +29,24 @@ void AAlly::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-// Sustituyen a EnergyComp->GetCurrentPoints()/GetMaxPoints() de cara al resto del código y al BP.
-// Redondeo con RoundToInt porque FGameplayAttributeData guarda floats, pero el juego trabaja
-// en puntos enteros (igual que EnergyComponent usaba int32).
+void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
+{
+    if (!HeroData) return;
+
+    // 1. Apariencia y Animación (Asumiendo que CharacterMesh y AnimBP están en el DataAsset)
+    if (HeroData->CharacterMesh && GetMesh())
+    {
+        GetMesh()->SetSkeletalMesh(HeroData->CharacterMesh);
+    }
+
+    // 3. Inicializar Estadísticas usando GAS
+    if (GetAbilitySystemComponent())
+    {
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Aliado %s inicializado desde DataAsset."), *GetName());
+}
+
 int32 AAlly::GetCurrentEnergy() const
 {
 	return EnergyAttributeSet ? FMath::RoundToInt(EnergyAttributeSet->GetEnergy()) : 0;
