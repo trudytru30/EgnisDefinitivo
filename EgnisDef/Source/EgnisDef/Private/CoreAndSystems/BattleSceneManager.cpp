@@ -60,6 +60,11 @@ void UBattleSceneManager::StartCombatPhase()
 	
 	HideDeploymentUI();
 
+	if (InitialDeck.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BattleSceneManager]: ¡InitialDeck está vacío! Asígnale cartas en el BP_BattleSceneManager."));
+	}
+
 	//Provisional de debug hasta que haya un sistema en run subsystems donde se guardan las cartas obtenidas
 	DeckManager->SetDeck(InitialDeck);
 	DeckManager->InitializeDeck();

@@ -72,9 +72,6 @@ public:
     UFUNCTION(BlueprintCallable, Category="Selection")
     ACharacterBase* GetSelectedAlly() const { return SelectedAlly; }
 
-    UFUNCTION(BlueprintPure, Category="UI")
-    UUserWidget* GetHUDWidget() const { return HUDWidget; }
-
     UFUNCTION(BlueprintPure, Category="Cards")
     bool IsCardArchetypeAvailable(const UBaseCard* Card) const;
 
@@ -95,11 +92,6 @@ public:
     
     UPROPERTY()
     UDeckManager* DeckManager = nullptr;
-
-    UPROPERTY(EditDefaultsOnly, Category="UI")
-    TSubclassOf<UUserWidget> GameHUDClass;
-    UPROPERTY()
-    UUserWidget* HUDWidget;
 
 protected:
     virtual void BeginPlay() override;
