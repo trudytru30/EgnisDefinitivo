@@ -6,7 +6,6 @@ UHealthAttributeSet::UHealthAttributeSet()
 {
 	InitHealth(100.f);
 	InitMaxHealth(100.f);
-	InitShield(0.f);
 }
 
 void UHealthAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -23,36 +22,6 @@ void UHealthAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 		// Aquí se aplica antes de guardar el valor
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
 	}
-	else if (Attribute == GetShieldAttribute())
-	{
-		// El escudo no baja de 0 (no tiene maximo)
-		NewValue = FMath::Max(NewValue, 0.f);
-	}
-}
-
-bool UHealthAttributeSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data)
-{
-	if (!Super::PreGameplayEffectExecute(Data))
-	{
-		return false;
-	}
-
-	// Solo el daño: un GE "Add" sobre Health con magnitud negativa (es como lo aplica
-	// Card_AttackEffect con GE_CardDamage). Las curaciones (magnitud positiva) no tocan el escudo.
-	if (Data.EvaluatedData.Attribute == GetHealthAttribute()
-		&& Data.EvaluatedData.ModifierOp == EGameplayModOp::Additive
-		&& Data.EvaluatedData.Magnitude < 0.f
-		&& GetShield() > 0.f)
-	{
-		const float Damage = -Data.EvaluatedData.Magnitude;
-		const float Absorbed = FMath::Min(GetShield(), Damage);
-
-		SetShield(GetShield() - Absorbed);
-		// Lo absorbido se le quita al daño: si el escudo lo cubre todo, queda en 0 y Health no cambia
-		Data.EvaluatedData.Magnitude += Absorbed;
-	}
-
-	return true;
 }
 
 void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)

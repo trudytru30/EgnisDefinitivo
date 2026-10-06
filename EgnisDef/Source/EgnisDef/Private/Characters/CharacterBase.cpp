@@ -29,7 +29,6 @@ void ACharacterBase::BeginPlay()
 	{
 		HealthAttributeSet->InitMaxHealth(MaxHealth);
 		HealthAttributeSet->InitHealth(Health);
-		HealthAttributeSet->InitShield(InitialShield);
 	}
 
 	if (!Board)
@@ -153,11 +152,6 @@ float ACharacterBase::GetCurrentHealth() const
 float ACharacterBase::GetMaxHealth() const
 {
 	return HealthAttributeSet ? HealthAttributeSet->GetMaxHealth() : 0.f;
-}
-
-float ACharacterBase::GetCurrentShield() const
-{
-	return HealthAttributeSet ? HealthAttributeSet->GetShield() : 0.f;
 }
 
 
