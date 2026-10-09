@@ -12,6 +12,11 @@
 				"Engine",
 				"CoreUObject"
 			]
+		},
+		{
+			"Name": "SheetsImporterModule",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
@@ -23,8 +28,8 @@
 			]
 		},
 		{
-			"Name":"GameplayAbilities",
-			"Enabled":true
+			"Name": "GameplayAbilities",
+			"Enabled": true
 		}
 	]
 }
