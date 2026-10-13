@@ -7,6 +7,8 @@
 // codigo muerto, es una dependencia de modulo que puede no estar en el Build.cs del proyecto
 // nuevo y dar error de enlazado sin necesidad. Se quita.
 #include "Kismet/GameplayStatics.h"
+#include "AbilitySystemComponent.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 AEnemy::AEnemy()
 {
@@ -168,9 +170,21 @@ void AEnemy::MakeAction()
 	if (Target)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[%s] Heal -> %s (Range=%d) Amount=%.1f"),
-			*GetName(), *Target->GetName(), Range, HealAmount);
+		*GetName(), *Target->GetName(), Range, HealAmount);
 
-		Target->GainHealth(HealAmount);
+		if (UAbilitySystemComponent* TargetASC = Target->GetAbilitySystemComponent())
+		{
+			if (HealEffect)
+			{
+				FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(HealEffect, 1.f, Context);
+				if (Spec.IsValid())
+				{
+					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, HealAmount);
+					TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+				}
+			}
+		}
 		return;
 	}
 
@@ -188,9 +202,21 @@ void AEnemy::MakeAction()
 	if (Target)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[%s] Attack -> %s (Range=%d) Damage=%.1f"),
-			*GetName(), *Target->GetName(), Range, AttackDamage);
+		*GetName(), *Target->GetName(), Range, AttackDamage);
 
-		Target->LossHealth(AttackDamage);
+		if (UAbilitySystemComponent* TargetASC = Target->GetAbilitySystemComponent())
+		{
+			if (AttackEffect)
+			{
+				FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(AttackEffect, 1.f, Context);
+				if (Spec.IsValid())
+				{
+					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, -AttackDamage);
+					TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+				}
+			}
+		}
 		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayAttackSound(4);
 		return;
 	}
@@ -235,16 +261,15 @@ ACharacterBase* AEnemy::FindBestTarget(int32 _Range, int32 _BestRatio, int32 _Te
 {
 	auto HealthRatio = [](const ACharacterBase* Unit) -> float
 	{
-		if (!Unit || !Unit->HealthComp)
+		if (!Unit)
 		{
 			return 1.0f;
 		}
-		Unit->HealthComp->GetMaxHealth();
-		if (Unit->HealthComp->GetMaxHealth() <= 0.f)
+		if (Unit->GetMaxHealth() <= 0.f)
 		{
 			return 1.0f;
 		}
-		return Unit->HealthComp->GetCurrentHealth() / Unit->HealthComp->GetMaxHealth();
+		return Unit->GetCurrentHealth() / Unit->GetMaxHealth();
 	};
 
 	ACharacterBase* BestTarget = nullptr;

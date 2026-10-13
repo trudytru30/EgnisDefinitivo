@@ -5,27 +5,24 @@
 #include "Cards/BaseCard.h"
 #include "Characters/CharacterBase.h"
 #include "Characters/Enemy.h"
-#include "Components/EnergyComponent.h"
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
+#include "CoreAndSystems/GameManager.h"
 
 class AAlly;
-// Iniciar combate
-void UBattleManager::Initialize(UDeckManager* InDeckManager)
+
+void UBattleManager::SetDeckManager(UDeckManager* InDeckManager)
 {
-	// Recibir el mazo de combate e inicializarlo, despues empieza el combate
 	DeckManager = InDeckManager;
-	if (DeckManager)
-		DeckManager->InitializeDeck();
 }
 
 // Inicio del combate, se inicializa el mazo, la vida de los personajes y las posiciones
 void UBattleManager::StartBattle()
 {
+	bBattleIsOver = false;
 	TurnCount = 0;
 	CurrentTurn = ETurnEnum::PlayerTurn;
 
-	// Obtener numero de personajes en el campo
 	CharactersOnField.Empty();
 	for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It)
 	{
@@ -33,7 +30,7 @@ void UBattleManager::StartBattle()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
-
+	
 	StartPlayerTurn();
 }
 
@@ -145,34 +142,32 @@ void UBattleManager::EndTurn()
 bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 	ACharacterBase* TargetCharacter, FVector Location)
 {
-	if (!Character || !Character->EnergyComp)
+	if (!Character || !Character->EnergyAttributeSet)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyComp is null"));
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
 
-	// Comprobaciones
 	if (CurrentTurn != ETurnEnum::PlayerTurn || !Card || !DeckManager)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not player turn or card is null"));
 		return false;
 	}
 
-	if (Character->EnergyComp->GetCurrentPoints() < Card->GetCost())
+	if (Character->GetCurrentEnergy() < Card->GetCost())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
 	}
 
-	// Jugar carta y restar coste
-	if (!Character || !Character->EnergyComp)
+	if (!Character || !Character->EnergyAttributeSet)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyComp is null"));
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
 	Character->LossPoints(Card->GetCost());
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
-		Character->EnergyComp->GetCurrentPoints());
+		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);
 	UpdateUnitsAlive();
 
@@ -227,7 +222,7 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 			TEXT("[BattleManager]: PLAYER LOST"));
 	}
 
-	//TODO: Notificar al GameMode (no entra en prototipo)
+	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
 // Pedir movimiento

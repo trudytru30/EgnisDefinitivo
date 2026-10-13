@@ -1,14 +1,17 @@
 #include "Characters/Ally.h"
+#include "Characters/HeroDataAsset.h"
 #include "CoreAndSystems/AudioManager.h"
-#include "Components/EnergyComponent.h"
 #include "Components/GridMovementComponent.h"
+#include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
 
 AAlly::AAlly()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	// CREAR SI O SI AQUI PARA QUE FUNCIONE
-	EnergyComp = CreateDefaultSubobject<UEnergyComponent>(TEXT("EnergyComp"));
 	MoveComp = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MoveComp"));
+	
+	// El ASC vive en ACharacterBase (compartido con AEnemy), pero EnergyAttributeSet solo
+	// tiene sentido en AAlly, así que se crea aquí en vez de en la clase base.
+	EnergyAttributeSet = CreateDefaultSubobject<UEnergyAttributeSet>(TEXT("EnergyAttributeSet"));
 }
 
 void AAlly::BeginPlay()
@@ -26,29 +29,67 @@ void AAlly::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
+void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
+{
+    if (!HeroData) return;
+
+    // 1. Apariencia y Animación (Asumiendo que CharacterMesh y AnimBP están en el DataAsset)
+    if (HeroData->CharacterMesh && GetMesh())
+    {
+        GetMesh()->SetSkeletalMesh(HeroData->CharacterMesh);
+    }
+
+    // 3. Inicializar Estadísticas usando GAS
+    if (GetAbilitySystemComponent())
+    {
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Aliado %s inicializado desde DataAsset."), *GetName());
+}
+
+int32 AAlly::GetCurrentEnergy() const
+{
+	return EnergyAttributeSet ? FMath::RoundToInt(EnergyAttributeSet->GetEnergy()) : 0;
+}
+
+int32 AAlly::GetMaxEnergy() const
+{
+	return EnergyAttributeSet ? FMath::RoundToInt(EnergyAttributeSet->GetMaxEnergy()) : 0;
+}
+
 void AAlly::LossPoints(int32 Cost)
 {
-	if (!EnergyComp)
+	// GetAbilitySystemComponent() está heredado de ACharacterBase (IAbilitySystemInterface)
+	if (!EnergyAttributeSet || !GetAbilitySystemComponent())
 	{
 		return;
 	}
 
-	EnergyComp->ApplyDelta(-Cost);
+	// ApplyModToAttribute modifica el atributo directamente sin necesidad de crear un
+	// GameplayEffect como asset — pasa por PreAttributeChange (el clamp), así que sigue
+	// respetando el límite de 0 a MaxEnergy que ya definía EnergyAttributeSet.
+	GetAbilitySystemComponent()->ApplyModToAttribute(
+		UEnergyAttributeSet::GetEnergyAttribute(), EGameplayModOp::Additive, -Cost);
 }
 
 void AAlly::GainPoints(int32 Bonus)
 {
-	if (!EnergyComp || Bonus <= 0)
+	if (!EnergyAttributeSet || !GetAbilitySystemComponent() || Bonus <= 0)
 	{
 		return;
 	}
-	EnergyComp->ApplyDelta(+Bonus);
+
+	GetAbilitySystemComponent()->ApplyModToAttribute(
+		UEnergyAttributeSet::GetEnergyAttribute(), EGameplayModOp::Additive, +Bonus);
 }
 
 void AAlly::ResetEnergyForTurn()
 {
-	if (EnergyComp)
+	if (EnergyAttributeSet && GetAbilitySystemComponent())
 	{
-		EnergyComp->ResetPoints();
+		// Vuelve a poner Energy al máximo. SetNumericAttributeBase toca el BaseValue directamente,
+		// útil para un "reset" instantáneo como este.
+		GetAbilitySystemComponent()->SetNumericAttributeBase(
+			UEnergyAttributeSet::GetEnergyAttribute(), EnergyAttributeSet->GetMaxEnergy());
 	}
 }

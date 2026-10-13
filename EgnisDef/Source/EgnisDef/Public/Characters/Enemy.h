@@ -6,7 +6,6 @@
 #include "Enemy.generated.h"
 
 class UAudioManager;
-
 enum class EActionId : uint8;
 class UActionDataAsset;
 class UEnemyArchetypeDataAsset;
@@ -34,6 +33,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
 	float HealAmount = 8.f;
 
+	// Mismo GE_CardDamage reutilizado ya en las cartas — Add + Set By Caller sirve igual
+	// para el ataque (negativo) que para la curación (positivo) del enemigo.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	TSubclassOf<class UGameplayEffect> AttackEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	TSubclassOf<class UGameplayEffect> HealEffect;
+	
 	UFUNCTION(BlueprintCallable, Category ="Enemy|AI")
 	void MoveTowardClosesPlayer();
 
