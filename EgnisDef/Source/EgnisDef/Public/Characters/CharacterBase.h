@@ -42,6 +42,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UHealthAttributeSet* HealthAttributeSet;
+	
+	// Estados alterados
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Status")
+	class UStatusEffectComponent* StatusComp;
 
 	// Implementación obligatoria de la interfaz: así es como cualquier código externo
 	// (BattleManager, AAlly::LossPoints, futuras abilities) obtiene el ASC de este actor

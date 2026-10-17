@@ -2,6 +2,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h" // Para localizar el Board en el nivel
 #include "AbilitySystemComponent.h" // Necesario para CreateDefaultSubobject<UAbilitySystemComponent>
+#include "Components/StatusEffectComponent.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -9,6 +10,7 @@ ACharacterBase::ACharacterBase()
 	// Igual patrón que HealthComp/HealthAttributeSet: se crea en construcción para que exista desde el primer frame
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	HealthAttributeSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthAttributeSet"));
+	StatusComp = CreateDefaultSubobject<UStatusEffectComponent>(TEXT("StatusComp"));
 }
 
 void ACharacterBase::BeginPlay()
