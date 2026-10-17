@@ -17,6 +17,13 @@ namespace
 		default:                            return FGameplayTag();
 		}
 	}
+	// Quemadura y los estados periodicos hacen su efecto y caducan al inicio del turno del afectado.
+	// El resto (Aturdido, Paralizado, Debilidad, Expuesto) caducan al final de su turno, para que
+	// un estado de 1 turno si llegue a afectar a ese turno.
+	bool ExpiresAtTurnStart(EStatusType Type)
+	{
+		return Type == EStatusType::Status_Burn;
+	}
 }
 
 UStatusEffectComponent::UStatusEffectComponent()
@@ -64,7 +71,7 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 		if (Turns > Existing->TurnsLeft)
 		{
 			Existing->TurnsLeft = Turns;
-			Existing->bSkipNextDecrement = bOwnerTurnActive;
+			Existing->bSkipNextDecrement = bOwnerTurnActive && !ExpiresAtTurnStart(Type);
 			Existing->Source = Source;
 			OnStatusChanged.Broadcast();
 		}
@@ -75,7 +82,7 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 	NewStatus.Type = Type;
 	NewStatus.TurnsLeft = Turns;
 	NewStatus.Source = Source;
-	NewStatus.bSkipNextDecrement = bOwnerTurnActive;
+	NewStatus.bSkipNextDecrement = bOwnerTurnActive && !ExpiresAtTurnStart(Type);
 	ActiveStatuses.Add(NewStatus);
 
 	if (UAbilitySystemComponent* ASC = GetOwnerASC())
@@ -109,17 +116,29 @@ void UStatusEffectComponent::RemoveStatus(EStatusType Type)
 void UStatusEffectComponent::OnOwnerTurnStart()
 {
 	bOwnerTurnActive = true;
+
+	// Aqui iran los efectos periodicos, antes de descontar el turno
+	ConsumeTurns(true);
 }
 
 void UStatusEffectComponent::OnOwnerTurnEnd()
 {
 	bOwnerTurnActive = false;
+	ConsumeTurns(false);
+}
 
+void UStatusEffectComponent::ConsumeTurns(bool bTurnStart)
+{
 	// Se recorre al reves porque los estados caducados se quitan del array durante el bucle
 	bool bChanged = false;
 	for (int32 i = ActiveStatuses.Num() - 1; i >= 0; --i)
 	{
 		FActiveStatus& Status = ActiveStatuses[i];
+
+		if (ExpiresAtTurnStart(Status.Type) != bTurnStart)
+		{
+			continue;
+		}
 
 		if (Status.bSkipNextDecrement)
 		{
@@ -132,6 +151,8 @@ void UStatusEffectComponent::OnOwnerTurnEnd()
 
 		if (Status.TurnsLeft <= 0)
 		{
+			UE_LOG(LogTemp, Log, TEXT("[%s] Estado caducado: %d"), *GetOwner()->GetName(), (int32)Status.Type);
+
 			if (UAbilitySystemComponent* ASC = GetOwnerASC())
 			{
 				ASC->RemoveLooseGameplayTag(GetTagForStatus(Status.Type));

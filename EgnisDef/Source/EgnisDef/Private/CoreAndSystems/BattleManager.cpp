@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
 #include "CoreAndSystems/GameManager.h"
+#include "Components/StatusEffectComponent.h"
 
 class AAlly;
 
@@ -39,6 +40,8 @@ void UBattleManager::StartPlayerTurn()
 {
 	if (bBattleIsOver) return;
 
+	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
+	
 	// Robar mano al inicio del turno y establecer energia
 	for (ACharacterBase* Character : CharactersOnField)
 	{
@@ -80,7 +83,7 @@ void UBattleManager::StartEnemyTurn()
 {
 	if (bBattleIsOver) return;
 
-	UE_LOG(LogTemp, Log, TEXT("[BattleManager]:Enemy Turn %d"), TurnCount);
+	NotifyTeamTurnStart(1);	// Notificar al equipo enemigo
 
 	//identifica enemigos
 	TArray<AEnemy*> Enemies;
@@ -117,6 +120,7 @@ void UBattleManager::EndTurn()
 	switch ( CurrentTurn)
 	{
 		case ETurnEnum::PlayerTurn:
+			NotifyTeamTurnEnd(0);
 			if (DeckManager->GetHand().Num() > 0)
 			{
 				const TArray<UBaseCard*> HandCopy = DeckManager->GetHand();
@@ -130,6 +134,7 @@ void UBattleManager::EndTurn()
 			StartEnemyTurn();
 			break;
 		case ETurnEnum::EnemyTurn:
+			NotifyTeamTurnEnd(1);
 			CurrentTurn = ETurnEnum::PlayerTurn;
 			TurnCount++;
 			StartPlayerTurn();
@@ -299,4 +304,29 @@ TArray<ACharacterBase*> UBattleManager::GetCharactersOnField() const
 bool UBattleManager::IsPlayerTurn() const
 {
 	return CurrentTurn == ETurnEnum::PlayerTurn;
+}
+
+void UBattleManager::NotifyTeamTurnStart(int32 Team)
+{
+	// Copia porque un efecto de inicio de turno puede acabar matando a una unidad y alterar CharactersOnField
+	const TArray<ACharacterBase*> Snapshot = CharactersOnField;
+	for (ACharacterBase* Character : Snapshot)
+	{
+		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
+		{
+			Character->StatusComp->OnOwnerTurnStart();
+		}
+	}
+}
+
+void UBattleManager::NotifyTeamTurnEnd(int32 Team)
+{
+	const TArray<ACharacterBase*> Snapshot = CharactersOnField;
+	for (ACharacterBase* Character : Snapshot)
+	{
+		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
+		{
+			Character->StatusComp->OnOwnerTurnEnd();
+		}
+	}
 }
