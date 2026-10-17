@@ -63,11 +63,11 @@ function init() {
       });
 
       // Cache language specific elements on the page
-      languageSpecificElements = docsBody.querySelectorAll(".language-c, .language-cpp, .language-c-cpp, .language-csharp, .language-javascript");
+      languageSpecificElements = docsBody.querySelectorAll(".language-c, .language-cpp, .language-c-cpp, .language-csharp, .language-typescript");
 
       // Determine languages used on the page
       availableLanguages = [];
-      ["language-c", "language-cpp", "language-c-cpp", "language-csharp", "language-javascript"].forEach(function(lang) {
+      ["language-c", "language-cpp", "language-c-cpp", "language-csharp", "language-typescript"].forEach(function(lang) {
         if (docsBody.querySelector("." + lang) != null) {
           availableLanguages.push(lang);
         }

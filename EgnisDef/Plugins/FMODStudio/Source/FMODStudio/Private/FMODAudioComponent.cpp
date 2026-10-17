@@ -449,10 +449,12 @@ void UFMODAudioComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
             {
                 TArray<FTimelineMarkerProperties> LocalMarkerQueue;
                 TArray<FTimelineBeatProperties> LocalBeatQueue;
+                TArray<FAssetMarkerProperties> LocalSyncQueue;
                 {
                     FScopeLock Lock(&CallbackLock);
                     Swap(LocalMarkerQueue, CallbackMarkerQueue);
                     Swap(LocalBeatQueue, CallbackBeatQueue);
+                    Swap(LocalSyncQueue, CallbackSyncQueue);
                 }
 
                 for (const FTimelineMarkerProperties &EachProps : LocalMarkerQueue)
@@ -463,6 +465,10 @@ void UFMODAudioComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
                 {
                     OnTimelineBeat.Broadcast(
                         EachProps.Bar, EachProps.Beat, EachProps.Position, EachProps.Tempo, EachProps.TimeSignatureUpper, EachProps.TimeSignatureLower);
+                }
+                for (const FAssetMarkerProperties& EachProps : LocalSyncQueue)
+                {
+                    OnAssetMarker.Broadcast(EachProps.Name, EachProps.Position, EachProps.Index);
                 }
             }
 
@@ -550,6 +556,10 @@ FMOD_RESULT F_CALL UFMODAudioComponent_EventCallback(FMOD_STUDIO_EVENT_CALLBACK_
         else if (type == FMOD_STUDIO_EVENT_CALLBACK_SOUND_STOPPED)
         {
             Component->EventCallbackSoundStopped();
+        }
+        else if (type == FMOD_STUDIO_EVENT_CALLBACK_ASSET_MARKER)
+        {
+            Component->EventCallbackAssetMarker((FMOD_STUDIO_ASSET_MARKER_PROPERTIES *)parameters);
         }
     }
     return FMOD_OK;
@@ -696,6 +706,16 @@ void UFMODAudioComponent::EventCallbackSoundStopped()
 {
     FScopeLock Lock(&CallbackLock);
     TriggerSoundStoppedDelegate = true;
+}
+
+void UFMODAudioComponent::EventCallbackAssetMarker(FMOD_STUDIO_ASSET_MARKER_PROPERTIES* props)
+{
+    FScopeLock Lock(&CallbackLock);
+    FAssetMarkerProperties info;
+    info.Name = props->name;
+    info.Position = props->position;
+    info.Index = props->index;
+    CallbackSyncQueue.Push(info);
 }
 
 void UFMODAudioComponent::EventCallbackDestroyProgrammerSound(FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *props)

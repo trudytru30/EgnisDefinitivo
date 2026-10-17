@@ -6,7 +6,7 @@
 /* callbacks) to develop using the C++ language.                                            */
 /*                                                                                          */
 /* For more detail visit:                                                                   */
-/* https://fmod.com/docs/2.03/api/core-api.html                                             */
+/* https://fmod.com/docs/2.04/api/core-api.html                                             */
 /* ======================================================================================== */
 #ifndef _FMOD_HPP
 #define _FMOD_HPP
@@ -320,7 +320,7 @@ namespace FMOD
         FMOD_RESULT F_API get3DMinMaxDistance    (float *mindistance, float *maxdistance);
         FMOD_RESULT F_API set3DConeSettings      (float insideconeangle, float outsideconeangle, float outsidevolume);
         FMOD_RESULT F_API get3DConeSettings      (float *insideconeangle, float *outsideconeangle, float *outsidevolume);
-        FMOD_RESULT F_API set3DConeOrientation   (FMOD_VECTOR *orientation);
+        FMOD_RESULT F_API set3DConeOrientation   (const FMOD_VECTOR *orientation);
         FMOD_RESULT F_API get3DConeOrientation   (FMOD_VECTOR *orientation);
         FMOD_RESULT F_API set3DCustomRolloff     (FMOD_VECTOR *points, int numpoints);
         FMOD_RESULT F_API get3DCustomRolloff     (FMOD_VECTOR **points, int *numpoints);
@@ -471,9 +471,9 @@ namespace FMOD
         FMOD_RESULT F_API getBypass              (bool *bypass);
         FMOD_RESULT F_API setWetDryMix           (float prewet, float postwet, float dry);
         FMOD_RESULT F_API getWetDryMix           (float *prewet, float *postwet, float *dry);
-        FMOD_RESULT F_API setChannelFormat       (FMOD_CHANNELMASK channelmask, int numchannels, FMOD_SPEAKERMODE source_speakermode);
-        FMOD_RESULT F_API getChannelFormat       (FMOD_CHANNELMASK *channelmask, int *numchannels, FMOD_SPEAKERMODE *source_speakermode);
-        FMOD_RESULT F_API getOutputChannelFormat (FMOD_CHANNELMASK inmask, int inchannels, FMOD_SPEAKERMODE inspeakermode, FMOD_CHANNELMASK *outmask, int *outchannels, FMOD_SPEAKERMODE *outspeakermode);
+        FMOD_RESULT F_API setInputChannelFormat  (int inchannels, FMOD_SPEAKERMODE inmode);
+        FMOD_RESULT F_API getInputChannelFormat  (int *inchannels, FMOD_SPEAKERMODE *inmode);
+        FMOD_RESULT F_API getOutputChannelFormat (int inchannels, FMOD_SPEAKERMODE inmode, int *outchannels, FMOD_SPEAKERMODE *outmode);
         FMOD_RESULT F_API reset                  ();
         FMOD_RESULT F_API setCallback            (FMOD_DSP_CALLBACK callback);
 
@@ -489,10 +489,9 @@ namespace FMOD
         FMOD_RESULT F_API getNumParameters       (int *numparams);
         FMOD_RESULT F_API getParameterInfo       (int index, FMOD_DSP_PARAMETER_DESC **desc);
         FMOD_RESULT F_API getDataParameterIndex  (int datatype, int *index);
-        FMOD_RESULT F_API showConfigDialog       (void *hwnd, bool show);
 
         // DSP attributes.
-        FMOD_RESULT F_API getInfo                (char *name, unsigned int *version, int *channels, int *configwidth, int *configheight);
+        FMOD_RESULT F_API getInfo                (char *name, unsigned int *version, int *channels, FMOD_DSP_MODE *mode);
         FMOD_RESULT F_API getType                (FMOD_DSP_TYPE *type);
         FMOD_RESULT F_API getIdle                (bool *idle);
 
