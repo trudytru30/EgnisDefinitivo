@@ -5,6 +5,21 @@
 #include "GameFramework/Actor.h"
 #include "Board.generated.h"
 
+UENUM(BlueprintType)
+enum class ETileType : uint8
+{
+	Void                  UMETA(DisplayName = "Void"),
+	Normal                UMETA(DisplayName = "Normal"),
+	Obstacle              UMETA(DisplayName = "Obstacle"),
+	DamagingObstacle      UMETA(DisplayName = "DamagingObstacle"),
+	BreakableObstacle     UMETA(DisplayName = "BreakableObstacle"),
+	ExplosiveObstacle     UMETA(DisplayName = "ExplosiveObstacle"),
+	Water                 UMETA(DisplayName = "Water"),
+	WaterPlatform         UMETA(DisplayName = "WaterPlatform"),
+	Ice                   UMETA(DisplayName = "Ice"),
+	Fog                   UMETA(DisplayName = "Fog"),
+};
+
 USTRUCT(BlueprintType)
 struct FTileCoord
 {
@@ -29,6 +44,7 @@ FORCEINLINE uint32 GetTypeHash(const FTileCoord& T)
 	return HashCombine(::GetTypeHash(T.X), ::GetTypeHash(T.Y));
 }
 
+class ULevelDataAsset;
 
 UCLASS()
 class EGNISDEF_API ABoard : public AActor{
@@ -38,6 +54,12 @@ public:
 	ABoard();
 
 	virtual void Tick(float DeltaTime) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Board | Global Visuals")
+	TMap<ETileType, TSubclassOf<AActor>> TileVisuals;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Board | Level Data")
+	ULevelDataAsset* CurrentLevelData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Board)
 	float TileSize = 100.f;
@@ -78,7 +100,14 @@ public:
 	
 	bool IsInside(const FTileCoord& Tile) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Board|Generation")
+	void GenerateBoard();
+
 protected:
+
+	UPROPERTY()
+	TArray<AActor*> SpawnedTiles;
+	
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Board")

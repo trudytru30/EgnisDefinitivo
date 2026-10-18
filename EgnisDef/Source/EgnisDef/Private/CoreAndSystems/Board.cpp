@@ -1,4 +1,75 @@
 #include "CoreAndSystems/Board.h"
+#include "CoreAndSystems/LevelDataAsset.h"
+
+void ABoard::GenerateBoard()
+{
+    if (!CurrentLevelData)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Generación cancelada: No hay LevelDataAsset asignado en %s"), *GetName());
+        return;
+    }
+
+    // Limpiar el tablero anterior si ya existía
+    for (AActor* Tile : SpawnedTiles)
+    {
+        if (Tile) Tile->Destroy();
+    }
+    SpawnedTiles.Empty();
+    OccupiedBy.Empty();
+
+    // 1. GENERAR CASILLAS LEYENDO LA MATRIZ (GridRows) DEL DATA ASSET
+    for (int32 X = 0; X < CurrentLevelData->GridRows.Num() && X < BoardSizeX; ++X)
+    {
+        const FTileRow& Row = CurrentLevelData->GridRows[X];
+        
+        for (int32 Y = 0; Y < Row.Columns.Num() && Y < BoardSizeY; ++Y)
+        {
+            FTileCoord CurrentCoord(X, Y);
+            ETileType TypeToSpawn = Row.Columns[Y];
+
+            // Si el tipo es Void, podemos saltárnoslo para que no spawnee nada en ese hueco
+            if (TypeToSpawn == ETileType::Void)
+            {
+                continue;
+            }
+
+            // Buscamos el Blueprint en el mapa global de visuales del propio Tablero (ABoard)
+            if (TSubclassOf<AActor>* TileClass = TileVisuals.Find(TypeToSpawn))
+            {
+                if (*TileClass)
+                {
+                    FVector SpawnLocation = TileToWorldCenter(CurrentCoord);
+                    FActorSpawnParameters SpawnParams;
+                    SpawnParams.Owner = this;
+
+                    // Instanciamos la casilla
+                    AActor* NewTile = GetWorld()->SpawnActor<AActor>(*TileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+                    if (NewTile)
+                    {
+                        NewTile->AttachToComponent(Corner00, FAttachmentTransformRules::KeepWorldTransform);
+                        SpawnedTiles.Add(NewTile);
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. GENERAR ENEMIGOS
+    for (const FEnemySpawnInfo& EnemyInfo : CurrentLevelData->EnemiesToSpawn)
+    {
+        if (EnemyInfo.EnemyClass && IsInside(EnemyInfo.SpawnCoord))
+        {
+            FVector SpawnLocation = TileToWorldCenter(EnemyInfo.SpawnCoord);
+            FActorSpawnParameters SpawnParams;
+
+            AActor* NewEnemy = GetWorld()->SpawnActor<AActor>(EnemyInfo.EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+            if (NewEnemy)
+            {
+                RegisterOccupant(EnemyInfo.SpawnCoord, NewEnemy);
+            }
+        }
+    }
+}
 
 ABoard::ABoard()
 {
@@ -170,4 +241,3 @@ void ABoard::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
-
