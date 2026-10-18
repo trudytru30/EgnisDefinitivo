@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "AbilitySystemComponent.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 AEnemy::AEnemy()
 {
@@ -180,7 +181,8 @@ void AEnemy::MakeAction()
 				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(HealEffect, 1.f, Context);
 				if (Spec.IsValid())
 				{
-					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, HealAmount);
+					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
+						-UEgnisCombatLibrary::CalculateDamage(this, Target, AttackDamage));
 					TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 				}
 			}
