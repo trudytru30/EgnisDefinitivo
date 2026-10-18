@@ -20,6 +20,12 @@ float UEgnisCombatLibrary::CalculateDamage(const ACharacterBase* Source, const A
 {
 	float Damage = BaseDamage;
 
+	// Debilidad: el atacante hace la mitad de daño
+	if (HasStatusTag(Source, TAG_Status_Weakened))
+	{
+		Damage *= 0.5f;
+	}
+
 	// Expuesto: el objetivo recibe el doble de daño
 	if (HasStatusTag(Target, TAG_Status_Exposed))
 	{
