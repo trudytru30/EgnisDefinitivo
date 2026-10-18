@@ -12,7 +12,7 @@ class EGNISDEF_API UEgnisProfileSave : public USaveGame
 	GENERATED_BODY()
 
 public:
-	//Version del savegame. Si se cambia, se puede hacer un upgrade de los datos en el constructor de la clase.
+	//Version del savegame. Si se cambia, se puede hacer un upgrade de los datos en el constructor de la clase
 	static constexpr int32 CurrentSaveVersion = 1;
 
 	UPROPERTY(SaveGame)

@@ -21,7 +21,7 @@ void URunProgressionSubsystem::InitializeRunRoster(const TArray<UHeroDataAsset*>
 		RuntimeData.bIsUnlocked = (PlayerRoster.Num() == 0); 
 		RuntimeData.CurrentHealth = 100.f;
 		
-		//Antes: PlayerRoster.Add(Asset->HeroStatsRow.RowName, RuntimeData);
+		//PlayerRoster.Add(Asset->HeroStatsRow.RowName, RuntimeData)
 		//la fila es la CLASE y dos héroes de la misma clase se pisaban
 		PlayerRoster.Add(RuntimeData.HeroId, RuntimeData);
 	}

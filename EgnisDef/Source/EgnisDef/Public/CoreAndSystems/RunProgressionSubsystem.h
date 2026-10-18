@@ -35,7 +35,7 @@ public:
 	TArray<FHeroRuntimeData> GetUnlockedHeroes() const;
 
 	// Desbloquear un personaje específico por su clave FName de la fila
-	//ahora es HeroId (nombre del DataAsset, ej. "DA_Tothüm")no la fila de clase.
+	//ahora es HeroId (nombre del DataAsset, ej. "DA_Tothüm")no la fila de clase
 	UFUNCTION(BlueprintCallable, Category = "Run|Characters")
 	void UnlockHero(FName HeroId);
 

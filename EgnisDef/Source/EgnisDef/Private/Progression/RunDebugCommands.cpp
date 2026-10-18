@@ -1,57 +1,8 @@
-// ===== Comandos de consola de prueba de la mochila de la run (Egnis.Run.*) =====
-// Funcionan en cualquier mapa mientras el juego está en Play.
-// Para escribirlos: Play -> clic en la ventana del juego -> tecla º -> comando -> Enter.
-// Resultados en el Output Log, filtrando por "LogEgnis".
-// La mochila vive en memoria: sobrevive a "open OtroMapa" pero se vacía al parar el Play.
-//
-// COMANDOS
-//   Egnis.Run.Start [Heroe1 Heroe2 ...]   -> empieza una run (sin nombres = todos los héroes)
-//                                           con un mazo de prueba de 20 cartas
-//   Egnis.Run.Dump                        -> muestra toda la mochila
-//   Egnis.Run.End <1|0>                   -> termina la run (1 = victoria, 0 = derrota)
-//   Egnis.Run.AddHero <Heroe>             -> añade un héroe a la caravana
-//   Egnis.Run.AddBones <N> / SpendBones <N>
-//   Egnis.Run.LoseFire / RestoreFire [N]
-//   Egnis.Run.Wound <Heroe> / Heal <Heroe>
-//   Egnis.Run.AddRelic <Reliquia>
-//   Egnis.Run.Equip <Heroe> <Reliquia> / Unequip <Heroe> <Reliquia>
-//   Egnis.Run.AddCard <Carta> / RemoveCard <Posicion> / Upgrade <Posicion>
-//   (Las posiciones del mazo empiezan en 0. Si un nombre no existe, el log dice los disponibles.)
-//
-// PRUEBAS
-// A1. La mochila sobrevive al cambio de mapa
-//   1. Play en L_Test_A y escribir:
-//        Egnis.Run.Start DA_Tothüm DA_Jhünn
-//        Egnis.Run.AddBones 500
-//        Egnis.Run.Wound DA_Tothüm
-//        Egnis.Run.LoseFire
-//        Egnis.Run.AddRelic Rel_Boomerang
-//        Egnis.Run.Equip DA_Tothüm Rel_Boomerang
-//        Egnis.Run.AddCard DA_HealCard
-//        Egnis.Run.Upgrade 0
-//   2. open L_Test_B
-//   3. Egnis.Run.Dump
-//   -> 500 huesos, fogata 2/3, Tothüm con 1 herida y Rel_Boomerang, 21 cartas (la primera con +1).
-//
-// A2. Máximo 3 heridas sin repetir
-//   Egnis.Run.Wound DA_Jhünn cuatro veces
-//   -> 3 heridas distintas; la cuarta dice "ya tiene el maximo de heridas".
-//
-// A3. No se gastan huesos que no hay
-//   Egnis.Run.SpendBones 9999
-//   -> "No hay huesos suficientes" y los huesos no cambian.
-//
-// A4. Reliquias: límites
-//   Egnis.Run.Equip DA_Jhünn Rel_NoExiste            -> "no esta en la bolsa"
-//   Con 2 reliquias equipadas, equipar una tercera     -> "no tiene hueco"
-//
-// A5. Fogata a 0 termina la run (y avisa al diario)
-//   Egnis.Run.LoseFire hasta llegar a 0
-//   -> "La fogata se ha apagado" y "Run terminada: DERROTA".
-//   Egnis.Profile.Dump -> las runs empezadas han subido en 1.
-//
-// A6. La mochila NO sobrevive a cerrar el juego (es lo esperado)
-//   Parar el Play, volver a darle y Egnis.Run.Dump -> run activa: no, todo vacío.
+
+//Funcionan en cualquier mapa mientras el juego está en Play
+//Para escribirlos: Play -> clic en la ventana del juego -> tecla ' º' -> comando -> Enter
+//Resultados en el Output Log, filtrando por "LogEgnis"
+//La mochila vive en memoria
 
 #include "CoreAndSystems/RunProgressionSubsystem.h"
 #include "Characters/HeroDataAsset.h"
@@ -328,3 +279,51 @@ namespace
 			}
 		}));
 }
+// COMANDOS
+//   Egnis.Run.Start [Heroe1 Heroe2 ...]   -> empieza una run (sin nombres = todos los héroes)
+//                                           con un mazo de prueba de 20 cartas
+//   Egnis.Run.Dump                        -> muestra toda la mochila
+//   Egnis.Run.End <1|0>                   -> termina la run (1 = victoria, 0 = derrota)
+//   Egnis.Run.AddHero <Heroe>             -> añade un héroe a la caravana
+//   Egnis.Run.AddBones <N> / SpendBones <N>
+//   Egnis.Run.LoseFire / RestoreFire [N]
+//   Egnis.Run.Wound <Heroe> / Heal <Heroe>
+//   Egnis.Run.AddRelic <Reliquia>
+//   Egnis.Run.Equip <Heroe> <Reliquia> / Unequip <Heroe> <Reliquia>
+//   Egnis.Run.AddCard <Carta> / RemoveCard <Posicion> / Upgrade <Posicion>
+//   (Las posiciones del mazo empiezan en 0. Si un nombre no existe, el log dice los disponibles)
+//
+// PRUEBAS
+// A1. La mochila sobrevive al cambio de mapa
+//   1. Play en L_Test_A y escribir:
+//        Egnis.Run.Start DA_Tothüm DA_Jhünn
+//        Egnis.Run.AddBones 500
+//        Egnis.Run.Wound DA_Tothüm
+//        Egnis.Run.LoseFire
+//        Egnis.Run.AddRelic Rel_Boomerang
+//        Egnis.Run.Equip DA_Tothüm Rel_Boomerang
+//        Egnis.Run.AddCard DA_HealCard
+//        Egnis.Run.Upgrade 0
+//   2. open L_Test_B
+//   3. Egnis.Run.Dump
+//   -> 500 huesos, fogata 2/3, Tothüm con 1 herida y Rel_Boomerang, 21 cartas (la primera con +1)
+//
+// A2. Máximo 3 heridas sin repetir
+//   Egnis.Run.Wound DA_Jhünn cuatro veces
+//   -> 3 heridas distintas; la cuarta dice "ya tiene el maximo de heridas"
+//
+// A3. No se gastan huesos que no hay
+//   Egnis.Run.SpendBones 9999
+//   -> "No hay huesos suficientes" y los huesos no cambian
+//
+// A4. Reliquias: límites
+//   Egnis.Run.Equip DA_Jhünn Rel_NoExiste            -> "no esta en la bolsa"
+//   Con 2 reliquias equipadas, equipar una tercera     -> "no tiene hueco"
+//
+// A5. Fogata a 0 termina la run (y avisa al diario)
+//   Egnis.Run.LoseFire hasta llegar a 0
+//   -> "La fogata se ha apagado" y "Run terminada: DERROTA"
+//   Egnis.Profile.Dump -> las runs empezadas han subido en 1
+//
+// A6. La mochila NO sobrevive a cerrar el juego (es lo esperado)
+//   Parar el Play, volver a darle y Egnis.Run.Dump -> run activa: no,no todo vacío

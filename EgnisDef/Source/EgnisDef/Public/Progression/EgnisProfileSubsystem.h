@@ -6,13 +6,13 @@
 
 class UEgnisProfileSave;
 
-//Al arrancar el juego, mira si existe el archivo del diario en el disco. Si existe, lo lee.
-//Si no existe o está roto, abre un diario nuevo.
-//Cada vez que se apunta algo (un desbloqueo, un encuentro, una misión), lo escribe en el disco en ese momento.
-//Así nunca se pierde nada aunque el juego se cierre de golpe. 
+//Al arrancar el juego, mira si existe el archivo del diario en el disco. Si existe, lo lee
+//Si no existe o está roto, abre un diario nuevo
+//Cada vez que se apunta algo (un desbloqueo, un encuentro, una misión), lo escribe en el disco en ese momento
+//Así nunca se pierde nada aunque el juego se cierre de golpe
 
 //Se puede usar tanto en c++ como en blueprints
-//En blueprints se puede usar para desbloquear héroes, marcar encuentros, avanzar misiones, etc.
+//En blueprints se puede usar para desbloquear héroes, marcar encuentros, avanzar misiones, etc
 UCLASS()
 class EGNISDEF_API UEgnisProfileSubsystem : public UGameInstanceSubsystem
 {

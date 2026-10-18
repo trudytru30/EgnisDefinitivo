@@ -350,8 +350,8 @@ namespace
 
 // PRUEBAS
 // B1. Perfil nuevo
-//   1. Sin Play, borrar Profile.sav.
-//   2. Play y escribir Egnis.Profile.Dump.
+//   1. Sin Play, borrar Profile.sav
+//   2. Play y escribir Egnis.Profile.Dump
 //   -> Al arrancar sale "Perfil nuevo creado"; en el Dump todo "(ninguno)" y "0/0".
 //
 // B2. Lo guardado sobrevive a cerrar el juego
@@ -359,22 +359,22 @@ namespace
 //        Egnis.Profile.Unlock DA_Tothüm
 //        Egnis.Profile.Seen EV_Ru
 //        Egnis.Profile.Mission MS_MitoGhol 2
-//      -> Cada uno saca su mensaje y "Guardado en disco".
-//   2. Parar el Play y volver a darle.
+//      -> Cada uno saca su mensaje y "Guardado en disco"
+//   2. Parar el Play y volver a darle
 //      -> Al arrancar, "Perfil cargado" con DA_Tothüm, EV_Ru y MS_MitoGhol=2.
 //   3. Repetir Egnis.Profile.Unlock DA_Tothüm
-//      -> NO sale "Guardado en disco" (ya estaba desbloqueado).
+//      -> NO sale "Guardado en disco" (ya estaba desbloqueado)
 //
 // B3. Archivo roto
-//   1. Sin Play, abrir Profile.sav con el Bloc de notas, escribir cualquier cosa y guardar.
-//   2. Play.
-//   -> Sale "El archivo existe pero no se puede leer..." y luego "Perfil nuevo creado".
-//      El juego no se cuelga.
+//   1. Sin Play, abrir Profile.sav con el Bloc de notas, escribir cualquier cosa y guardar
+//   2. Play
+//   -> Sale "El archivo existe pero no se puede leer..." y luego "Perfil nuevo creado"
+//      El juego no se cuelga
 //
 // B4. Reiniciar
-//   1. En Play: Egnis.Profile.Seen EV_Ru y después Egnis.Profile.Reset.
-//   2. Parar el Play y volver a darle.
-//   -> Todo vacío.
+//   1. En Play: Egnis.Profile.Seen EV_Ru y después Egnis.Profile.Reset
+//   2. Parar el Play y volver a darle
+//   -> Todo vacío
 //
 // EXTRA. Sin estar en Play, escribir Egnis.Profile.Dump en la barra Cmd del editor
 //   -> Sale "Comando ignorado: el juego tiene que estar en Play

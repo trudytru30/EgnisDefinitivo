@@ -6,6 +6,8 @@
 #include "CoreAndSystems/DeployManager.h"
 #include "CoreAndSystems/GameManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "CoreAndSystems/RunProgressionSubsystem.h"
+#include "Engine/GameInstance.h"                   
 
 UBattleSceneManager::UBattleSceneManager()
 {
@@ -60,13 +62,31 @@ void UBattleSceneManager::StartCombatPhase()
 	
 	HideDeploymentUI();
 
-	if (InitialDeck.Num() == 0)
+	//Si hay una run activa, el mazo sale de la mochila de la run (RunProgressionSubsystem)
+	//Si no (como al abrir este mapa directamente para probar)se usa InitialDeck como antes
+	TArray<UBaseCard*> DeckToUse;
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	URunProgressionSubsystem* Run = GameInstance ? GameInstance->GetSubsystem<URunProgressionSubsystem>() : nullptr;
+
+	if (Run && Run->IsRunActive() && Run->GetDeck().Num() > 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[BattleSceneManager]: ¡InitialDeck está vacío! Asígnale cartas en el BP_BattleSceneManager."));
+		DeckToUse = Run->GetDeckCards();
+		UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: Mazo de la run (%d cartas)"), DeckToUse.Num());
+	}
+	else
+	{
+		if (InitialDeck.Num() == 0)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BattleSceneManager]: ¡InitialDeck está vacío! Asígnale cartas en el BP_BattleSceneManager"));
+		}
+
+		//Provisional de debug hasta que haya un sistema en run subsystems donde se guardan las cartas obtenidas
+		//se mantiene como backup cuando no hay run activa
+		DeckToUse = InitialDeck;
+		UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: Sin run activa: se usa InitialDeck (%d cartas)"), DeckToUse.Num());
 	}
 
-	//Provisional de debug hasta que haya un sistema en run subsystems donde se guardan las cartas obtenidas
-	DeckManager->SetDeck(InitialDeck);
+	DeckManager->SetDeck(DeckToUse);
 	DeckManager->InitializeDeck();
 	
 	ShowHUD();
