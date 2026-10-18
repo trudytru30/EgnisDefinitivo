@@ -318,7 +318,7 @@ namespace
 //
 // A4. Reliquias: límites
 //   Egnis.Run.Equip DA_Jhünn Rel_NoExiste            -> "no esta en la bolsa"
-//   Con 2 reliquias equipadas, equipar una tercera     -> "no tiene hueco"
+//   Con 1 reliquia equipada, equipar una segunda     -> "no tiene hueco"//CAMBIAR AQUI SI SON 2 RELIQUIAS Y EN RUNSTATE.H
 //
 // A5. Fogata a 0 termina la run (y avisa al diario)
 //   Egnis.Run.LoseFire hasta llegar a 0

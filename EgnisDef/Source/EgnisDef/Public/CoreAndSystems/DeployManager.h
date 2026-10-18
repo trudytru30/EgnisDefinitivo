@@ -25,5 +25,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Scene Director|Deployment")
 	bool TryDeployHeroAtLocation(FVector SpawnLocation, FRotator SpawnRotation);
+
 	
+	//Héroes desplegados en este combate: personaje del tablero + nombre del héroe (HeroId)
+	//BattleSceneManager lo usa al acabar el combate: si el personaje ya no existe es que ese héroe ha muerto
+	const TArray<TPair<TWeakObjectPtr<AAlly>, FName>>& GetDeployedHeroes() const { return DeployedHeroes; }
+
+private:
+	//Puntero débil: si el personaje muere y se destruye, se queda vacío solo
+	TArray<TPair<TWeakObjectPtr<AAlly>, FName>> DeployedHeroes;
 };

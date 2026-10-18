@@ -9,7 +9,7 @@ class UBaseCard;
 namespace EgnisRun
 {
 	constexpr int32 MaxWoundsPerHero = 3;
-	constexpr int32 MaxRelicsPerHero = 2;
+	constexpr int32 MaxRelicsPerHero = 1;//mirar md
 	constexpr int32 MaxCampfire = 3;
 
 	//Heridas posibles (Notion > Personajes > Heridas)

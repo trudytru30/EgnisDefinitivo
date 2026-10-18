@@ -102,8 +102,36 @@ void UBattleSceneManager::StartCombatPhase()
 
 void UBattleSceneManager::OnCombatEnded(bool bPlayerWon)
 {
+	//para proteger: si el final del combate llega dos veces, la segunda se ignora
+	//(evita heridas dobles o restar la fogata dos veces)
+	if (CurrentPhase == EScenePhase::Rewards) return;
+
 	CurrentPhase = EScenePhase::Rewards;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE RECOMPENSAS ---"));
+
+	//guarda en la mochila de la run lo que ha pasado en el combate (solo si hay run activa)
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	URunProgressionSubsystem* Run = GameInstance ? GameInstance->GetSubsystem<URunProgressionSubsystem>() : nullptr;
+
+	if (Run && Run->IsRunActive() && DeployManager)
+	{
+		//Héroes muertos: si su personaje ya no existe o no le queda vida, recibe una herida
+		for (const TPair<TWeakObjectPtr<AAlly>, FName>& Deployed : DeployManager->GetDeployedHeroes())
+		{
+			const AAlly* Ally = Deployed.Key.Get();
+			if (!Ally || Ally->GetCurrentHealth() <= 0.f)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: %s ha caido en combate."), *Deployed.Value.ToString());
+				Run->AddRandomWound(Deployed.Value);
+			}
+		}
+
+		//combate perdido: la fogata pierde una llama (si llega a 0, la run termina sola)
+		if (!bPlayerWon)
+		{
+			Run->LoseCampfire();
+		}
+	}
 
 	HideHUD();
 	ShowRewardsUI(bPlayerWon);
