@@ -181,8 +181,7 @@ void AEnemy::MakeAction()
 				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(HealEffect, 1.f, Context);
 				if (Spec.IsValid())
 				{
-					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
-						-UEgnisCombatLibrary::CalculateDamage(this, Target, AttackDamage));
+					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, HealAmount);
 					TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 				}
 			}
@@ -214,7 +213,8 @@ void AEnemy::MakeAction()
 				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(AttackEffect, 1.f, Context);
 				if (Spec.IsValid())
 				{
-					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, -AttackDamage);
+					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
+						-UEgnisCombatLibrary::CalculateDamage(this, Target, AttackDamage));
 					TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 				}
 			}

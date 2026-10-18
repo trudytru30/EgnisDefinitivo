@@ -30,5 +30,9 @@ float UEgnisCombatLibrary::CalculateDamage(const ACharacterBase* Source, const A
 	{
 		Damage = FMath::Max(1.f, FMath::RoundToFloat(Damage));
 	}
+	
+	// Debug log
+	UE_LOG(LogTemp, Log, TEXT("CalculateDamage: base %.1f -> final %.1f (objetivo %s)"),
+		BaseDamage, Damage, Target ? *Target->GetName() : TEXT("null"));
 	return Damage;
 }
