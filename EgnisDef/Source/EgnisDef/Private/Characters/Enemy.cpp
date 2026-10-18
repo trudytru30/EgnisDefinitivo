@@ -54,6 +54,12 @@ void AEnemy::MoveTowardClosesPlayer()
 		return;
 	}
 
+	if (!UEgnisCombatLibrary::CanMove(this))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Paralizado: no se mueve."), *GetName());
+		return;
+	}
+	
 	ACharacterBase* Target = FindClosestPlayer();
 	if (!Target)
 	{
@@ -159,6 +165,13 @@ void AEnemy::MakeAction()
 		return;
 	}
 
+	// Aturdido: no puede hacer acciones
+	if (!UEgnisCombatLibrary::CanAct(this))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Aturdido, no actua."), *GetName());
+		return;
+	}
+	
 	ACharacterBase* Target = nullptr;
 	int32 Range = 0;
 	//Intentar curar si tiene Heal

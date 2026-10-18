@@ -18,4 +18,11 @@ public:
 	// Source puede ser nulo. Un golpe con daño base > 0 nunca baja de 1.
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static float CalculateDamage(const ACharacterBase* Source, const ACharacterBase* Target, float BaseDamage);
+	
+	// False si el personaje esta Aturdido (no puede jugar cartas ni actuar)
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static bool CanAct(const ACharacterBase* Character);
+	
+	// Paralizado: no puede moverse por su cuenta (empujes y tirones si le afectan)
+	static bool CanMove(const ACharacterBase* Character);
 };

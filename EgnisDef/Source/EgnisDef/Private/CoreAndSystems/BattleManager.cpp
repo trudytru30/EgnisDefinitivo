@@ -9,6 +9,7 @@
 #include "Components/GridMovementComponent.h"
 #include "CoreAndSystems/GameManager.h"
 #include "Components/StatusEffectComponent.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 class AAlly;
 
@@ -159,6 +160,13 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 
+	// Aturdido: no puede jugar cartas
+	if (!UEgnisCombatLibrary::CanAct(Character))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: %s esta aturdido y no puede jugar cartas"), *Character->GetName());
+		return false;
+	}
+	
 	if (Character->GetCurrentEnergy() < Card->GetCost())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
@@ -257,6 +265,12 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 	if (Unit->bHasMoved)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s already moved this turn"), *Unit->GetName());
+		return false;
+	}
+	
+	if (!UEgnisCombatLibrary::CanMove(Unit))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s esta paralizado"), *Unit->GetName());
 		return false;
 	}
 

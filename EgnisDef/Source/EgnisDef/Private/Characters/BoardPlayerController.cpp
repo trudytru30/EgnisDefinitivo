@@ -16,6 +16,7 @@
 #include "CoreAndSystems/BattleSceneManager.h"
 #include "CoreAndSystems/DeployManager.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -157,6 +158,14 @@ void ABoardPlayerController::TrySelectCardSource()
     if (!TraceUnderCursor(UnitTraceChannel, Hit)) return;
 
     AAlly* ClickedAlly = Cast<AAlly>(Hit.GetActor());
+    
+    // Aturdido: no puede jugar cartas
+    if (!UEgnisCombatLibrary::CanAct(ClickedAlly))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s esta aturdido y no puede jugar cartas"), *ClickedAlly->GetName());
+        return;
+    }
+    
     if (!ClickedAlly)
     {
         UE_LOG(LogTemp, Warning, TEXT("BoardPlayerComponent: Clicked actor is not an ally"));

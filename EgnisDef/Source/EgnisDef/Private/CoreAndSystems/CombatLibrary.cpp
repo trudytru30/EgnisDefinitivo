@@ -42,3 +42,13 @@ float UEgnisCombatLibrary::CalculateDamage(const ACharacterBase* Source, const A
 		BaseDamage, Damage, Target ? *Target->GetName() : TEXT("null"));
 	return Damage;
 }
+
+bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
+{
+	return !HasStatusTag(Character, TAG_Status_Stunned);
+}
+
+bool UEgnisCombatLibrary::CanMove(const ACharacterBase* Character)
+{
+	return !HasStatusTag(Character, TAG_Status_Paralyzed);
+}
