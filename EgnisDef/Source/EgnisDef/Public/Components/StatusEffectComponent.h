@@ -59,8 +59,8 @@ private:
 	FActiveStatus* FindStatus(EStatusType Type);
 	const FActiveStatus* FindStatus(EStatusType Type) const;
 	UAbilitySystemComponent* GetOwnerASC() const;
-	// Descuenta un turno a los estados que caducan al inicio (bTurnStart = true) o al final del turno
-	void ConsumeTurns(bool bTurnStart);
+	// Descuenta un turno a los estados
+	void ConsumeTurns();
 	
 	void ApplyBurnDamage();
 };

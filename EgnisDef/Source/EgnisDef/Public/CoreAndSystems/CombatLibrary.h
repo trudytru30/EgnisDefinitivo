@@ -27,5 +27,6 @@ public:
 	static bool CanAct(const ACharacterBase* Character);
 	
 	// Paralizado: no puede moverse por su cuenta
+	UFUNCTION(BlueprintPure, Category = "Combat")
 	static bool CanMove(const ACharacterBase* Character);
 };
