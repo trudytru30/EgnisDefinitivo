@@ -1,25 +1,52 @@
-﻿#include "SheetsImporterModule.h"
+﻿#include "EgnisEditor.h"
 #include "LevelEditor.h"
+#include "PropertyEditorModule.h"
+#include "LevelDataAssetCustomization.h"
+#include "CoreAndSystems/LevelDataAsset.h"
 
-#define LOCTEXT_NAMESPACE "FSheetsImporterModuleModule"
+#define LOCTEXT_NAMESPACE "FEgnisEditorModule"
 class UEditorUtilitySubsystem;
 DEFINE_LOG_CATEGORY(HeadCrackEditor)
 
-void FSheetsImporterModuleModule::StartupModule()
+void FEgnisEditorModule::StartupModule()
 {
     FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
     const TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
 
-    MenuExtender->AddMenuBarExtension("Help", EExtensionHook::After, nullptr, FMenuBarExtensionDelegate::CreateRaw(this, &FSheetsImporterModuleModule::AddMenu));
+    MenuExtender->AddMenuBarExtension("Help", EExtensionHook::After, nullptr, FMenuBarExtensionDelegate::CreateRaw(this, &FEgnisEditorModule::AddMenu));
     LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
+
+    RegisterDetailCustomizations();
 }
 
-void FSheetsImporterModuleModule::AddMenu(FMenuBarBuilder& MenuBarBuilder)
+void FEgnisEditorModule::RegisterDetailCustomizations()
 {
-    MenuBarBuilder.AddPullDownMenu(FText::FromString("Sheets Importer"), FText::FromString("Google Sheets Tools"), FNewMenuDelegate::CreateRaw(this, &FSheetsImporterModuleModule::FillMenu));
+    FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+    PropertyModule.RegisterCustomClassLayout(
+        ULevelDataAsset::StaticClass()->GetFName(),
+        FOnGetDetailCustomizationInstance::CreateStatic(&FLevelDataAssetCustomization::MakeInstance));
+
+    PropertyModule.NotifyCustomizationModuleChanged();
 }
 
-void FSheetsImporterModuleModule::FillMenu(FMenuBuilder& MenuBuilder)
+void FEgnisEditorModule::UnregisterDetailCustomizations()
+{
+    if (!FModuleManager::Get().IsModuleLoaded("PropertyEditor") || !UObjectInitialized())
+    {
+        return;
+    }
+
+    FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+    PropertyModule.UnregisterCustomClassLayout(ULevelDataAsset::StaticClass()->GetFName());
+}
+
+void FEgnisEditorModule::AddMenu(FMenuBarBuilder& MenuBarBuilder)
+{
+    MenuBarBuilder.AddPullDownMenu(FText::FromString("Sheets Importer"), FText::FromString("Google Sheets Tools"), FNewMenuDelegate::CreateRaw(this, &FEgnisEditorModule::FillMenu));
+}
+
+void FEgnisEditorModule::FillMenu(FMenuBuilder& MenuBuilder)
 {
     MenuBuilder.AddMenuEntry(
         FText::FromString("Import Game Texts"),
@@ -59,11 +86,11 @@ void FSheetsImporterModuleModule::FillMenu(FMenuBuilder& MenuBuilder)
     );
 }
 
-void FSheetsImporterModuleModule::ShutdownModule()
+void FEgnisEditorModule::ShutdownModule()
 {
-    
+    UnregisterDetailCustomizations();
 }
 
 #undef LOCTEXT_NAMESPACE
-    
-IMPLEMENT_MODULE(FSheetsImporterModuleModule, SheetsImporterModule)
+
+IMPLEMENT_MODULE(FEgnisEditorModule, EgnisEditor)

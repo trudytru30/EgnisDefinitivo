@@ -17,15 +17,15 @@ void ABoard::GenerateBoard()
     SpawnedTiles.Empty();
     OccupiedBy.Empty();
 
-    // 1. GENERAR CASILLAS LEYENDO LA MATRIZ (GridRows) DEL DATA ASSET
-    for (int32 X = 0; X < CurrentLevelData->GridRows.Num() && X < BoardSizeX; ++X)
+    // 1. GENERAR CASILLAS LEYENDO LA MATRIZ (GridRows[Y].Columns[X]) DEL DATA ASSET
+    for (int32 Y = 0; Y < CurrentLevelData->GridRows.Num() && Y < BoardSizeY; ++Y)
     {
-        const FTileRow& Row = CurrentLevelData->GridRows[X];
-        
-        for (int32 Y = 0; Y < Row.Columns.Num() && Y < BoardSizeY; ++Y)
+        const FTileRow& Row = CurrentLevelData->GridRows[Y];
+
+        for (int32 X = 0; X < Row.Columns.Num() && X < BoardSizeX; ++X)
         {
             FTileCoord CurrentCoord(X, Y);
-            ETileType TypeToSpawn = Row.Columns[Y];
+            ETileType TypeToSpawn = Row.Columns[X];
 
             // Si el tipo es Void, podemos saltárnoslo para que no spawnee nada en ese hueco
             if (TypeToSpawn == ETileType::Void)

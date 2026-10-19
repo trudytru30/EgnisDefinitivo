@@ -16,6 +16,6 @@ public class EgnisDefEditorTarget : TargetRules
 
 	private void RegisterModulesCreatedByRider()
 	{
-		ExtraModuleNames.AddRange(new string[] { "SheetsImporterModule" });
+		ExtraModuleNames.AddRange(new string[] { "EgnisEditor" });
 	}
 }

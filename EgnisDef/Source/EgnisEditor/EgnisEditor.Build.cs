@@ -1,8 +1,8 @@
 ﻿using UnrealBuildTool;
 
-public class SheetsImporterModule : ModuleRules
+public class EgnisEditor : ModuleRules
 {
-    public SheetsImporterModule(ReadOnlyTargetRules Target) : base(Target)
+    public EgnisEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -18,8 +18,13 @@ public class SheetsImporterModule : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
+                "InputCore",
                 "Slate",
-                "SlateCore"
+                "SlateCore",
+                "UnrealEd",
+                "LevelEditor",
+                "PropertyEditor",
+                "EgnisDef"
             }
         );
     }
