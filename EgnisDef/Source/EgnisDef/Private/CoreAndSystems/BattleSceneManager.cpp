@@ -52,14 +52,25 @@ void UBattleSceneManager::StartDeploymentPhase()
 {
 	CurrentPhase = EScenePhase::Deployment;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE DESPLIEGUE ---"));
-	DeployManager->Initialize(BaseAllyClass);
+	DeployManager->Initialize(BaseAllyClass, MaxDeployedHeroes);
 	ShowDeploymentUI();
+}
+
+bool UBattleSceneManager::CanStartCombat() const
+{
+	return CurrentPhase == EScenePhase::Deployment && DeployManager && DeployManager->HasDeployedHeroes();
 }
 
 void UBattleSceneManager::StartCombatPhase()
 {
 	if (CurrentPhase != EScenePhase::Deployment) return;
-	
+
+	if (!CanStartCombat())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleSceneManager]: No se puede empezar el combate: no hay ningún héroe desplegado"));
+		return;
+	}
+
 	HideDeploymentUI();
 
 	//Si hay una run activa, el mazo sale de la mochila de la run (RunProgressionSubsystem)

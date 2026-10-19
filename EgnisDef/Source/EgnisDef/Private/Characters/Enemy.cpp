@@ -117,7 +117,7 @@ void AEnemy::MoveTowardClosesPlayer()
 		return;
 	}
 
-	SetActorLocation(Board->TileToWorldCenter(CurrentTile));
+	SnapToCurrentTile();
 
 	//Re-comprobar y ejecutar paso 2 (MISMA dirección del origen)
 	const FTileCoord SecondStep(Start.X + 2 * BestDir.X, Start.Y + 2 * BestDir.Y);
@@ -129,7 +129,7 @@ void AEnemy::MoveTowardClosesPlayer()
 		UE_LOG(LogTemp, Log, TEXT("[%s] Step2 blocked after Step1. Stops at (%d,%d)."),
 			*GetName(), CurrentTile.X, CurrentTile.Y);
 
-		SetActorLocation(Board->TileToWorldCenter(CurrentTile));
+		SnapToCurrentTile();
 		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
 		return;
 	}
@@ -138,12 +138,12 @@ void AEnemy::MoveTowardClosesPlayer()
 		UE_LOG(LogTemp, Log, TEXT("[%s] Failed to move to Step2. Stops at (%d,%d)."),
 			*GetName(), CurrentTile.X, CurrentTile.Y);
 
-		SetActorLocation(Board->TileToWorldCenter(CurrentTile));
+		SnapToCurrentTile();
 		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
 		return;
 	}
 
-	SetActorLocation(Board->TileToWorldCenter(CurrentTile));
+	SnapToCurrentTile();
 
 	UE_LOG(LogTemp, Log, TEXT("[%s] Moved 2 tiles straight to (%d,%d) towards player (%d,%d)."),
 		*GetName(), CurrentTile.X, CurrentTile.Y, Goal.X, Goal.Y);

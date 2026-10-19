@@ -124,23 +124,28 @@ void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
 {
 	if (!Board) return;
 
-	FVector NewLocation = Board->TileToWorldCenter(CurrentTile);
+	FVector NewLocation = GetStandLocationForTile(CurrentTile);
 
 	if (bKeepCurrentZ)
 	{
 		NewLocation.Z = GetActorLocation().Z;
 	}
-	else
-	{
-		float BaseOffset = TileZOffset;
-		if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
-		{
-			BaseOffset += Capsule->GetScaledCapsuleHalfHeight();
-		}
-		NewLocation.Z += BaseOffset;
-	}
 
 	SetActorLocation(NewLocation);
+}
+
+FVector ACharacterBase::GetStandLocationForTile(const FTileCoord& Tile) const
+{
+	if (!Board) return GetActorLocation();
+
+	// La posición del actor es el centro de la cápsula: hay que subirlo media cápsula para que pise el suelo
+	FVector Location = Board->TileToWorldCenter(Tile);
+	Location.Z += TileZOffset;
+	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Location.Z += Capsule->GetScaledCapsuleHalfHeight();
+	}
+	return Location;
 }
 
 

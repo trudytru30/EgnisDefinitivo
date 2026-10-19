@@ -120,6 +120,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     TObjectPtr<UInputAction> ClickAction ;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Input")
+    TObjectPtr<UInputAction> RightClickAction;
 #pragma endregion
 
     UPROPERTY(EditDefaultsOnly, Category="Click|Trace")
@@ -157,6 +160,7 @@ private:
     
     // Funciones principales de Input
     void HandleLeftClick();
+    void HandleRightClick();
     bool TraceUnderCursor(ECollisionChannel Channel, FHitResult& OutHit ) const;
 
     // --- NUEVAS FUNCIONES DE REFACTORIZACIÓN ---
