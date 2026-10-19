@@ -43,6 +43,24 @@ float UEgnisCombatLibrary::CalculateDamage(const ACharacterBase* Source, const A
 	return Damage;
 }
 
+void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)
+{
+	if (!IsValid(Target) || Amount <= 0.f) return;
+
+	UAbilitySystemComponent* ASC = Target->GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	// SetNumericAttributeBase no pasa por PreGameplayEffectExecute (no toca el escudo)
+	// ni por PostGameplayEffectExecute (no mata), pero PreAttributeChange sigue acotando la vida a [0, Max]
+	const float NewHealth = FMath::Max(0.f, Target->GetCurrentHealth() - Amount);
+	ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHealth);
+
+	if (NewHealth <= 0.f)
+	{
+		Target->HandleDeath();
+	}
+}
+
 bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 {
 	return !HasStatusTag(Character, TAG_Status_Stunned);

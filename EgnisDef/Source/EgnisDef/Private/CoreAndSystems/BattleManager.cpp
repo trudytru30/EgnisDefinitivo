@@ -42,6 +42,7 @@ void UBattleManager::StartPlayerTurn()
 	if (bBattleIsOver) return;
 
 	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
+	if (bBattleIsOver) return;
 	
 	// Robar mano al inicio del turno y establecer energia
 	for (ACharacterBase* Character : CharactersOnField)
@@ -84,8 +85,10 @@ void UBattleManager::StartEnemyTurn()
 {
 	if (bBattleIsOver) return;
 
-	NotifyTeamTurnStart(1);	// Notificar al equipo enemigo
+	NotifyTeamTurnStart(1);
 
+	if (bBattleIsOver) return;
+	
 	//identifica enemigos
 	TArray<AEnemy*> Enemies;
 
@@ -331,6 +334,8 @@ void UBattleManager::NotifyTeamTurnStart(int32 Team)
 			Character->StatusComp->OnOwnerTurnStart();
 		}
 	}
+	
+	UpdateUnitsAlive();
 }
 
 void UBattleManager::NotifyTeamTurnEnd(int32 Team)

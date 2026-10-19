@@ -2,6 +2,7 @@
 #include "AbilitySystemComponent.h"
 #include "Characters/CharacterBase.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 namespace
 {
@@ -117,6 +118,13 @@ void UStatusEffectComponent::OnOwnerTurnStart()
 {
 	bOwnerTurnActive = true;
 
+	// Quemadura: hace su daño antes de caducar, así el último turno también duele
+	if (HasStatus(EStatusType::Status_Burn))
+	{
+		ApplyBurnDamage();
+		if (!IsValid(GetOwner())) return; // murió por la quemadura
+	}
+	
 	// Aqui iran los efectos periodicos, antes de descontar el turno
 	ConsumeTurns(true);
 }
@@ -165,4 +173,13 @@ void UStatusEffectComponent::ConsumeTurns(bool bTurnStart)
 	{
 		OnStatusChanged.Broadcast();
 	}
+}
+
+void UStatusEffectComponent::ApplyBurnDamage()
+{
+	ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner());
+	if (!OwnerChar) return;
+
+	UE_LOG(LogTemp, Log, TEXT("[%s] Quemadura: %.0f de daño puro"), *OwnerChar->GetName(), BurnDamage);
+	UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, BurnDamage);
 }

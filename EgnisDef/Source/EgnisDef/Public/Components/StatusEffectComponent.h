@@ -26,6 +26,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Status")
 	FOnStatusChanged OnStatusChanged;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
+	float BurnDamage = 2.f;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr);
@@ -41,7 +44,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Status")
 	TArray<FActiveStatus> GetActiveStatuses() const { return ActiveStatuses; }
-
+	
 	// Inicio y final del turno del bando del personaje (los llama BattleManager)
 	void OnOwnerTurnStart();
 	void OnOwnerTurnEnd();
@@ -58,4 +61,6 @@ private:
 	UAbilitySystemComponent* GetOwnerASC() const;
 	// Descuenta un turno a los estados que caducan al inicio (bTurnStart = true) o al final del turno
 	void ConsumeTurns(bool bTurnStart);
+	
+	void ApplyBurnDamage();
 };
