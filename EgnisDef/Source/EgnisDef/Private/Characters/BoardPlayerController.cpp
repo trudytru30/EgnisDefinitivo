@@ -16,6 +16,7 @@
 #include "CoreAndSystems/BattleSceneManager.h"
 #include "CoreAndSystems/DeployManager.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -178,12 +179,20 @@ void ABoardPlayerController::TrySelectCardSource()
     if (!TraceUnderCursor(UnitTraceChannel, Hit)) return;
 
     AAlly* ClickedAlly = Cast<AAlly>(Hit.GetActor());
+    
     if (!ClickedAlly)
     {
         UE_LOG(LogTemp, Warning, TEXT("BoardPlayerComponent: Clicked actor is not an ally"));
         return;
     }
 
+    // Aturdido: no puede jugar cartas
+    if (!UEgnisCombatLibrary::CanAct(ClickedAlly))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s esta aturdido y no puede jugar cartas"), *ClickedAlly->GetName());
+        return;
+    }
+    
     // Validación de arquetipo
     if (PendingCard && PendingCard->GetColor() != EColorType::Grey && !ClickedAlly->HasArchetypeColor(PendingCard->GetColor()))
     {
@@ -252,8 +261,19 @@ void ABoardPlayerController::ExecuteCardPlay(ACharacterBase* TargetUnit, FVector
 {
     if (!PendingCard || !PendingSource || !BM) return;
 
-    BM->PlayCard(PendingCard, PendingSource, TargetUnit, TargetLocation);
+    const bool bPlayed = BM->PlayCard(PendingCard, PendingSource, TargetUnit, TargetLocation);
     UE_LOG(LogTemp, Warning, TEXT("PlayCard ejecutada"));
+
+    // PlayCard rechazada (sin energía, aturdido...): la carta se queda en la mano
+    if (!bPlayed)
+    {
+        BP_RefreshHandUI();
+        PendingCard = nullptr;
+        PendingSource = nullptr;
+        SelectionState = ECardSelectionState::None;
+        CurrentIntent = EInputIntent::Move;
+        return;
+    }
     
     if (DeckManager)
     {

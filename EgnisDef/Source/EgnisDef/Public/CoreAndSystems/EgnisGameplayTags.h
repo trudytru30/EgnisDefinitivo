@@ -7,3 +7,10 @@
 // Nativo en vez de definido en Project Settings: se registra solo al arrancar, sin
 // necesidad de tocar ninguna configuración del editor.
 EGNISDEF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Damage);
+// Un tag por estado alterado. Mientras el estado esta activo, el tag esta en el ASC del personaje,
+// asi que se puede consultar con HasMatchingGameplayTag.
+EGNISDEF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Status_Burn);
+EGNISDEF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Status_Weakened);
+EGNISDEF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Status_Exposed);
+EGNISDEF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Status_Paralyzed);
+EGNISDEF_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Status_Stunned);

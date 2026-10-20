@@ -7,7 +7,7 @@
 <body>
 <div class="docs-body">
 <div class="manual-toc">
-<p>Unreal Integration 2.03</p>
+<p>Unreal Integration 2.04</p>
 <ul>
 <li><a href="welcome.html">Welcome to FMOD for Unreal</a></li>
 <li><a href="user-guide.html">User Guide</a></li>
@@ -59,7 +59,7 @@
 <h1>11. Game Components</h1>
 <h2 id="fmod-ambient-sound"><a href="#fmod-ambient-sound">11.1 FMOD Ambient Sound</a></h2>
 <p><img alt="AmbientSound" src="images/ambient-sound-details.png" /></p>
-<p>The FMOD Ambient Sound in the FMOD Unreal Integration allows you to easily play an <a href="https://fmod.com/docs/2.03/studio/fmod-studio-concepts.html#event">FMOD Studio Event</a> at a specific location in your level. Each Ambient Sound Actor creates and manages an <a href="https://fmod.com/docs/2.03/studio/glossary.html#event-instance">Event Instance</a>, which is handled automatically by the <a class="apilink" href="#fmod-audio-component">FMOD Audio Component</a>.</p>
+<p>The FMOD Ambient Sound in the FMOD Unreal Integration allows you to easily play an <a href="https://fmod.com/docs/2.04/studio/fmod-studio-concepts.html#event">FMOD Studio Event</a> at a specific location in your level. Each Ambient Sound Actor creates and manages an <a href="https://fmod.com/docs/2.04/studio/glossary.html#event-instance">Event Instance</a>, which is handled automatically by the <a class="apilink" href="#fmod-audio-component">FMOD Audio Component</a>.</p>
 <h3 id="adding-fmod-ambient-sounds"><a href="#adding-fmod-ambient-sounds">11.1.1 Adding FMOD Ambient Sounds</a></h3>
 <h4 id="drag-drop-from-the-fmod-content-browser"><a href="#drag-drop-from-the-fmod-content-browser">Drag &amp; Drop from the FMOD Content Browser</a></h4>
 <p>You can drag an Event asset directly from the FMOD Content folder in the Content Browser into your level. This will create an FMOD Ambient Sound Actor in your scene with the selected event already assigned.</p>
@@ -68,7 +68,7 @@
 Searching for <code>FMOD Ambient Sound</code> wil expose the component to be added to the map.</p>
 <h2 id="fmod-audio-component"><a href="#fmod-audio-component">11.2 FMOD Audio Component</a></h2>
 <p><img alt="FMODAudioComponent" src="images/audio-component-details.png" /></p>
-<p>The FMOD Audio Component allows you easily add FMOD events to actors in your map. The Audio Component can start its <a href="https://fmod.com/docs/2.03/api/studio-api-eventinstance.html">event instance</a>, assign initial parameter values and additional options.</p>
+<p>The FMOD Audio Component allows you easily add FMOD events to actors in your map. The Audio Component can start its <a href="https://fmod.com/docs/2.04/api/studio-api-eventinstance.html">event instance</a>, assign initial parameter values and additional options.</p>
 <h3 id="selecting-the-event"><a href="#selecting-the-event">11.2.1 Selecting the Event</a></h3>
 <p>Use the Event property in the Details panel to assign an FMOD Event. You can:</p>
 <ul>
@@ -91,7 +91,7 @@ Searching for <code>FMOD Ambient Sound</code> wil expose the component to be add
 <li>Looping events continue until explicitly stopped.</li>
 </ul>
 <h3 id="parameter-cache"><a href="#parameter-cache">11.2.3 Parameter Cache</a></h3>
-<p>You can set Initial <a href="https://fmod.com/docs/2.03/studio/parameters.html">Parameters</a> values in the component before playback starts. The array will be populated by parameters applied to the event in FMOD Studio. To change parameter values during gameplay during playback via Blueprints of C++:</p>
+<p>You can set Initial <a href="https://fmod.com/docs/2.04/studio/parameters.html">Parameters</a> values in the component before playback starts. The array will be populated by parameters applied to the event in FMOD Studio. To change parameter values during gameplay during playback via Blueprints of C++:</p>
 <h3 id="automated-parameter-cache"><a href="#automated-parameter-cache">11.2.4 Automated Parameter Cache</a></h3>
 <p>This shows a non-editable list of all parameters which are being either automated in FMOD Studio or used for Occlusion and Ambience, which are specified in the settings.</p>
 <h4 id="blueprint_1"><a href="#blueprint_1">Blueprint</a></h4>
@@ -109,7 +109,7 @@ Searching for <code>FMOD Ambient Sound</code> wil expose the component to be add
 <h3 id="occlusion-details"><a href="#occlusion-details">11.2.7 Occlusion Details</a></h3>
 <p>Enabling occlusion will use a raycast from the event to the listener to determine of occlusion should be applied to the signal of the event. The Channel to be checked against can be changed here. For more information please refer to the <a href="user-guide.html#occlusion">Occlusion Settings</a>.</p></div>
 
-<p class="manual-footer">Unreal Integration 2.03.14 (2026-05-28). &copy; 2026 Firelight Technologies Pty Ltd.</p>
+<p class="manual-footer">Unreal Integration 2.04.00 (2026-09-29). &copy; 2026 Firelight Technologies Pty Ltd.</p>
 </div>
 </body>
 </html>

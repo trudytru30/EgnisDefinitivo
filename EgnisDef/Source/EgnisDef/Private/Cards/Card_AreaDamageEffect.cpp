@@ -5,6 +5,7 @@
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "Environment/ObstacleBase.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 {
@@ -46,7 +47,8 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 					FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
 					if (Spec.IsValid())
 					{
-						Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, -DamageAmount);
+						Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
+							-UEgnisCombatLibrary::CalculateDamage(Self, Character, DamageAmount));
 						TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 					}
 				}

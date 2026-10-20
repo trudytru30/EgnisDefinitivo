@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "AbilitySystemComponent.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 AEnemy::AEnemy()
 {
@@ -53,6 +54,12 @@ void AEnemy::MoveTowardClosesPlayer()
 		return;
 	}
 
+	if (!UEgnisCombatLibrary::CanMove(this))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Paralizado: no se mueve."), *GetName());
+		return;
+	}
+	
 	ACharacterBase* Target = FindClosestPlayer();
 	if (!Target)
 	{
@@ -158,6 +165,13 @@ void AEnemy::MakeAction()
 		return;
 	}
 
+	// Aturdido: no puede hacer acciones
+	if (!UEgnisCombatLibrary::CanAct(this))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Aturdido, no actua."), *GetName());
+		return;
+	}
+	
 	ACharacterBase* Target = nullptr;
 	int32 Range = 0;
 	//Intentar curar si tiene Heal
@@ -212,7 +226,8 @@ void AEnemy::MakeAction()
 				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(AttackEffect, 1.f, Context);
 				if (Spec.IsValid())
 				{
-					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, -AttackDamage);
+					Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
+						-UEgnisCombatLibrary::CalculateDamage(this, Target, AttackDamage));
 					TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 				}
 			}

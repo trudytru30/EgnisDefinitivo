@@ -26,6 +26,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health")
 	float MaxHealth = 100.f;
 
+	// Escudo con el que empieza el combate (por defecto 0). Se vuelca al AttributeSet en BeginPlay,
+	// igual que Health/MaxHealth. Para escudo que da una reliquia a mitad de partida,
+	// mejor aplicar el GE de escudo (GE_CardShield) en vez de cambiar este valor.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health", meta=(ClampMin="0"))
+	float InitialShield = 0.f;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// El ASC es el "motor" de GAS: gestiona qué abilities tiene el personaje, qué GameplayEffects
@@ -36,6 +42,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UHealthAttributeSet* HealthAttributeSet;
+	
+	// Estados alterados
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Status")
+	class UStatusEffectComponent* StatusComp;
 
 	// Implementación obligatoria de la interfaz: así es como cualquier código externo
 	// (BattleManager, AAlly::LossPoints, futuras abilities) obtiene el ASC de este actor
@@ -85,6 +95,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Health")
 	float GetMaxHealth() const;
+
+	UFUNCTION(BlueprintPure, Category="Health")
+	float GetCurrentShield() const;
 	
 	
 protected:
