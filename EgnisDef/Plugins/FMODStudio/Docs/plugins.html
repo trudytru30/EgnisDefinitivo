@@ -7,7 +7,7 @@
 <body>
 <div class="docs-body">
 <div class="manual-toc">
-<p>Unreal Integration 2.04</p>
+<p>Unreal Integration 2.03</p>
 <ul>
 <li><a href="welcome.html">Welcome to FMOD for Unreal</a></li>
 <li><a href="user-guide.html">User Guide</a></li>
@@ -109,7 +109,7 @@
 </pre></div>
 
 <h3 id="static-plugins"><a href="#static-plugins">4.1.2 Static Plugins</a></h3>
-<p>Switch, iOS, and tvOS require plugins to be linked statically, which requires manually registering them with the <a href="https://fmod.com/docs/2.04/api/core-api-system.html">FMOD::System</a>. To achieve this you can create a new <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/objects-in-unreal-engine">UObject</a> that implements <a class="apilink" href="api-reference-ifmodcallbackhandler.html">IFMODCallbackHandler</a> and calls <a href="https://fmod.com/docs/2.04/api/core-api-system.html#system_registerdsp">FMOD::System::registerDSP</a> in the <a class="apilink" href="api-reference-ifmodcallbackhandler.html#ifmodcallbackhandler_preinitialize">IFMODCallbackHandler::PreInitialize</a> callback.</p>
+<p>Switch, iOS, and tvOS require plugins to be linked statically, which requires manually registering them with the <a href="https://fmod.com/docs/2.03/api/core-api-system.html">FMOD::System</a>. To achieve this you can create a new <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/objects-in-unreal-engine">UObject</a> that implements <a class="apilink" href="api-reference-ifmodcallbackhandler.html">IFMODCallbackHandler</a> and calls <a href="https://fmod.com/docs/2.03/api/core-api-system.html#system_registerdsp">FMOD::System::registerDSP</a> in the <a class="apilink" href="api-reference-ifmodcallbackhandler.html#ifmodcallbackhandler_preinitialize">IFMODCallbackHandler::PreInitialize</a> callback.</p>
 <p>Creating the C++ UObject:</p>
 <p><img alt="Create Class" src="images/programmer-sound-create.png" /></p>
 <p>Select Object:</p>
@@ -189,7 +189,7 @@ The integration will now use the list of plugins from the FMOD Unreal Settings.<
 In order to enable the plugin, you’ll need to follow the <a href="plugins.html#dynamic-plugins">Dynamic Plugin</a> setup guide. For FMOD Haptics, navigate to Project Settings, select FMOD Studio under the Plugins section, then scroll to Advanced then finally Plugin Files. Click the Plus icon to add an entry and add “fmod_haptics”. You'll need to restart your editor to apply these changes.</p>
 <p><img alt="Loading the FMOD Haptics plugin from the Project settings" src="images/fmod-haptics-load.png" /></p>
 <h3 id="auditioning-in-editor"><a href="#auditioning-in-editor">4.3.1 Auditioning In-Editor</a></h3>
-<p>Auditioning in-editor is supported with the same platform and device combinations specified in the <a href="https://fmod.com/docs/2.04/studio/instrument-reference.html#auditioning-support">Auditioning Support</a> section of the <a href="https://fmod.com/docs/2.04/studio/instrument-reference.html">FMOD Studio Instrument Reference</a>. Meta Quest controllers cannot be auditioned in-editor, and require additional configuration for use in a built application, which is covered below.</p>
+<p>Auditioning in-editor is supported with the same platform and device combinations specified in the <a href="https://fmod.com/docs/2.03/studio/instrument-reference.html#auditioning-support">Auditioning Support</a> section of the <a href="https://fmod.com/docs/2.03/studio/instrument-reference.html">FMOD Studio Instrument Reference</a>. Meta Quest controllers cannot be auditioned in-editor, and require additional configuration for use in a built application, which is covered below.</p>
 <h3 id="dependencies"><a href="#dependencies">4.3.2 Dependencies</a></h3>
 <ul>
 <li>Unreal Engine 5.4 or above</li>
@@ -268,7 +268,7 @@ In order to enable the plugin, you’ll need to follow the <a href="plugins.html
 <span class="p">};</span>
 </pre></div></div>
 
-<p class="manual-footer">Unreal Integration 2.04.00 (2026-09-29). &copy; 2026 Firelight Technologies Pty Ltd.</p>
+<p class="manual-footer">Unreal Integration 2.03.14 (2026-05-28). &copy; 2026 Firelight Technologies Pty Ltd.</p>
 </div>
 </body>
 </html>

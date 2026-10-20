@@ -487,7 +487,7 @@ void UFMODBlueprintStatics::EventInstanceSetProperty(FFMODEventInstance EventIns
     }
 }
 
-void UFMODBlueprintStatics::EventInstancePlay(FFMODEventInstance EventInstance, bool Release)
+void UFMODBlueprintStatics::EventInstancePlay(FFMODEventInstance EventInstance)
 {
     if (EventInstance.Instance)
     {
@@ -496,13 +496,8 @@ void UFMODBlueprintStatics::EventInstancePlay(FFMODEventInstance EventInstance, 
         {
             UE_LOG(LogFMOD, Warning, TEXT("Failed to play event instance"));
         }
-        else
-        {
-            if (Release)
-            {
-                EventInstanceRelease(EventInstance);
-            }
-        }
+        // Once we start playing, allow instance to be cleaned up when it finishes
+        EventInstance.Instance->release();
     }
 }
 
@@ -556,30 +551,6 @@ void UFMODBlueprintStatics::EventInstanceSetTransform(FFMODEventInstance EventIn
         if (Result != FMOD_OK)
         {
             UE_LOG(LogFMOD, Warning, TEXT("Failed to set transform on event instance"));
-        }
-    }
-}
-
-void UFMODBlueprintStatics::EventInstanceAddAudioTableKey(FFMODEventInstance EventInstance, const FString& Key)
-{
-    if (EventInstance.Instance)
-    {
-        FMOD_RESULT Result = EventInstance.Instance->addAudioTableKey(TCHAR_TO_UTF8(*Key));
-        if (Result != FMOD_OK)
-        {
-            UE_LOG(LogFMOD, Warning, TEXT("Failed to set audio table key on event instance"));
-        }
-    }
-}
-
-void UFMODBlueprintStatics::EventInstanceClearAudioTableKeys(FFMODEventInstance EventInstance)
-{
-    if (EventInstance.Instance)
-    {
-        FMOD_RESULT Result = EventInstance.Instance->clearAudioTableKeys();
-        if (Result != FMOD_OK)
-        {
-            UE_LOG(LogFMOD, Warning, TEXT("Failed to clear audio table keys on event instance"));
         }
     }
 }

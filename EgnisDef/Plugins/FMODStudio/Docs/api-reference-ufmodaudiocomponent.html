@@ -7,7 +7,7 @@
 <body>
 <div class="docs-body">
 <div class="manual-toc">
-<p>Unreal Integration 2.04</p>
+<p>Unreal Integration 2.03</p>
 <ul>
 <li><a href="welcome.html">Welcome to FMOD for Unreal</a></li>
 <li><a href="user-guide.html">User Guide</a></li>
@@ -41,7 +41,6 @@
 <li><span><a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_onsoundstopped" title="Called when a sound stops.">UFMODAudioComponent::OnSoundStopped</a> Called when a sound stops.</span></li>
 <li><span><a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_ontimelinebeat" title="Called when we reach a beat of a tempo (if bEnableTimelineCallbacks is true).">UFMODAudioComponent::OnTimelineBeat</a> Called when we reach a beat of a tempo (if bEnableTimelineCallbacks is true).</span></li>
 <li><span><a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_ontimelinemarker" title="Called when we reach a named marker (if bEnableTimelineCallbacks is true).">UFMODAudioComponent::OnTimelineMarker</a> Called when we reach a named marker (if bEnableTimelineCallbacks is true).</span></li>
-<li><span><a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_onassetmarker" title="Called when one of an EventInstance's internal Channels passes a sync point (if bEnableTimelineCallbacks is true).">UFMODAudioComponent::OnAssetMarker</a> Called when one of an EventInstance's internal Channels passes a sync point (if bEnableTimelineCallbacks is true).</span></li>
 <li><span><a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_parametercache" title="Cache of the current Events parameters.">UFMODAudioComponent::ParameterCache</a> Cache of the current Events parameters.</span></li>
 <li><span><a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_programmersoundname" title="Sound name used for programmer sound.">UFMODAudioComponent::ProgrammerSoundName</a> Sound name used for programmer sound.</span></li>
 <li><span><a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_studioinstance" title="Actual Studio instance handle.">UFMODAudioComponent::StudioInstance</a> Actual Studio instance handle.</span></li>
@@ -168,7 +167,7 @@
 <dd>Information about the callback.</dd>
 </dl>
 <p>This is called if the <a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_benabletimelinecallbacks">UFMODAudioComponent::bEnableTimelineCallbacks</a> is true or <a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_programmersoundname">UFMODAudioComponent::ProgrammerSoundName</a> is not empty.</p>
-<p><strong>See Also:</strong> <a href="https://fmod.com/docs/2.04/api/studio-api-eventinstance.html#fmod_studio_event_callback_type">FMOD_STUDIO_EVENT_CALLBACK_TYPE</a></p>
+<p><strong>See Also:</strong> <a href="https://fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type">FMOD_STUDIO_EVENT_CALLBACK_TYPE</a></p>
 <h2 api="struct" id="ufmodaudiocomponent_occlusiondetails"><a href="#ufmodaudiocomponent_occlusiondetails">UFMODAudioComponent::OcclusionDetails</a></h2>
 <p>FMOD Custom Occlusion Details.</p>
 <p>
@@ -180,17 +179,6 @@
 </pre></div>
 
 <p><strong>See Also:</strong> <a class="apilink" href="api-reference-common.html#ffmodocclusiondetails">FFMODOcclusionDetails</a></p>
-<h2 api="struct" id="ufmodaudiocomponent_onassetmarker"><a href="#ufmodaudiocomponent_onassetmarker">UFMODAudioComponent::OnAssetMarker</a></h2>
-<p>Called when one of an EventInstance's internal Channels passes a sync point (if bEnableTimelineCallbacks is true).</p>
-<p>
-<div class="language-selector">
-<div class="language-tab" data-language="language-cpp">C++</div>
-</div>
-</p>
-<div class="highlight language-cpp"><pre><span></span><span class="n">FOnAssetMarker</span> <span class="n">OnAssetMarker</span><span class="p">;</span>
-</pre></div>
-
-<p><strong>See Also:</strong> <a class="apilink" href="api-reference-ufmodaudiocomponent.html#ufmodaudiocomponent_benabletimelinecallbacks">UFMODAudioComponent::bEnableTimelineCallbacks</a></p>
 <h2 api="struct" id="ufmodaudiocomponent_oneventstopped"><a href="#ufmodaudiocomponent_oneventstopped">UFMODAudioComponent::OnEventStopped</a></h2>
 <p>Called when an event stops, either because it played to completion or because a Stop() call turned it off early.</p>
 <p>
@@ -270,7 +258,7 @@
 <dt>Sound</dt>
 <dd>User created sound to use.</dd>
 </dl>
-<p><strong>See Also:</strong> <a href="https://fmod.com/docs/2.04/api/core-api-sound.html">FMOD::Sound</a></p>
+<p><strong>See Also:</strong> <a href="https://fmod.com/docs/2.03/api/core-api-sound.html">FMOD::Sound</a></p>
 <h2 api="struct" id="ufmodaudiocomponent_studioinstance"><a href="#ufmodaudiocomponent_studioinstance">UFMODAudioComponent::StudioInstance</a></h2>
 <p>Actual Studio instance handle.</p>
 <p>
@@ -281,7 +269,7 @@
 <div class="highlight language-cpp"><pre><span></span><span class="n">FMOD</span><span class="o">::</span><span class="n">Studio</span><span class="o">::</span><span class="n">EventInstance</span> <span class="o">*</span><span class="n">StudioInstance</span><span class="p">;</span>
 </pre></div></div>
 
-<p class="manual-footer">Unreal Integration 2.04.00 (2026-09-29). &copy; 2026 Firelight Technologies Pty Ltd.</p>
+<p class="manual-footer">Unreal Integration 2.03.14 (2026-05-28). &copy; 2026 Firelight Technologies Pty Ltd.</p>
 </div>
 </body>
 </html>
