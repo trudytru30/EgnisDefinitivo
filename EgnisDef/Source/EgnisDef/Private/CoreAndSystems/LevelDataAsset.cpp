@@ -14,6 +14,29 @@ void ULevelDataAsset::ResizeGrid()
 	}
 }
 
+void ULevelDataAsset::ValidateDeployZones()
+{
+	TSet<FTileCoord> UsedTiles;
+	for (FDeployZone& Zone : DeployZones)
+	{
+		Zone.Tiles.RemoveAll([this, &UsedTiles](const FTileCoord& Tile)
+		{
+			const bool bInside = Tile.X >= 0 && Tile.X < Width && Tile.Y >= 0 && Tile.Y < Height;
+			bool bAlreadyUsed = false;
+			UsedTiles.Add(Tile, &bAlreadyUsed);
+			return !bInside || bAlreadyUsed;
+		});
+	}
+}
+
+int32 ULevelDataAsset::FindDeployZoneIndex(const FTileCoord& Tile) const
+{
+	return DeployZones.IndexOfByPredicate([&Tile](const FDeployZone& Zone)
+	{
+		return Zone.Tiles.Contains(Tile);
+	});
+}
+
 void ULevelDataAsset::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -29,6 +52,7 @@ void ULevelDataAsset::PostLoad()
 {
 	Super::PostLoad();
 	ResizeGrid();
+	ValidateDeployZones();
 }
 
 #if WITH_EDITOR
@@ -42,5 +66,8 @@ void ULevelDataAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	{
 		ResizeGrid();
 	}
+
+	// Al encoger el tablero o duplicar una zona pueden quedar casillas inválidas o repetidas
+	ValidateDeployZones();
 }
 #endif

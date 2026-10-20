@@ -1,75 +1,198 @@
 #include "CoreAndSystems/Board.h"
 #include "CoreAndSystems/LevelDataAsset.h"
+#include "Characters/CharacterBase.h"
 
 void ABoard::GenerateBoard()
 {
-    if (!CurrentLevelData)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Generación cancelada: No hay LevelDataAsset asignado en %s"), *GetName());
-        return;
-    }
+	ClearGeneratedBoard();
 
-    // Limpiar el tablero anterior si ya existía
-    for (AActor* Tile : SpawnedTiles)
-    {
-        if (Tile) Tile->Destroy();
-    }
-    SpawnedTiles.Empty();
-    OccupiedBy.Empty();
+	if (!CurrentLevelData)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Board]: %s no tiene CurrentLevelData: se queda con su tamaño (%d x %d) y con lo colocado a mano en el mapa"),
+			*GetName(), BoardSizeX, BoardSizeY);
+		return;
+	}
 
-    // 1. GENERAR CASILLAS LEYENDO LA MATRIZ (GridRows[Y].Columns[X]) DEL DATA ASSET
-    for (int32 Y = 0; Y < CurrentLevelData->GridRows.Num() && Y < BoardSizeY; ++Y)
-    {
-        const FTileRow& Row = CurrentLevelData->GridRows[Y];
+	SyncSizeFromLevelData();
 
-        for (int32 X = 0; X < Row.Columns.Num() && X < BoardSizeX; ++X)
-        {
-            FTileCoord CurrentCoord(X, Y);
-            ETileType TypeToSpawn = Row.Columns[X];
+	// 1. TIPOS DE CASILLA: la matriz del asset es GridRows[Y].Columns[X]
+	TileTypes.Init(ETileType::Normal, BoardSizeX * BoardSizeY);
+	for (int32 Y = 0; Y < CurrentLevelData->GridRows.Num() && Y < BoardSizeY; ++Y)
+	{
+		const FTileRow& Row = CurrentLevelData->GridRows[Y];
+		for (int32 X = 0; X < Row.Columns.Num() && X < BoardSizeX; ++X)
+		{
+			TileTypes[Y * BoardSizeX + X] = Row.Columns[X];
+		}
+	}
 
-            // Si el tipo es Void, podemos saltárnoslo para que no spawnee nada en ese hueco
-            if (TypeToSpawn == ETileType::Void)
-            {
-                continue;
-            }
+	// 2. VISUAL DE CADA CASILLA, si su tipo tiene uno en TileVisuals (Void nunca: es un hueco)
+	for (int32 Y = 0; Y < BoardSizeY; ++Y)
+	{
+		for (int32 X = 0; X < BoardSizeX; ++X)
+		{
+			const FTileCoord Coord(X, Y);
+			const ETileType Type = GetTileType(Coord);
+			if (Type == ETileType::Void)
+			{
+				continue;
+			}
 
-            // Buscamos el Blueprint en el mapa global de visuales del propio Tablero (ABoard)
-            if (TSubclassOf<AActor>* TileClass = TileVisuals.Find(TypeToSpawn))
-            {
-                if (*TileClass)
-                {
-                    FVector SpawnLocation = TileToWorldCenter(CurrentCoord);
-                    FActorSpawnParameters SpawnParams;
-                    SpawnParams.Owner = this;
+			const TSubclassOf<AActor>* TileClass = TileVisuals.Find(Type);
+			if (!TileClass || !*TileClass)
+			{
+				continue;
+			}
 
-                    // Instanciamos la casilla
-                    AActor* NewTile = GetWorld()->SpawnActor<AActor>(*TileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
-                    if (NewTile)
-                    {
-                        NewTile->AttachToComponent(Corner00, FAttachmentTransformRules::KeepWorldTransform);
-                        SpawnedTiles.Add(NewTile);
-                    }
-                }
-            }
-        }
-    }
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			AActor* NewTile = GetWorld()->SpawnActor<AActor>(*TileClass, TileToWorldCenter(Coord), FRotator::ZeroRotator, SpawnParams);
+			if (NewTile)
+			{
+				NewTile->AttachToComponent(Corner00, FAttachmentTransformRules::KeepWorldTransform);
+				SpawnedTiles.Add(NewTile);
+			}
+		}
+	}
 
-    // 2. GENERAR ENEMIGOS
-    for (const FEnemySpawnInfo& EnemyInfo : CurrentLevelData->EnemiesToSpawn)
-    {
-        if (EnemyInfo.EnemyClass && IsInside(EnemyInfo.SpawnCoord))
-        {
-            FVector SpawnLocation = TileToWorldCenter(EnemyInfo.SpawnCoord);
-            FActorSpawnParameters SpawnParams;
+	// 3. ENEMIGOS
+	for (const FEnemySpawnInfo& EnemyInfo : CurrentLevelData->EnemiesToSpawn)
+	{
+		SpawnEnemy(EnemyInfo);
+	}
 
-            AActor* NewEnemy = GetWorld()->SpawnActor<AActor>(EnemyInfo.EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
-            if (NewEnemy)
-            {
-                RegisterOccupant(EnemyInfo.SpawnCoord, NewEnemy);
-            }
-        }
-    }
+	UE_LOG(LogTemp, Log, TEXT("[Board]: Nivel %s cargado: %d x %d casillas, %d visuales de casilla, %d enemigos"),
+		*CurrentLevelData->GetName(), BoardSizeX, BoardSizeY, SpawnedTiles.Num(), SpawnedEnemies.Num());
 }
+
+void ABoard::SpawnEnemy(const FEnemySpawnInfo& EnemyInfo)
+{
+	const FTileCoord& Tile = EnemyInfo.SpawnCoord;
+
+	if (!EnemyInfo.EnemyClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Board]: El nivel %s tiene un enemigo sin clase en (%d, %d)"), *CurrentLevelData->GetName(), Tile.X, Tile.Y);
+		return;
+	}
+
+	if (IsTileOccupied(Tile))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Board]: No se puede colocar %s en (%d, %d): está fuera del tablero u ocupada"),
+			*EnemyInfo.EnemyClass->GetName(), Tile.X, Tile.Y);
+		return;
+	}
+
+	//Spawn diferido, igual que el despliegue de héroes (DeployManager): el tablero y la casilla se asignan
+	//ANTES del BeginPlay, que es donde el personaje se registra como ocupante
+	const FTransform SpawnTransform(FRotator::ZeroRotator, TileToWorldCenter(Tile));
+	AActor* NewEnemy = GetWorld()->SpawnActorDeferred<AActor>(EnemyInfo.EnemyClass, SpawnTransform, nullptr, nullptr,
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	if (!NewEnemy)
+	{
+		return;
+	}
+
+	if (ACharacterBase* Character = Cast<ACharacterBase>(NewEnemy))
+	{
+		Character->Board = this;
+		Character->CurrentTile = Tile;
+		//ya sabe su tablero y su casilla: termina de spawnear directamente de pie sobre ella
+		Character->FinishSpawning(FTransform(FRotator::ZeroRotator, Character->GetStandLocationForTile(Tile)));
+	}
+	else
+	{
+		//no es un personaje: no se registra solo, lo apunta el tablero
+		NewEnemy->FinishSpawning(SpawnTransform);
+		RegisterOccupant(Tile, NewEnemy);
+	}
+
+	SpawnedEnemies.Add(NewEnemy);
+}
+
+void ABoard::ClearGeneratedBoard()
+{
+	for (AActor* Tile : SpawnedTiles)
+	{
+		if (Tile) Tile->Destroy();
+	}
+	SpawnedTiles.Empty();
+
+	//No se vacía OccupiedBy entero: borraría a los personajes y obstáculos colocados a mano en el mapa.
+	//Cada enemigo deja libre su casilla al destruirse: los personajes se quitan en su EndPlay, y para el resto
+	//su entrada en OccupiedBy (un TWeakObjectPtr) deja de ser válida
+	for (const TWeakObjectPtr<AActor>& Enemy : SpawnedEnemies)
+	{
+		if (AActor* EnemyActor = Enemy.Get())
+		{
+			EnemyActor->Destroy();
+		}
+	}
+	SpawnedEnemies.Empty();
+
+	TileTypes.Empty();
+}
+
+void ABoard::SyncSizeFromLevelData()
+{
+	if (CurrentLevelData)
+	{
+		BoardSizeX = FMath::Max(CurrentLevelData->Width, 1);
+		BoardSizeY = FMath::Max(CurrentLevelData->Height, 1);
+	}
+}
+
+ETileType ABoard::GetTileType(const FTileCoord& Tile) const
+{
+	if (!IsInside(Tile))
+	{
+		return ETileType::Void;
+	}
+
+	//En partida: la copia que hizo GenerateBoard
+	if (TileTypes.Num() == BoardSizeX * BoardSizeY)
+	{
+		return TileTypes[Tile.Y * BoardSizeX + Tile.X];
+	}
+
+	//En el editor (sin generar todavía): directamente del asset
+	if (CurrentLevelData && CurrentLevelData->GridRows.IsValidIndex(Tile.Y) && CurrentLevelData->GridRows[Tile.Y].Columns.IsValidIndex(Tile.X))
+	{
+		return CurrentLevelData->GridRows[Tile.Y].Columns[Tile.X];
+	}
+
+	return ETileType::Normal;
+}
+
+void ABoard::GetBoardBounds(FVector& OutCenter, FVector2D& OutSize) const
+{
+	const FTransform& CornerTransform = Corner00->GetComponentTransform();
+	const FVector LocalSize(BoardSizeX * TileSize, BoardSizeY * TileSize, 0.f);
+
+	OutCenter = CornerTransform.TransformPosition(LocalSize * 0.5f);
+
+	const FVector Scale = CornerTransform.GetScale3D();
+	OutSize = FVector2D(LocalSize.X * Scale.X, LocalSize.Y * Scale.Y);
+}
+
+void ABoard::PostLoad()
+{
+	Super::PostLoad();
+
+	//Al abrir el mapa el tamaño ya tiene que ser el del nivel: los personajes colocados a mano
+	//pueden registrarse antes del BeginPlay del tablero
+	SyncSizeFromLevelData();
+}
+
+#if WITH_EDITOR
+void ABoard::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	//Antes del Super: el Super vuelve a ejecutar el construction script del BP (que dibuja la rejilla),
+	//y tiene que ver ya el tamaño del nivel. OnConstruction no sirve: el motor lo llama DESPUÉS del construction script
+	SyncSizeFromLevelData();
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif
 
 ABoard::ABoard()
 {
@@ -234,6 +357,13 @@ bool ABoard::IsInside(const FTileCoord& Tile) const
 
 void ABoard::BeginPlay()
 {
+	//Antes del Super, que es quien lanza el Event BeginPlay del BP: así el BP ya ve el nivel cargado.
+	//Los enemigos que se crean aquí hacen su BeginPlay al momento (el motor lo permite dentro de otro BeginPlay)
+	if (bGenerateOnBeginPlay)
+	{
+		GenerateBoard();
+	}
+
 	Super::BeginPlay();
 }
 
