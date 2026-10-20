@@ -7,7 +7,7 @@
 <body>
 <div class="docs-body">
 <div class="manual-toc">
-<p>Unreal Integration 2.03</p>
+<p>Unreal Integration 2.04</p>
 <ul>
 <li><a href="welcome.html">Welcome to FMOD for Unreal</a></li>
 <li class="manual-current-chapter manual-active-chapter"><a href="user-guide.html">User Guide</a><ul>
@@ -15,7 +15,6 @@
 <li><a href="#host-platform-integration">Host Platform Integration</a></li>
 <li><a href="#additional-platforms">Additional Platforms</a><ul>
 <li><a href="#windows-desktop">Windows Desktop</a></li>
-<li><a href="#universal-windows-platform">Universal Windows Platform</a></li>
 <li><a href="#linux">Linux</a></li>
 <li><a href="#macos">MacOS</a></li>
 <li><a href="#ios">iOS</a></li>
@@ -146,8 +145,6 @@
 <p>After installing the integration plugin for your host platform you may need to install additional plugins for other platforms which you are targeting.</p>
 <h4 id="windows-desktop"><a href="#windows-desktop">Windows Desktop</a></h4>
 <p>Install the Windows plugin following the instructions for <a class="apilink" href="#host-platform-integration">Host Platform Integration</a>. Files which are duplicated between the plugins can be overwritten safely.</p>
-<h4 id="universal-windows-platform"><a href="#universal-windows-platform">Universal Windows Platform</a></h4>
-<p>UWP support is included in the Windows plugin package. Install the plugin following the instructions for <a class="apilink" href="#host-platform-integration">Host Platform Integration</a>. Files which are duplicated between the plugins can be overwritten safely.</p>
 <h4 id="linux"><a href="#linux">Linux</a></h4>
 <p>Install the Linux plugin following the instructions for <a class="apilink" href="#host-platform-integration">Host Platform Integration</a>. Files which are duplicated between the plugins can be overwritten safely. Additional setup is required for this platform, please see the <a href="platform-specifics.html#linux">Platform Specifics | Linux</a> section for more information.</p>
 <h4 id="macos"><a href="#macos">MacOS</a></h4>
@@ -213,7 +210,7 @@ You can either manually copy them or use the 'Validate FMOD' option from the plu
 <h3 id="platform-specific-setup"><a href="#platform-specific-setup">2.2.5 Platform specific setup</a></h3>
 <p>Refer to <a href="platform-specifics.html">Platform Specifics</a> for details of additional platform dependent setup.</p>
 <h2 id="making-sounds"><a href="#making-sounds">2.3 Making sounds</a></h2>
-<p>FMOD For Unreal provides multiple ways in which Studio <a href="https://fmod.com/docs/2.03/studio/glossary.html#event">Events</a> can be played.</p>
+<p>FMOD For Unreal provides multiple ways in which Studio <a href="https://fmod.com/docs/2.04/studio/glossary.html#event">Events</a> can be played.</p>
 <h3 id="ambient-sounds"><a href="#ambient-sounds">2.3.1 Ambient Sounds</a></h3>
 <p>Dragging an event from the content browser into a scene viewport will create an <a href="game-components.html#fmod-ambient-sound">FMOD AmbientSound</a>.<br />
 <img alt="Drag sample" src="images/drag-ambient.png" /></p>
@@ -318,7 +315,7 @@ You can disable occlusion, per instance, and adjust the Trace Channel in the Com
 <h3 id="snapshot-reverb-effects"><a href="#snapshot-reverb-effects">2.8.1 Snapshot Reverb Effects</a></h3>
 <p>The workflow to use reverb zones is to set up snapshots in FMOD Studio. Snapshots can modify global reverb effects, change any bus volume, and modify any DSP value. To help trigger snapshots for reverb effects, the integration exports all snapshots as reverb effects in the <code>FMOD/Reverbs</code> folder.</p>
 <p><img alt="Reverb assets" src="images/reverb-assets.png" /></p>
-<p>These reverb effects can be dragged into audio volume Reverb Settings panel to be triggered when the audio listener enters the audio volume. It uses the same logic as the inbuilt Unreal audio system to determine which audio volume should be enabled, based on the priority of all the audio volumes the audio listener is within. The <a href="https://fmod.com/docs/2.03/studio/mixing.html#priority">Snapshot priority</a>, which is used to resolve conflicting property values when mutliple snapshots are active, is unrelated to audio volume priority and not a factor in determining which audio volume will be enabled. In the case of nested audio volumes you must set distinct priorities because audio volumes with the same priority may not become enabled.</p>
+<p>These reverb effects can be dragged into audio volume Reverb Settings panel to be triggered when the audio listener enters the audio volume. It uses the same logic as the inbuilt Unreal audio system to determine which audio volume should be enabled, based on the priority of all the audio volumes the audio listener is within. The <a href="https://fmod.com/docs/2.04/studio/mixing.html#priority">Snapshot priority</a>, which is used to resolve conflicting property values when mutliple snapshots are active, is unrelated to audio volume priority and not a factor in determining which audio volume will be enabled. In the case of nested audio volumes you must set distinct priorities because audio volumes with the same priority may not become enabled.</p>
 <p><img alt="Reverb settings" src="images/reverb-settings.png" /></p>
 <p>By default, snapshots apply instantly. To have a snapshot fade in, one of two things can be done. The first is by adding an AHDSR modulation to the intensity dial. The second way is to expose the intensity as a parameter, which allows it to be driven from the integration.</p>
 <p><img alt="Reverb snapshot intensity" src="images/reverb-snapshot-intensity.png" /></p>
@@ -343,7 +340,7 @@ You will need to add these parameter names to the integration settings.</p>
 <h2 id="localization"><a href="#localization">2.10 Localization</a></h2>
 <p>Localized audio tables are a special kind of audio table with features that facilitate localization. We recommend using localized audio tables if your game supports multiple spoken languages, or if you intend to add support for additional languages in a future patch.</p>
 <h3 id="setting-up-audio-tables"><a href="#setting-up-audio-tables">2.10.1 Setting up Audio Tables</a></h3>
-<p><a href="https://fmod.com/docs/2.03/api/dialogue-and-localization.html#audio-tables">Audio Tables</a> are lists of audio files stored outside your FMOD Studio project's asset folder. You can use audio tables to control localized sounds. See the <a href="https://fmod.com/docs/2.03/studio/dialogue-and-localization.html#localized-audio-tables">Dialogue and Localization</a> section of the <a href="https://fmod.com/docs/2.03/studio/welcome-to-fmod-studio.html">FMOD Studio Docs</a> on how to set up an audio table in your project.</p>
+<p><a href="https://fmod.com/docs/2.04/api/dialogue-and-localization.html#audio-tables">Audio Tables</a> are lists of audio files stored outside your FMOD Studio project's asset folder. You can use audio tables to control localized sounds. See the <a href="https://fmod.com/docs/2.04/studio/dialogue-and-localization.html#localized-audio-tables">Dialogue and Localization</a> section of the <a href="https://fmod.com/docs/2.04/studio/welcome-to-fmod-studio.html">FMOD Studio Docs</a> on how to set up an audio table in your project.</p>
 <p><img alt="Audio Table" src="images/audio-table.png" /></p>
 <h3 id="loading-localized-banks"><a href="#loading-localized-banks">2.10.2 Loading Localized Banks</a></h3>
 <p>Audio tables are assigned to an associated bank, this means that in order to change the currently loaded audio table you will need to change the bank. Only one localized bank should be loaded at a time, otherwise just the first one to be loaded will be used.</p>
@@ -363,11 +360,11 @@ You will need to add these parameter names to the integration settings.</p>
 <li>Delete the old FMODStudio folder then follow the same steps from <a href="user-guide.html#installing-the-integration">Installing the integration</a>.</li>
 <li>It may be necessary to delete the project's 'Binaries' and 'Intermediate' folders to force UE to use the newly added version. If you have previously packaged your project, Unreal will have precomiled binaries left over in those folders.</li>
 </ul>
-<p>If you are updating to a newer <a href="glossary.html#version">minor version</a> of FMOD no additional steps are required unless specified in the <a href="https://fmod.com/docs/2.03/api/welcome-revision-history.html">revision history</a>.</p>
+<p>If you are updating to a newer <a href="glossary.html#version">minor version</a> of FMOD no additional steps are required unless specified in the <a href="https://fmod.com/docs/2.04/api/welcome-revision-history.html">revision history</a>.</p>
 <p>Upgrading to a newer <a href="glossary.html#version">major version</a> of FMOD is usually only recommend for projects at or near the beginning of development, because new major versions may introduce behavioral and breaking changes. If you are upgrading to a new major version, you will need to read over:</p>
 <ul>
 <li><a href="welcome.html">What's new in FMOD for Unreal Integration...</a></li>
-<li><a href="https://fmod.com/docs/2.03/api/welcome.html">What's new in FMOD API...</a></li>
+<li><a href="https://fmod.com/docs/2.04/api/welcome.html">What's new in FMOD API...</a></li>
 </ul>
 <p>These will describe specific changes that might need to be made to your project.</p>
 <h3 id="updating-to-ue4-426"><a href="#updating-to-ue4-426">2.11.1 Updating to UE4 4.26</a></h3>
@@ -444,12 +441,12 @@ You will need to add these parameter names to the integration settings.</p>
 <p>For further documentation, see:<br />
 - <a href="api-reference.html">Integration API Reference</a><br />
 - <a href="blueprint-reference.html">Integration Blueprint Reference</a><br />
-- <a href="https://fmod.com/docs/2.03/api/welcome.html">FMOD API Reference</a>.</p>
+- <a href="https://fmod.com/docs/2.04/api/welcome.html">FMOD API Reference</a>.</p>
 <h2 id="programmer-instruments"><a href="#programmer-instruments">2.14 Programmer Instruments</a></h2>
 <p>FMOD Studio events can include programmer instruments that are controlled at runtime. There are a few different ways of hooking them up.</p>
 <h3 id="using-programmer-instruments-to-play-audio-table-assets"><a href="#using-programmer-instruments-to-play-audio-table-assets">2.14.1 Using Programmer Instruments to Play Audio Table Assets</a></h3>
 <p>With this approach, you don't need to do any programming at all!</p>
-<p>When an event instance triggers a programmer instrument with a name, the <a href="https://fmod.com/docs/2.03/studio/dialogue-and-localization.html#audio-tables">audio table</a> asset with that name is used by default. For example, if the sound designer sets the programmer instrument's name to "Welcome", then the audio table entry "Welcome" is used by default when that instrument is triggered.</p>
+<p>When an event instance triggers a programmer instrument with a name, the <a href="https://fmod.com/docs/2.04/studio/dialogue-and-localization.html#audio-tables">audio table</a> asset with that name is used by default. For example, if the sound designer sets the programmer instrument's name to "Welcome", then the audio table entry "Welcome" is used by default when that instrument is triggered.</p>
 <p><img alt="Studio programmer sound" src="images/studio-programmer.png" /></p>
 <p>Alternatively, you can select a specific audio table entry at runtime. There are two ways to do this.</p>
 <p>One way is to set the programmer sound name field in the <a href="">FMODAudioComponent</a>.</p>
@@ -663,7 +660,6 @@ Generated assests can be manually added to the "Additional Non-Asset Directories
 <p>By default FMOD Studio works side-by-side with the inbuilt Unreal audio device on the following platforms:</p>
 <ul>
 <li>Windows Desktop</li>
-<li>Universal Windows Platform</li>
 <li>Linux</li>
 <li>MacOS</li>
 <li>Android</li>
@@ -742,7 +738,7 @@ AudioMixerModuleName=
 </ul>
 <p>This can be especially useful for build machines that don't normally run the Editor at all, which is what normally triggers the assets to be built, and does not require the generated assets to be checked in to source control.</p></div>
 
-<p class="manual-footer">Unreal Integration 2.03.14 (2026-05-28). &copy; 2026 Firelight Technologies Pty Ltd.</p>
+<p class="manual-footer">Unreal Integration 2.04.00 (2026-09-29). &copy; 2026 Firelight Technologies Pty Ltd.</p>
 </div>
 </body>
 </html>

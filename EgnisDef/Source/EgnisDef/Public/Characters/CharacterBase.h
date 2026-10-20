@@ -26,6 +26,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health")
 	float MaxHealth = 100.f;
 
+	// Escudo con el que empieza el combate (por defecto 0). Se vuelca al AttributeSet en BeginPlay,
+	// igual que Health/MaxHealth. Para escudo que da una reliquia a mitad de partida,
+	// mejor aplicar el GE de escudo (GE_CardShield) en vez de cambiar este valor.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health", meta=(ClampMin="0"))
+	float InitialShield = 0.f;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// El ASC es el "motor" de GAS: gestiona qué abilities tiene el personaje, qué GameplayEffects
@@ -36,6 +42,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UHealthAttributeSet* HealthAttributeSet;
+	
+	// Estados alterados
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Status")
+	class UStatusEffectComponent* StatusComp;
 
 	// Implementación obligatoria de la interfaz: así es como cualquier código externo
 	// (BattleManager, AAlly::LossPoints, futuras abilities) obtiene el ASC de este actor
@@ -72,6 +82,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Grid")
 	void SnapToCurrentTile(bool bKeepCurrentZ = false);
 
+	// Dónde tiene que estar el actor para quedar de pie en esa casilla: centro de la casilla + media cápsula + TileZOffset.
+	// Todo lo que coloque o mueva personajes por el tablero (C++ o Blueprint) debería usar esto en vez de TileToWorldCenter,
+	// que devuelve la posición en el suelo y deja el centro de la cápsula (y medio personaje) bajo tierra
+	UFUNCTION(BlueprintPure, Category="Grid")
+	FVector GetStandLocationForTile(const FTileCoord& Tile) const;
+
 	
 	// Sustituyen a HealthComp->GetCurrentHealth()/GetMaxHealth() de cara a Blueprint.
 	UFUNCTION(BlueprintPure, Category="Health")
@@ -79,6 +95,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Health")
 	float GetMaxHealth() const;
+
+	UFUNCTION(BlueprintPure, Category="Health")
+	float GetCurrentShield() const;
 	
 	
 protected:

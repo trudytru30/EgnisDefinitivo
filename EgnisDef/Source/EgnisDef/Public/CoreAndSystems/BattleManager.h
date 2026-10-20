@@ -55,6 +55,10 @@ public:
 
 private:
 
+	// Avisan a los personajes de un bando de que empieza / termina su turno
+	void NotifyTeamTurnStart(int32 Team);
+	void NotifyTeamTurnEnd(int32 Team);
+	
 #pragma region Private Variables
 	// ===== Managers =====
 	UPROPERTY()

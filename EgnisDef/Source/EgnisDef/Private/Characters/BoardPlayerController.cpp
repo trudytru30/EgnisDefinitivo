@@ -16,6 +16,7 @@
 #include "CoreAndSystems/BattleSceneManager.h"
 #include "CoreAndSystems/DeployManager.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -77,6 +78,15 @@ void ABoardPlayerController::SetupInputComponent()
     
     EnhancedInput->BindAction(ClickAction, ETriggerEvent::Started, this, &ABoardPlayerController::HandleLeftClick);
     EnhancedInput->BindAction(PauseAction, ETriggerEvent::Started, this, &ABoardPlayerController::HandleMenu);
+
+    if (RightClickAction)
+    {
+        EnhancedInput->BindAction(RightClickAction, ETriggerEvent::Started, this, &ABoardPlayerController::HandleRightClick);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("RightClickAction not found: no se podrán retirar héroes en el despliegue"));
+    }
 }
 
 // ==========================================
@@ -97,6 +107,26 @@ void ABoardPlayerController::HandleLeftClick()
     else
     {
         ProcessDefaultStateInput();
+    }
+}
+
+void ABoardPlayerController::HandleRightClick()
+{
+    if (bIsInMenu) return;
+
+    if (!BSM || BSM->CurrentPhase != EScenePhase::Deployment || !DPM) return;
+
+    FHitResult Hit;
+    if (!TraceUnderCursor(UnitTraceChannel, Hit)) return;
+
+    AAlly* ClickedAlly = Cast<AAlly>(Hit.GetActor());
+    if (ClickedAlly && DPM->RemoveDeployedHero(ClickedAlly))
+    {
+        //el actor se está destruyendo: que no se quede como seleccionado
+        if (SelectedAlly == ClickedAlly)
+        {
+            SelectedAlly = nullptr;
+        }
     }
 }
 
@@ -124,23 +154,15 @@ void ABoardPlayerController::ProcessDefaultStateInput()
     if (TraceUnderCursor(BoardTraceChannel, Hit))
     {
         //Si está en fase de despliegue intentará colocar un personaje
-        if (BSM && BSM->CurrentPhase == EScenePhase::Deployment) 
+        if (BSM && BSM->CurrentPhase == EScenePhase::Deployment)
         {
-            FVector FinalLocation = Hit.ImpactPoint;
-            FRotator FixedRotation = FRotator::ZeroRotator;
-
-            if (ABoard* Board = Cast<ABoard>(Hit.GetActor()))
+            ABoard* Board = Cast<ABoard>(Hit.GetActor());
+            FTileCoord Tile;
+            if (DPM && Board && Board->WorldPointToTile(Hit.ImpactPoint, Tile))
             {
-                FTileCoord Tile;
-                if (Board->WorldPointToTile(Hit.ImpactPoint, Tile))
-                {
-                    FinalLocation = Board->TileToWorldCenter(Tile);
-                    FinalLocation.Z = 1.f; // Margen de altura
-                }
+                DPM->TryDeployHeroAtTile(Board, Tile);
             }
-
-            DPM->TryDeployHeroAtLocation(FinalLocation, FixedRotation);
-            return; 
+            return;
         }
         
         //Si no está en fase de despliegue se intenta mover
@@ -157,12 +179,20 @@ void ABoardPlayerController::TrySelectCardSource()
     if (!TraceUnderCursor(UnitTraceChannel, Hit)) return;
 
     AAlly* ClickedAlly = Cast<AAlly>(Hit.GetActor());
+    
     if (!ClickedAlly)
     {
         UE_LOG(LogTemp, Warning, TEXT("BoardPlayerComponent: Clicked actor is not an ally"));
         return;
     }
 
+    // Aturdido: no puede jugar cartas
+    if (!UEgnisCombatLibrary::CanAct(ClickedAlly))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s esta aturdido y no puede jugar cartas"), *ClickedAlly->GetName());
+        return;
+    }
+    
     // Validación de arquetipo
     if (PendingCard && PendingCard->GetColor() != EColorType::Grey && !ClickedAlly->HasArchetypeColor(PendingCard->GetColor()))
     {
@@ -231,8 +261,19 @@ void ABoardPlayerController::ExecuteCardPlay(ACharacterBase* TargetUnit, FVector
 {
     if (!PendingCard || !PendingSource || !BM) return;
 
-    BM->PlayCard(PendingCard, PendingSource, TargetUnit, TargetLocation);
+    const bool bPlayed = BM->PlayCard(PendingCard, PendingSource, TargetUnit, TargetLocation);
     UE_LOG(LogTemp, Warning, TEXT("PlayCard ejecutada"));
+
+    // PlayCard rechazada (sin energía, aturdido...): la carta se queda en la mano
+    if (!bPlayed)
+    {
+        BP_RefreshHandUI();
+        PendingCard = nullptr;
+        PendingSource = nullptr;
+        SelectionState = ECardSelectionState::None;
+        CurrentIntent = EInputIntent::Move;
+        return;
+    }
     
     if (DeckManager)
     {

@@ -7,7 +7,7 @@
 <body>
 <div class="docs-body">
 <div class="manual-toc">
-<p>Unreal Integration 2.03</p>
+<p>Unreal Integration 2.04</p>
 <ul>
 <li><a href="welcome.html">Welcome to FMOD for Unreal</a></li>
 <li><a href="user-guide.html">User Guide</a></li>
@@ -28,6 +28,8 @@
 <p>These methods are used to control individual Event Instances.</p>
 <p><strong>Methods:</strong></p>
 <ul>
+<li><span><a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-add-audio-table-key" title="Adds a key to the event's audio table key queue.">Event Instance Add Audio Table Key</a> Adds a key to the event's audio table key queue.</span></li>
+<li><span><a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-clear-audio-table-keys" title="Clears the event's audio table key queue.">Event Instance Clear Audio Table Keys</a> Clears the event's audio table key queue.</span></li>
 <li><span><a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-get-parameter" title="Get a parameter value on an FMOD Event Instance.">Event Instance Get Parameter</a> Get a parameter value on an FMOD Event Instance.</span></li>
 <li><span><a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-get-parameter-value" title="Get a parameter value on an FMOD Event Instance.">Event Instance Get Parameter Value</a> Get a parameter value on an FMOD Event Instance.</span></li>
 <li><span><a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-is-valid" title="Return whether this FMOD Event Instance is valid. The instance will be invalidated when the sound stops.">Event Instance Is Valid</a> Return whether this FMOD Event Instance is valid. The instance will be invalidated when the sound stops.</span></li>
@@ -42,6 +44,48 @@
 <li><span><a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-stop" title="Mute/Unmute the bus.">Event Instance Stop</a> Mute/Unmute the bus.</span></li>
 <li><span><a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-key-off" title="Allow an FMOD Event Instance to continue past a sustain point.">Event Instance Key Off</a> Allow an FMOD Event Instance to continue past a sustain point.</span></li>
 </ul>
+<h2 api="function" id="event-instance-add-audio-table-key"><a href="#event-instance-add-audio-table-key">Event Instance Add Audio Table Key</a></h2>
+<p>Adds a key to the event's audio table key queue.</p>
+<p><img alt="Event Instance Add Audio Table Key" src="images/event-instance-add-audio-table-key.png" /></p>
+<p>
+<div class="language-selector">
+<div class="language-tab" data-language="language-cpp">C++</div>
+</div>
+</p>
+<div class="highlight language-cpp"><pre><span></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">EventInstanceAddAudioTableKey</span><span class="p">(</span>
+    <span class="n">FFMODEventInstance</span> <span class="n">EventInstance</span><span class="p">,</span>
+    <span class="k">const</span> <span class="n">FString</span><span class="o">&amp;</span> <span class="n">Key</span>
+<span class="p">);</span>
+</pre></div>
+
+<dl>
+<dt>EventInstance</dt>
+<dd><a class="apilink" href="api-reference-ufmodblueprintstatics.html#ffmodeventinstance">FFMODEventInstance</a> to use.</dd>
+<dt>Key</dt>
+<dd>Audio table key.</dd>
+</dl>
+<p>Audio table keys are consumed by audio table instruments, which use them to look up and play entries from audio tables.<br />
+If the audio table instrument starts immediately when the event plays, you need to add keys before playing the event, for example:</p>
+<p><img alt="Audio Table Instrument Playback" src="images/audio-table-instrument-playback.png" /></p>
+<p><strong>See Also:</strong> <a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-clear-audio-table-keys">Event Instance Clear Audio Table Keys</a></p>
+<h2 api="function" id="event-instance-clear-audio-table-keys"><a href="#event-instance-clear-audio-table-keys">Event Instance Clear Audio Table Keys</a></h2>
+<p>Clears the event's audio table key queue.</p>
+<p><img alt="Event Instance Clear Audio Table Keys" src="images/event-instance-clear-audio-table-keys.png" /></p>
+<p>
+<div class="language-selector">
+<div class="language-tab" data-language="language-cpp">C++</div>
+</div>
+</p>
+<div class="highlight language-cpp"><pre><span></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">EventInstanceClearAudioTableKeys</span><span class="p">(</span>
+    <span class="n">FFMODEventInstance</span> <span class="n">EventInstance</span>
+<span class="p">);</span>
+</pre></div>
+
+<dl>
+<dt>EventInstance</dt>
+<dd><a class="apilink" href="api-reference-ufmodblueprintstatics.html#ffmodeventinstance">FFMODEventInstance</a> to use.</dd>
+</dl>
+<p><strong>See Also:</strong> <a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-add-audio-table-key">Event Instance Add Audio Table Key</a></p>
 <h2 api="function" id="event-instance-get-parameter"><a href="#event-instance-get-parameter">Event Instance Get Parameter</a></h2>
 <p>Get a parameter value on an FMOD Event Instance.</p>
 <p><img alt="Event Instance Get Parameter" src="images/event-instance-get-parameter.png" /></p>
@@ -89,7 +133,7 @@
 <dt>FinalValue</dt>
 <dd>Final combined parameter value.</dd>
 </dl>
-<p>Path lookups only succeed if the <a href="https://fmod.com/docs/2.03/api/glossary.html#studio-strings-bank">strings bank</a> is loaded.</p>
+<p>Path lookups only succeed if the <a href="https://fmod.com/docs/2.04/api/glossary.html#studio-strings-bank">strings bank</a> is loaded.</p>
 <h2 api="function" id="event-instance-is-valid"><a href="#event-instance-is-valid">Event Instance Is Valid</a></h2>
 <p>Return whether this FMOD Event Instance is valid. The instance will be invalidated when the sound stops.</p>
 <p><img alt="Event Instance Is Valid" src="images/event-instance-is-valid.png" /></p>
@@ -132,14 +176,18 @@
 </div>
 </p>
 <div class="highlight language-cpp"><pre><span></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">EventInstancePlay</span><span class="p">(</span>
-  <span class="n">FFMODEventInstance</span> <span class="n">EventInstance</span>
+  <span class="n">FFMODEventInstance</span> <span class="n">EventInstance</span><span class="p">,</span>
+  <span class="kt">bool</span> <span class="n">Release</span> <span class="o">=</span> <span class="nb">true</span>
 <span class="p">);</span>
 </pre></div>
 
 <dl>
 <dt>EventInstance</dt>
 <dd><a class="apilink" href="api-reference-ufmodblueprintstatics.html#ffmodeventinstance">FFMODEventInstance</a> to use.</dd>
+<dt>Release</dt>
+<dd>Whether to release the Event Instance.</dd>
 </dl>
+<p><strong>See Also:</strong> <a class="apilink" href="blueprint-reference-eventinstance.html#event-instance-release">Event Instance Release</a></p>
 <h2 api="function" id="event-instance-release"><a href="#event-instance-release">Event Instance Release</a></h2>
 <p>Release an FMOD Event Instance.</p>
 <p><img alt="Event Instance Release" src="images/event-instance-release.png" /></p>
@@ -178,7 +226,7 @@
 <dt>Value</dt>
 <dd>Value to set the parameter to.</dd>
 </dl>
-<p>Path lookups only succeed if the <a href="https://fmod.com/docs/2.03/api/glossary.html#studio-strings-bank">strings bank</a> is loaded.</p>
+<p>Path lookups only succeed if the <a href="https://fmod.com/docs/2.04/api/glossary.html#studio-strings-bank">strings bank</a> is loaded.</p>
 <h2 api="function" id="event-instance-set-paused"><a href="#event-instance-set-paused">Event Instance Set Paused</a></h2>
 <p>Pause/Unpause an FMOD Event Instance.</p>
 <p><img alt="Event Instance Set Paused" src="images/event-instance-set-paused.png" /></p>
@@ -238,7 +286,7 @@
 <dt>EventInstance</dt>
 <dd><a class="apilink" href="api-reference-ufmodblueprintstatics.html#ffmodeventinstance">FFMODEventInstance</a> to use.</dd>
 <dt>Property</dt>
-<dd><a href="https://fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_property">EFMODEventProperty</a> to set.</dd>
+<dd><a href="https://fmod.com/docs/2.04/api/studio-api-eventinstance.html#fmod_studio_event_property">EFMODEventProperty</a> to set.</dd>
 <dt>Value</dt>
 <dd>Value of property.</dd>
 </dl>
@@ -300,7 +348,7 @@
 <dd>Whether to release the Event Instance</dd>
 </dl></div>
 
-<p class="manual-footer">Unreal Integration 2.03.14 (2026-05-28). &copy; 2026 Firelight Technologies Pty Ltd.</p>
+<p class="manual-footer">Unreal Integration 2.04.00 (2026-09-29). &copy; 2026 Firelight Technologies Pty Ltd.</p>
 </div>
 </body>
 </html>

@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/GridMovementComponent.h"
+#include "Characters/CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Actor.h"
 
@@ -229,8 +230,12 @@ bool UGridMovementComponent::moveToTile(const FTileCoord& Target)
 		return false;
 	}
 
-	//casilla a pos en juego
+	//casilla a pos en juego (si es un personaje, de pie sobre la casilla y no con medio cuerpo bajo tierra)
 	FVector Destination = BoardActor->TileToWorldCenter(Target);
+	if (const ACharacterBase* OwnerCharacter = Cast<ACharacterBase>(GetOwner()))
+	{
+		Destination = OwnerCharacter->GetStandLocationForTile(Target);
+	}
 
 	//guarda la casilla anterior para liberar
 	FTileCoord OldTile;
