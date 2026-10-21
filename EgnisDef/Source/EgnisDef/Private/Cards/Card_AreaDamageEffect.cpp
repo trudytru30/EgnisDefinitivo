@@ -28,6 +28,8 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 	Self->Board->GetTilesInRange(CenterTile, AreaRadius, AreaTiles);
 	AreaTiles.Add(CenterTile);
 
+	int32 HitCount = 0;
+	
 	for (const FTileCoord& Tile : AreaTiles)
 	{
 		AActor* Occupant = Self->Board->GetTileOccupant(Tile);
@@ -52,6 +54,7 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 						TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 					}
 				}
+				HitCount++;
 			}
 			continue;
 		}
@@ -59,8 +62,12 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 		if (AObstacleBase* Obstacle = Cast<AObstacleBase>(Occupant))
 		{
 			Obstacle->ApplyDamage(DamageAmount);
+			HitCount++;
 		}
 	}
 
+	UE_LOG(LogTemp, Log, TEXT("AreaDamage: centro (%d,%d), radio %d, %d objetivos golpeados"),
+	CenterTile.X, CenterTile.Y, AreaRadius, HitCount);
+	
 	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayAttackSound(0);
 }
