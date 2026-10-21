@@ -170,6 +170,13 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 	
+	if (!UEgnisCombatLibrary::IsCardTargetInRange(Card, Character, TargetCharacter, Location))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Target out of range for card %s (caster %s)"),
+			*Card->GetName(), *Character->GetName());
+		return false;
+	}
+	
 	if (Character->GetCurrentEnergy() < Card->GetCost())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));

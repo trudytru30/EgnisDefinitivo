@@ -254,6 +254,13 @@ void ABoardPlayerController::TrySelectCardTarget()
         return;
     }
 
+    // Objetivo fuera de rango: se ignora el clic y la carta sigue seleccionada para elegir otro objetivo
+    if (!UEgnisCombatLibrary::IsCardTargetInRange(PendingCard, PendingSource, TargetUnit, TargetLocation))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: objetivo fuera de rango, elige otro"));
+        return;
+    }
+    
     ExecuteCardPlay(TargetUnit, TargetLocation);
 }
 
@@ -482,7 +489,8 @@ bool ABoardPlayerController::GetPendingCardRangeTiles(TArray<FTileCoord>& OutTil
        return false;
     }
 
-    PendingSource->Board->GetTilesInRange(PendingSource->CurrentTile, PendingCard->GetRange(), OutTiles);
+    PendingSource->Board->GetTilesInRange(PendingSource->CurrentTile, 
+        PendingSource->GetEffectiveRange(PendingCard), OutTiles);
     return true;
 }
 

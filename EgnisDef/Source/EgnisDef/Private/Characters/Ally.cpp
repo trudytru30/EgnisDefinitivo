@@ -3,6 +3,7 @@
 #include "CoreAndSystems/AudioManager.h"
 #include "Components/GridMovementComponent.h"
 #include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
+#include "Cards/BaseCard.h"
 
 AAlly::AAlly()
 {
@@ -43,8 +44,32 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
     if (GetAbilitySystemComponent())
     {
     }
-
+	
+	// Rango del personaje desde la tabla de stats (columna Range de DT_HeroClasses)
+	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::InitializeFromData")))
+	{
+		BaseRange = Stats->Range;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Aliado %s: sin fila de stats en el DataAsset, BaseRange se queda en %d."), *GetName(), BaseRange);
+	}
+	
     UE_LOG(LogTemp, Log, TEXT("Aliado %s inicializado desde DataAsset."), *GetName());
+}
+
+int32 AAlly::GetCharacterRange() const
+{
+	return FMath::Max(0, BaseRange);
+}
+
+int32 AAlly::GetEffectiveRange(const UBaseCard* Card) const
+{
+	if (!Card)
+	{
+		return 0;
+	}
+	return Card->GetRange() + GetCharacterRange();
 }
 
 int32 AAlly::GetCurrentEnergy() const
