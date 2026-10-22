@@ -77,6 +77,11 @@ FText UBaseCard::GetDescription() const
 	return Description;
 }
 
+void UBaseCard::SetColor(EColorType NewColor)
+{
+	Color = NewColor;
+}
+
 int32 UBaseCard::GetCost() const
 {
 	return Cost;

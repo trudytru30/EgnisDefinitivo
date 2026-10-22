@@ -5,6 +5,37 @@
 #include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
 #include "Cards/BaseCard.h"
 
+namespace
+{
+	// Color de carta que corresponde a cada culto.
+	bool TryGetCultColor(const FGameplayTag& Cult, EColorType& OutColor)
+	{
+		struct FCultColor
+		{
+			const TCHAR* TagName;
+			EColorType Color;
+		};
+
+		// Si se rompe por el culto de Mern, sustituir "Cult.Mern" por "Cult.M\u00E9rn" (es la tilde)
+		static const FCultColor CultColors[] = {
+			{ TEXT("Cult.Doru"), EColorType::Turquoise },
+			{ TEXT("Cult.Mern"), EColorType::Indigo },
+			{ TEXT("Cult.Egnis"), EColorType::DarkMagenta },
+			{ TEXT("Cult.Wers"), EColorType::Vermillion }
+		};
+
+		for (const FCultColor& Entry : CultColors)
+		{
+			if (Cult.MatchesTag(FGameplayTag::RequestGameplayTag(FName(Entry.TagName), false)))
+			{
+				OutColor = Entry.Color;
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
 AAlly::AAlly()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -49,6 +80,18 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
 	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::InitializeFromData")))
 	{
 		BaseRange = Stats->Range;
+		
+		// Colores de carta del personaje: uno por cada culto de su clase. Un culto sin color asignado se ignora
+		ArchetypeColors.Reset();
+		for (const FGameplayTag& Cult : Stats->AllowedCults)
+		{
+			EColorType CultColor;
+			if (TryGetCultColor(Cult, CultColor))
+			{
+				ArchetypeColors.AddUnique(CultColor);
+			}
+		}
+		UE_LOG(LogTemp, Log, TEXT("Aliado %s: %d colores de carta segun sus cultos."), *GetName(), ArchetypeColors.Num());
 	}
 	else
 	{
