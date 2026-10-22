@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Components/GridMovementComponent.h"
 #include "Characters/CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
@@ -205,6 +203,16 @@ bool UGridMovementComponent::canMoveToTile(const FTileCoord& Target)
 		}
 	}
 	return false;
+}
+
+bool UGridMovementComponent::canMoveToTileLimited(const FTileCoord& Target, int32 MaxTiles)
+{
+	// Los patrones leen moveRange, asi que se reduce durante la consulta y se restaura justo despues
+	const int32 SavedRange = moveRange;
+	moveRange = FMath::Clamp(MaxTiles, 0, SavedRange);
+	const bool bResult = canMoveToTile(Target);
+	moveRange = SavedRange;
+	return bResult;
 }
 
 bool UGridMovementComponent::moveToTile(const FTileCoord& Target)
