@@ -806,6 +806,40 @@ void UEgnisDialogueComponent::FireRowEvents(const FEgnisDialogueRow& Row)
 {
 	if (!Row.Actions.IsEmpty())
 	{
+		// Acciones del tipo "Flag = true" / "Flag = false" (separadas por ';' o saltos de línea)
+		// cambian directamente los flags que usa la columna Conditions.
+		TArray<FString> Parts;
+		Row.Actions.Replace(TEXT("\n"), TEXT(";")).ParseIntoArray(Parts, TEXT(";"), true);
+		for (const FString& Part : Parts)
+		{
+			FString Left, Right;
+			if (!Part.Split(TEXT("="), &Left, &Right))
+			{
+				continue;
+			}
+			Left.TrimStartAndEndInline();
+			Right.TrimStartAndEndInline();
+			if (Left.IsEmpty() || Left.Contains(TEXT(" ")))
+			{
+				continue;
+			}
+			bool bValue;
+			if (Right.Equals(TEXT("true"), ESearchCase::IgnoreCase) || Right == TEXT("1"))
+			{
+				bValue = true;
+			}
+			else if (Right.Equals(TEXT("false"), ESearchCase::IgnoreCase) || Right == TEXT("0"))
+			{
+				bValue = false;
+			}
+			else
+			{
+				continue;
+			}
+			SetFlag(FName(*Left), bValue);
+			UE_LOG(LogEgnisDialogue, Log, TEXT("Flag %s = %s (fila %s)"), *Left, bValue ? TEXT("true") : TEXT("false"), *Row.RowID.ToString());
+		}
+
 		OnDialogueAction.Broadcast(Row.Actions, Row.RowID);
 		if (bPrintActionsOnScreen)
 		{
