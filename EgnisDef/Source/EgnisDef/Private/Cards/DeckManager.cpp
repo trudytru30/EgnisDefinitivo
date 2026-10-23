@@ -84,7 +84,8 @@ void UDeckManager::DrawCard()
 		DrawnCard->NotifyHandEnter(nullptr);
 	}
 
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayDrawCardSound(0);
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardDraw);
 	OnHandChanged.Broadcast();
 }
 

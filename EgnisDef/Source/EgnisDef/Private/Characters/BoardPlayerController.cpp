@@ -311,8 +311,9 @@ bool ABoardPlayerController::TrySelectAlly()
             if (ClickedCharacter->GetTeam() == 0) // Es Aliado
             {
                 SelectedAlly = ClickedCharacter;
-                if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayElevateSound(0);
-                
+                if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
+                    AM->PlayTrigger(EEgnisAudioTrigger::AllySelected, nullptr, SelectedAlly);
+
                 if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Green, FString::Printf(TEXT("Selected: %s"), *SelectedAlly->GetName()));
                 UE_LOG(LogTemp, Log, TEXT("Selected Ally: %s"), *SelectedAlly->GetName());
                 return true;

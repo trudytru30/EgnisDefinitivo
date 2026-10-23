@@ -81,7 +81,8 @@ void UCard_MoveEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 
 	Self->SnapToCurrentTile(false);
 
-	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
+	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardMove, SoundOverride, Self);
 
 	UE_LOG(LogTemp, Log, TEXT("MoveEffect: %s -> (%d,%d)"), *Self->GetName(), Destination.X, Destination.Y);
 }

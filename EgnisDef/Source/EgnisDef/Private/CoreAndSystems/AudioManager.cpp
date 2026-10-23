@@ -2,11 +2,55 @@
 #include "CoreAndSystems/AudioDataAsset.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/AudioComponent.h"
+#include "FMODBlueprintStatics.h"
+#include "FMODEvent.h"
 
 void UAudioManager::SetAudioData(UAudioDataAsset* Data)
 {
 	AudioData = Data;
 }
+
+// ──────────────────────────────────────── FMOD ────────────────────────────────────────
+void UAudioManager::PlayTrigger(EEgnisAudioTrigger Trigger, UFMODEvent* OverrideEvent, AActor* Context)
+{
+	OnAudioTrigger.Broadcast(Trigger, Context);
+	UE_LOG(LogTemp, Log, TEXT("[AudioManager]: Trigger %s"), *UEnum::GetValueAsString(Trigger));
+
+	UFMODEvent* EventToPlay = OverrideEvent;
+	if (!IsValid(EventToPlay) && AudioData)
+	{
+		if (const TObjectPtr<UFMODEvent>* Found = AudioData->TriggerEvents.Find(Trigger))
+		{
+			EventToPlay = Found->Get();
+		}
+	}
+
+	if (IsValid(EventToPlay))
+	{
+		UFMODBlueprintStatics::PlayEvent2D(GetGameInstance(), EventToPlay, true);
+		return;
+	}
+
+	// Respaldo: sonido antiguo del momento (se puede borrar cuando todos tengan evento FMOD)
+	switch (Trigger)
+	{
+	case EEgnisAudioTrigger::CardHover:		PlayHoverSound(0);			break;
+	case EEgnisAudioTrigger::CardSelect:	PlaySelectCardSound(0);		break;
+	case EEgnisAudioTrigger::CardDraw:		PlayDrawCardSound(0);		break;
+	case EEgnisAudioTrigger::AllySelected:	PlayElevateSound(0);		break;
+	case EEgnisAudioTrigger::AllyMove:
+	case EEgnisAudioTrigger::EnemyMove:
+	case EEgnisAudioTrigger::CardMove:
+	case EEgnisAudioTrigger::CardPushPull:	PlayLandSound(0);			break;
+	case EEgnisAudioTrigger::CardAttack:
+	case EEgnisAudioTrigger::CardAreaAttack:PlayAttackSound(0);			break;
+	case EEgnisAudioTrigger::EnemyAttack:	PlayAttackSound(4);			break;
+	case EEgnisAudioTrigger::CardHeal:
+	case EEgnisAudioTrigger::CardShield:	PlayDoruSpellSound(0);		break;
+	default:																break;
+	}
+}
+// ──────────────────────────────────────── FMOD ────────────────────────────────────────
 
 void UAudioManager::PlaySoundFromArray(const TArray<TObjectPtr<USoundBase>>& Sounds, int32 Index, const TCHAR* CategoryName)
 {

@@ -69,5 +69,6 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 	UE_LOG(LogTemp, Log, TEXT("AreaDamage: centro (%d,%d), radio %d, %d objetivos golpeados"),
 	CenterTile.X, CenterTile.Y, AreaRadius, HitCount);
 	
-	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayAttackSound(0);
+	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardAreaAttack, SoundOverride, Self);
 }

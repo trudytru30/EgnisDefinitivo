@@ -6,7 +6,7 @@
 #include "CardEffect.generated.h"
 
 class UDeckManager;
-
+class UFMODEvent;
 
 UCLASS(Blueprintable, Abstract)
 class EGNISDEF_API UCardEffect : public UObject
@@ -18,6 +18,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect")
 	ECardTarget Target = ECardTarget::None;
 
+	// Sonido propio de este efecto (evento FMOD). Si se deja vacio suena el evento general de ese tipo
+	// de efecto que haya en la tabla Trigger Events del AudioDataAsset.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Audio")
+	TObjectPtr<UFMODEvent> SoundOverride;
+	
 #pragma region Effects
 	virtual void Execute_None(UDeckManager* Deck) {};
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) {};
