@@ -11,7 +11,7 @@ public class EgnisDef : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore",
 			"EnhancedInput","UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks", "HTTP" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AssetRegistry" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AssetRegistry", "Slate", "SlateCore" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

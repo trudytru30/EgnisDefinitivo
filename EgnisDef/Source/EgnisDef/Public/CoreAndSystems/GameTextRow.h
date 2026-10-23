@@ -22,7 +22,7 @@ struct FGameTextRow : public FTableRowBase
 	FName Parent_Row_ID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Chance;
+	float Chance = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Conditions;
