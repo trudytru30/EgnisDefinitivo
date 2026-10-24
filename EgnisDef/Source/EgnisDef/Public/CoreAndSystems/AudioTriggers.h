@@ -36,7 +36,18 @@ enum class EEgnisAudioTrigger : uint8
 	CardMove UMETA(DisplayName = "Carta - Movimiento"),
 	/** Efecto de empujar/atraer: suena cuando el objetivo termina de desplazarse. */
 	CardPushPull UMETA(DisplayName = "Carta - Empujar / Atraer"),
-
+	
+	/** Empieza el combate (justo despues de desplegar las tropas). */
+	CombatStart UMETA(DisplayName = "Combate - Empieza"),
+	/** Empieza el turno del jugador. */
+	PlayerTurnStart UMETA(DisplayName = "Combate - Turno del jugador"),
+	/** Empieza el turno de los enemigos. */
+	EnemyTurnStart UMETA(DisplayName = "Combate - Turno enemigo"),
+	/** El jugador gana el combate. */
+	CombatVictory UMETA(DisplayName = "Combate - Victoria"),
+	/** El jugador pierde el combate. */
+	CombatDefeat UMETA(DisplayName = "Combate - Derrota"),
+	
 	/** Un enemigo ataca a un aliado en su turno. */
 	EnemyAttack UMETA(DisplayName = "Enemigo - Ataque")
 };

@@ -30,8 +30,24 @@ void UBattleManager::StartBattle()
 	{
 		CharactersOnField.Add(*It);
 	}
-
+	
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
+	
+	// Referencia para la salud del equipo (musica): vida maxima de los aliados al empezar
+	InitialTeamMaxHealth = 0.0f;
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (Character && Character->GetTeam() == 0)
+		{
+			InitialTeamMaxHealth += Character->GetMaxHealth();
+		}
+	}
+
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+	{
+		AM->PlayTrigger(EEgnisAudioTrigger::CombatStart);
+		AM->SetTeamHealthRatio(GetTeamHealthRatio());
+	}
 	
 	StartPlayerTurn();
 }
@@ -48,8 +64,6 @@ void UBattleManager::StartPlayerTurn()
 	for (ACharacterBase* Character : CharactersOnField)
 	{
 		if (AAlly* Ally = Cast<AAlly>(Character))
-			//
-			//Ally->GainPoints(-1);	// Para reiniciar los puntos al valor default (mirar EnergyComponent)
 			Ally->ResetEnergyForTurn();	 
 	}
 
@@ -76,6 +90,9 @@ void UBattleManager::StartPlayerTurn()
 	}
 
 	OnPlayerTurnStarted.Broadcast();
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(EEgnisAudioTrigger::PlayerTurnStart);
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Player Turn %d"), TurnCount);
 }
@@ -88,6 +105,9 @@ void UBattleManager::StartEnemyTurn()
 	NotifyTeamTurnStart(1);
 
 	if (bBattleIsOver) return;
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::EnemyTurnStart);
 	
 	//identifica enemigos
 	TArray<AEnemy*> Enemies;
@@ -223,6 +243,9 @@ void UBattleManager::UpdateUnitsAlive()
 		}
 	}
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Allies alive: %d, Enemies alive: %d"), AlliesAlive, EnemiesAlive);
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->SetTeamHealthRatio(GetTeamHealthRatio());
 
 	if (AlliesAlive == 0)
 		EndBattle(false);
@@ -234,6 +257,10 @@ void UBattleManager::UpdateUnitsAlive()
 void UBattleManager::EndBattle(bool bPlayerWon)
 {
 	bBattleIsOver = true;
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(bPlayerWon ? EEgnisAudioTrigger::CombatVictory : EEgnisAudioTrigger::CombatDefeat);
+	
 	if (bPlayerWon)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
@@ -313,6 +340,27 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: RequestMove OK: %s -> (%d,%d)"),
 		*Unit->GetName(), Unit->CurrentTile.X, Unit->CurrentTile.Y);
 	return true;
+}
+
+float UBattleManager::GetTeamHealthRatio() const
+{
+	// Sin referencia (combate sin aliados al empezar): se considera salud completa
+	if (InitialTeamMaxHealth <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	// Los aliados muertos ya no estan en el campo, asi que no suman: su vida cuenta como 0 frente a la maxima inicial
+	float CurrentHealth = 0.0f;
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (IsValid(Character) && Character->GetTeam() == 0)
+		{
+			CurrentHealth += FMath::Max(0.0f, Character->GetCurrentHealth());
+		}
+	}
+
+	return FMath::Clamp(CurrentHealth / InitialTeamMaxHealth, 0.0f, 1.0f);
 }
 
 // ===== Getters =====

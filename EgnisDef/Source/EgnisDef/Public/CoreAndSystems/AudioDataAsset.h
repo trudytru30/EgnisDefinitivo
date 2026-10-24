@@ -7,6 +7,25 @@
 
 class UFMODEvent;
 
+// Una regla de musica: cuando ocurre el momento Trigger, el parametro global de FMOD "Parameter" pasa a valer Value.
+USTRUCT(BlueprintType)
+struct FEgnisMusicParameterRule
+{
+	GENERATED_BODY()
+
+	// Momento del juego que activa la regla
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Music")
+	EEgnisAudioTrigger Trigger = EEgnisAudioTrigger::CombatStart;
+
+	// Nombre exacto del parametro GLOBAL en FMOD Studio
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Music")
+	FName Parameter;
+
+	// Valor que se le da
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Music")
+	float Value = 1.0f;
+};
+
 UCLASS(BlueprintType)
 class EGNISDEF_API UAudioDataAsset : public UDataAsset
 {
@@ -22,7 +41,19 @@ public:
 	// Las filas se crean solas, solo hay que elegir el evento FMOD de cada una.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FMOD")
 	TMap<EEgnisAudioTrigger, TObjectPtr<UFMODEvent>> TriggerEvents;
+	
+	// Evento de la musica del juego. Se arranca una sola vez y se controla con parametros globales de FMOD.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FMOD|Music")
+	TObjectPtr<UFMODEvent> MusicEvent;
 
+	// Cambios de parametros globales de FMOD que ocurren al lanzarse un momento (ver EEgnisAudioTrigger).
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FMOD|Music")
+	TArray<FEgnisMusicParameterRule> MusicRules;
+
+	// Parametro global que recibe la salud del equipo (0 = todos muertos, 1 = todos al maximo). Vacio = no se manda.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FMOD|Music")
+	FName TeamHealthParameter;
+	
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 

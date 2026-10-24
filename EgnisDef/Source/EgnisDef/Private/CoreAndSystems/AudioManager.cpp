@@ -16,6 +16,18 @@ void UAudioManager::PlayTrigger(EEgnisAudioTrigger Trigger, UFMODEvent* Override
 	OnAudioTrigger.Broadcast(Trigger, Context);
 	UE_LOG(LogTemp, Log, TEXT("[AudioManager]: Trigger %s"), *UEnum::GetValueAsString(Trigger));
 
+	// Reglas de musica: parametros globales de FMOD que cambian cuando ocurre este momento
+	if (AudioData)
+	{
+		for (const FEgnisMusicParameterRule& Rule : AudioData->MusicRules)
+		{
+			if (Rule.Trigger == Trigger)
+			{
+				SetMusicParameter(Rule.Parameter, Rule.Value);
+			}
+		}
+	}
+	
 	UFMODEvent* EventToPlay = OverrideEvent;
 	if (!IsValid(EventToPlay) && AudioData)
 	{
@@ -48,6 +60,55 @@ void UAudioManager::PlayTrigger(EEgnisAudioTrigger Trigger, UFMODEvent* Override
 	case EEgnisAudioTrigger::CardHeal:
 	case EEgnisAudioTrigger::CardShield:	PlayDoruSpellSound(0);		break;
 	default:																break;
+	}
+}
+
+void UAudioManager::StartFMODMusic()
+{
+	// Ya suena: no se reinicia. La instancia se invalida sola si el evento termina o se corta.
+	if (FMODMusicInstance.IsValid() && UFMODBlueprintStatics::EventInstanceIsValid(*FMODMusicInstance))
+	{
+		return;
+	}
+
+	if (!AudioData || !IsValid(AudioData->MusicEvent))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AudioManager]: StartFMODMusic: no hay MusicEvent en el AudioDataAsset"));
+		return;
+	}
+
+	FMODMusicInstance = MakeShared<FFMODEventInstance>(
+		UFMODBlueprintStatics::PlayEvent2D(GetGameInstance(), AudioData->MusicEvent, true));
+	UE_LOG(LogTemp, Log, TEXT("[AudioManager]: Musica FMOD arrancada: %s"), *AudioData->MusicEvent->GetName());
+}
+
+void UAudioManager::StopFMODMusic()
+{
+	if (FMODMusicInstance.IsValid())
+	{
+		// Release = true: ademas de parar el evento, libera la instancia
+		UFMODBlueprintStatics::EventInstanceStop(*FMODMusicInstance, true);
+		FMODMusicInstance.Reset();
+	}
+}
+
+void UAudioManager::SetMusicParameter(FName ParameterName, float Value)
+{
+	// Nombre vacio = regla o parametro sin configurar, se ignora
+	if (ParameterName.IsNone())
+	{
+		return;
+	}
+	UE_LOG(LogTemp, Log, TEXT("[AudioManager]: Parametro de musica %s = %.2f"), *ParameterName.ToString(), Value);
+	
+	UFMODBlueprintStatics::SetGlobalParameterByName(ParameterName, Value);
+}
+
+void UAudioManager::SetTeamHealthRatio(float Ratio)
+{
+	if (AudioData)
+	{
+		SetMusicParameter(AudioData->TeamHealthParameter, FMath::Clamp(Ratio, 0.0f, 1.0f));
 	}
 }
 // ──────────────────────────────────────── FMOD ────────────────────────────────────────
