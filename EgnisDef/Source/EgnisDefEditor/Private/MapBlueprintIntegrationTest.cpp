@@ -8,6 +8,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "InputCoreTypes.h"
 #include "Map/MapNode.h"
+#include "Map/MapGraphDataAsset.h"
 #include "Map/LevelMapManager.h"
 #include "Map/MapEncounterExit.h"
 #include "Map/MapProgressionSubsystem.h"
@@ -74,6 +75,10 @@ public:
         AMapNode* Root = FindNode(World, TEXT("Diff1"));
         if (Stage == 0)
         {
+            Test->TestNotNull(TEXT("Manager reads a graph Data Asset"), Manager->GraphDefinition.Get());
+            if (Manager->GraphDefinition)
+                Test->TestEqual(TEXT("Asset supplies 30 definitions"), Manager->GraphDefinition->Nodes.Num(), 30);
+            if (Root) Test->TestEqual(TEXT("Root was spawned by manager"), Root->GetOwner(), static_cast<AActor*>(Manager));
             int32 Count = 0;
             for (TActorIterator<AMapNode> It(World); It; ++It) ++Count;
             Test->TestEqual(TEXT("All original nodes migrated"), Count, 30);
@@ -96,11 +101,24 @@ public:
     }
 };
 
+class FVerifyMapSourceCommand : public IAutomationLatentCommand
+{
+    FAutomationTestBase* Test;
+public:
+    explicit FVerifyMapSourceCommand(FAutomationTestBase* InTest) : Test(InTest) {}
+    bool Update() override
+    {
+        UWorld* World = GEditor->GetEditorWorldContext().World();
+        int32 PlacedNodes = 0;
+        for (TActorIterator<AMapNode> It(World); It; ++It) ++PlacedNodes;
+        Test->TestEqual(TEXT("Map does not contain hand-placed casillas"), PlacedNodes, 0);
+        return true;
+    }
+};
 bool FMapBlueprintIntegrationTest::RunTest(const FString& Parameters)
 {
-    // Existing FMOD lookup assets are absent; scope this unrelated diagnostic to this test.
-    AddExpectedError(TEXT("Failed to load asset lookup"), EAutomationExpectedErrorFlags::Contains, 0);
-    ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(TEXT("/Game/Media/Level_Proto/MapaJuego/MapaIntercativo")));
+    ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(TEXT("/Game/GameDesign/Luis/Level_Proto/MapaJuego/MapaIntercativo")));
+    ADD_LATENT_AUTOMATION_COMMAND(FVerifyMapSourceCommand(this));
     ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
     ADD_LATENT_AUTOMATION_COMMAND(FCheckMapStage(this, 0));
     ADD_LATENT_AUTOMATION_COMMAND(FCheckMapStage(this, 1));
@@ -109,4 +127,3 @@ bool FMapBlueprintIntegrationTest::RunTest(const FString& Parameters)
     return true;
 }
 #endif
-
