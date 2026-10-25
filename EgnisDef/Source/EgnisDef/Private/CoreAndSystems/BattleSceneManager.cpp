@@ -98,6 +98,19 @@ void UBattleSceneManager::StartCombatPhase()
 	}
 
 	DeckManager->SetDeck(DeckToUse);
+
+	// Cartas de colores sin ningun personaje desplegado: pasan a Grey solo en este combate
+	TArray<AActor*> AllyActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AAlly::StaticClass(), AllyActors);
+	TArray<ACharacterBase*> CharactersInPlay;
+	for (AActor* Actor : AllyActors)
+	{
+		if (ACharacterBase* Character = Cast<ACharacterBase>(Actor))
+		{
+			CharactersInPlay.Add(Character);
+		}
+	}
+	DeckManager->ConvertUnownedCardsToGrey(CharactersInPlay);
 	DeckManager->InitializeDeck();
 	
 	ShowHUD();

@@ -59,7 +59,8 @@ void UCard_ShieldEffect::ApplyShield(ACharacterBase* Source, ACharacterBase* Rec
 	Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, ShieldAmount);
 	TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 
-	if (UAudioManager* AM = Source->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayDoruSpellSound(0);
+	if (UAudioManager* AM = Source->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardShield, SoundOverride, Source);
 
 	UE_LOG(LogTemp, Log, TEXT("ShieldEffect: %s dio %.1f de escudo a %s (escudo total %.1f)"),
 		*Source->GetName(), ShieldAmount, *Receiver->GetName(), Receiver->GetCurrentShield());

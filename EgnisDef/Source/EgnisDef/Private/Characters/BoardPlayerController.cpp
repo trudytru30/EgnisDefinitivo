@@ -254,6 +254,13 @@ void ABoardPlayerController::TrySelectCardTarget()
         return;
     }
 
+    // Objetivo fuera de rango: se ignora el clic y la carta sigue seleccionada para elegir otro objetivo
+    if (!UEgnisCombatLibrary::IsCardTargetInRange(PendingCard, PendingSource, TargetUnit, TargetLocation))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: objetivo fuera de rango, elige otro"));
+        return;
+    }
+    
     ExecuteCardPlay(TargetUnit, TargetLocation);
 }
 
@@ -304,8 +311,9 @@ bool ABoardPlayerController::TrySelectAlly()
             if (ClickedCharacter->GetTeam() == 0) // Es Aliado
             {
                 SelectedAlly = ClickedCharacter;
-                if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayElevateSound(0);
-                
+                if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
+                    AM->PlayTrigger(EEgnisAudioTrigger::AllySelected, nullptr, SelectedAlly);
+
                 if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Green, FString::Printf(TEXT("Selected: %s"), *SelectedAlly->GetName()));
                 UE_LOG(LogTemp, Log, TEXT("Selected Ally: %s"), *SelectedAlly->GetName());
                 return true;
@@ -482,7 +490,8 @@ bool ABoardPlayerController::GetPendingCardRangeTiles(TArray<FTileCoord>& OutTil
        return false;
     }
 
-    PendingSource->Board->GetTilesInRange(PendingSource->CurrentTile, PendingCard->GetRange(), OutTiles);
+    PendingSource->Board->GetTilesInRange(PendingSource->CurrentTile, 
+        PendingSource->GetEffectiveRange(PendingCard), OutTiles);
     return true;
 }
 

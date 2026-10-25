@@ -25,6 +25,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="Card")
 	EColorType GetColor() const;
 
+	// Solo se usa sobre las copias del mazo de un combate (DeckManager::ConvertUnownedCardsToGrey), nunca sobre el asset.
+	void SetColor(EColorType NewColor);
+	
 	UFUNCTION(BlueprintPure, Category="Card")
 	int32 GetCost() const;
 
@@ -66,9 +69,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	int32 Range = 1;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
-	ECardTarget Target = ECardTarget::None;
 
 	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category="Card")
 	TArray<UCardEffect*> Effects;

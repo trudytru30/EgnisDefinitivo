@@ -50,6 +50,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Movement")
 	bool canMoveToTile(const FTileCoord& Target);
 
+	// Igual que canMoveToTile, pero con el mismo patron limitado a MaxTiles casillas (nunca mas que moveRange).
+	// Para cartas que mueven menos que el personaje.
+	UFUNCTION(BlueprintCallable, Category="Movement")
+	bool canMoveToTileLimited(const FTileCoord& Target, int32 MaxTiles);
+	
 	// moveToTile queda aqui por si algun Blueprint la invoca directamente, pero
 	// el real de movimiento del juego es el de BattleManager.Si algo la llama sin pasar
 	// por BattleManager: no respeta turno/bHasMoved.
