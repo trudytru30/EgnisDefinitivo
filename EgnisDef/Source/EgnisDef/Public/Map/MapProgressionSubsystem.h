@@ -13,6 +13,8 @@ class EGNISDEF_API UMapProgressionSubsystem : public UGameInstanceSubsystem
     GENERATED_BODY()
 
 public:
+    static bool ValidateMapDefinition(FName MapID, const TArray<FMapNodeData>& Nodes, FName RootNodeID, FString& Error);
+
     // Validates a single-root directed acyclic graph before replacing any state.
     UFUNCTION(BlueprintCallable, Category="Map")
     bool InitializeMap(FName MapID, const TArray<FMapNodeData>& Nodes, FName RootNodeID, FString& Error);

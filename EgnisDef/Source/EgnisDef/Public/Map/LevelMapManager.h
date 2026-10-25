@@ -5,6 +5,7 @@
 #include "LevelMapManager.generated.h"
 
 class AMapNode;
+class UMapGraphDataAsset;
 class UMapProgressionSubsystem;
 
 UCLASS(Blueprintable)
@@ -14,9 +15,12 @@ class EGNISDEF_API ALevelMapManager : public AActor
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Map")
+    TObjectPtr<UMapGraphDataAsset> GraphDefinition;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Map")
     FName MapID = TEXT("Zone1");
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Map")
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Map")
     FName RootNodeID;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Map")
@@ -43,6 +47,8 @@ private:
     TArray<TObjectPtr<AMapNode>> Nodes;
 
     bool bInitialized = false;
+    bool BuildNodes(FString& Error);
+    void ClearNodes();
 
     UFUNCTION()
     void RefreshNodes();
