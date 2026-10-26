@@ -5,9 +5,11 @@
 #include "Components/GridMovementComponent.h"
 #include "GameFramework/Character.h"
 #include "CoreAndSystems/EnergyAttributeSet.h"
+#include "Characters/HeroClassData.h"
 #include "Ally.generated.h"
 
 class UAudioManager;
+class UBaseCard;
 
 UCLASS()
 class EGNISDEF_API AAlly : public ACharacterBase
@@ -49,6 +51,20 @@ public:
 	//EColorType GetArchetypeColor() const { return ArchetypeColor; }
 	bool HasArchetypeColor(EColorType Color) const { return ArchetypeColors.Contains(Color); }
 
+	// Rango base del personaje. Se suma al rango de la carta.
+	// Valor inicial editable; mas adelante se carga desde FHeroClassData::Range.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stats|Range", meta=(ClampMin="0"))
+	int32 BaseRange = 0;
+
+	// Rango actual del personaje. Punto unico de lectura: las heridas, pasivas y reliquias
+	// se aplican aqui dentro.
+	UFUNCTION(BlueprintPure, Category="Stats|Range")
+	int32 GetCharacterRange() const;
+
+	// Rango con el que puede jugar una carta: rango de la carta + rango del personaje.
+	UFUNCTION(BlueprintPure, Category="Stats|Range")
+	int32 GetEffectiveRange(const UBaseCard* Card) const;
+	
 	UFUNCTION(BlueprintPure, Category="Energy")
 	int32 GetCurrentEnergy() const;
 

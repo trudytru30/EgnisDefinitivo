@@ -2,6 +2,9 @@
 #include "AbilitySystemComponent.h"
 #include "Characters/CharacterBase.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "Characters/Ally.h"
+#include "Cards/BaseCard.h"
+#include "CoreAndSystems/Board.h"
 
 namespace
 {
@@ -69,4 +72,43 @@ bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 bool UEgnisCombatLibrary::CanMove(const ACharacterBase* Character)
 {
 	return !HasStatusTag(Character, TAG_Status_Paralyzed);
+}
+
+bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly* Caster, const ACharacterBase* TargetCharacter, const FVector& Location)
+{
+	if (!Card || !Caster)
+	{
+		return false;
+	}
+
+	const ECardTarget CardTarget = Card->GetTarget();
+	if (CardTarget != ECardTarget::Ally && CardTarget != ECardTarget::Enemy && CardTarget != ECardTarget::Tile)
+	{
+		return true;
+	}
+
+	if (!Caster->Board)
+	{
+		return false;
+	}
+
+	FTileCoord TargetTile;
+	if (CardTarget == ECardTarget::Tile)
+	{
+		if (!Caster->Board->WorldPointToTile(Location, TargetTile))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		if (!TargetCharacter)
+		{
+			return false;
+		}
+		TargetTile = TargetCharacter->CurrentTile;
+	}
+
+	const int32 Distance = FMath::Abs(TargetTile.X - Caster->CurrentTile.X) + FMath::Abs(TargetTile.Y - Caster->CurrentTile.Y);
+	return Distance <= Caster->GetEffectiveRange(Card);
 }

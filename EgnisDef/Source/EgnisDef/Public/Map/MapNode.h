@@ -20,7 +20,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Map")
     TObjectPtr<USphereComponent> ClickTarget;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Map")
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Map")
     FMapNodeData Data;
 
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Map")
@@ -49,4 +49,3 @@ private:
     UFUNCTION()
     void HandleClicked(UPrimitiveComponent* Component, FKey Button);
 };
-

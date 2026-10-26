@@ -137,7 +137,8 @@ void AEnemy::MoveTowardClosesPlayer()
 			*GetName(), CurrentTile.X, CurrentTile.Y);
 
 		SnapToCurrentTile();
-		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
+		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
+			AM->PlayTrigger(EEgnisAudioTrigger::EnemyMove, nullptr, this);
 		return;
 	}
 	if (!SetCurrentTile(SecondStep))
@@ -146,7 +147,8 @@ void AEnemy::MoveTowardClosesPlayer()
 			*GetName(), CurrentTile.X, CurrentTile.Y);
 
 		SnapToCurrentTile();
-		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
+		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
+			AM->PlayTrigger(EEgnisAudioTrigger::EnemyMove, nullptr, this);
 		return;
 	}
 
@@ -154,7 +156,8 @@ void AEnemy::MoveTowardClosesPlayer()
 
 	UE_LOG(LogTemp, Log, TEXT("[%s] Moved 2 tiles straight to (%d,%d) towards player (%d,%d)."),
 		*GetName(), CurrentTile.X, CurrentTile.Y, Goal.X, Goal.Y);
-	if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
+	if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::EnemyMove, nullptr, this);
 }
 
 void AEnemy::MakeAction()
@@ -232,7 +235,8 @@ void AEnemy::MakeAction()
 				}
 			}
 		}
-		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayAttackSound(4);
+		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
+			AM->PlayTrigger(EEgnisAudioTrigger::EnemyAttack, nullptr, this);
 		return;
 	}
 

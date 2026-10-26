@@ -99,7 +99,8 @@ void UCard_PushPullEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* E
 	}
 	Enemy->SnapToCurrentTile(true);
 
-	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
+	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardPushPull, SoundOverride, Self);
 
 	UE_LOG(LogTemp, Log, TEXT("ForcedMove (%s): %s movido de (%d,%d) a (%d,%d)"),
 		Mode == EForcedMoveMode::Pull ? TEXT("Pull") : TEXT("Push"),

@@ -1,8 +1,8 @@
 #include "Map/LevelMapManager.h"
+#include "Map/MapGraphDataAsset.h"
 #include "Map/MapNode.h"
 #include "Map/MapProgressionSubsystem.h"
 #include "Engine/GameInstance.h"
-#include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -10,21 +10,26 @@ void ALevelMapManager::BeginPlay()
 {
     Super::BeginPlay();
     Progression = GetGameInstance()->GetSubsystem<UMapProgressionSubsystem>();
-    TArray<FMapNodeData> Definitions;
-    for (TActorIterator<AMapNode> It(GetWorld()); It; ++It)
-    {
-        Nodes.Add(*It);
-        Definitions.Add(It->Data);
-    }
     FString Error;
-    bInitialized = Progression && Progression->InitializeMap(MapID, Definitions, RootNodeID, Error);
+    if (!GraphDefinition)
+        Error = TEXT("Assign a MapGraphDataAsset to GraphDefinition.");
+    else if (!Progression)
+        Error = TEXT("Map progression subsystem is unavailable.");
+    else if (GraphDefinition->ValidateDefinition(Error) && BuildNodes(Error))
+    {
+        TArray<FMapNodeData> Definitions;
+        GraphDefinition->GetNodeData(Definitions);
+        MapID = GraphDefinition->MapID;
+        RootNodeID = GraphDefinition->RootNodeID;
+        bInitialized = Progression->InitializeMap(MapID, Definitions, RootNodeID, Error);
+    }
     if (!bInitialized)
     {
+        ClearNodes();
         UE_LOG(LogTemp, Error, TEXT("Level map initialization failed: %s"), *Error);
         OnMapInitializationFailed(Error);
         return;
     }
-    for (AMapNode* Node : Nodes) Node->SetManager(this);
     Progression->OnProgressChanged.AddDynamic(this, &ALevelMapManager::RefreshNodes);
     RefreshNodes();
     if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
@@ -37,13 +42,50 @@ void ALevelMapManager::BeginPlay()
     }
 }
 
-void ALevelMapManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+bool ALevelMapManager::BuildNodes(FString& Error)
 {
-    if (Progression) Progression->OnProgressChanged.RemoveDynamic(this, &ALevelMapManager::RefreshNodes);
+    for (const FMapNodeDefinition& Definition : GraphDefinition->Nodes)
+    {
+        const FTransform WorldTransform = Definition.LocalTransform * GetActorTransform();
+        const TSubclassOf<AMapNode> Class = Definition.NodeClass ? Definition.NodeClass : GraphDefinition->DefaultNodeClass;
+        AMapNode* Node = GetWorld()->SpawnActorDeferred<AMapNode>(Class, WorldTransform, this, nullptr,
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+        if (!Node)
+        {
+            Error = FString::Printf(TEXT("Cannot spawn map node %s."), *Definition.Data.NodeID.ToString());
+            return false;
+        }
+        Nodes.Add(Node);
+        Node->Data = Definition.Data;
+        Node->SetManager(this);
+        Node->FinishSpawning(WorldTransform);
+        if (!IsValid(Node))
+        {
+            Error = FString::Printf(TEXT("Node %s was destroyed during construction."), *Definition.Data.NodeID.ToString());
+            return false;
+        }
+    }
+    return true;
+}
+
+void ALevelMapManager::ClearNodes()
+{
     for (AMapNode* Node : Nodes)
     {
-        if (IsValid(Node)) Node->SetManager(nullptr);
+        if (IsValid(Node))
+        {
+            Node->SetManager(nullptr);
+            Node->Destroy();
+        }
     }
+    Nodes.Empty();
+}
+
+void ALevelMapManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    bInitialized = false;
+    if (Progression) Progression->OnProgressChanged.RemoveDynamic(this, &ALevelMapManager::RefreshNodes);
+    ClearNodes();
     Super::EndPlay(EndPlayReason);
 }
 
@@ -65,7 +107,6 @@ bool ALevelMapManager::TryEnterNode(FName NodeID)
     }
     if (!Selected) return false;
     const TSoftObjectPtr<UWorld> TargetLevel = Selected->Data.Level;
-    // Do not consume the selection if its destination has not been configured.
     if (bOpenLevelOnSelection && TargetLevel.IsNull()) return false;
     if (!Progression->TryEnterNode(NodeID)) return false;
     OnNodeSelected(Selected);

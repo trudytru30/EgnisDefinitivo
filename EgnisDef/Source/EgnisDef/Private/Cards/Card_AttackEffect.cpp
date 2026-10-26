@@ -36,6 +36,7 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 			UE_LOG(LogTemp, Warning, TEXT("[%s] AttackEffect: falta ASC o DamageEffect, no se aplica daño."), *Enemy->GetName());
 		}
 
-		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayAttackSound(0);
+		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+			AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);
 	}
 }

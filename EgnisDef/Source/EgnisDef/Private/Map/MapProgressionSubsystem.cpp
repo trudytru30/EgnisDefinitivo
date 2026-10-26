@@ -1,9 +1,12 @@
 #include "Map/MapProgressionSubsystem.h"
 
-bool UMapProgressionSubsystem::InitializeMap(FName MapID, const TArray<FMapNodeData>& Nodes, FName RootNodeID, FString& Error)
+namespace
+{
+bool BuildValidatedGraph(FName MapID, const TArray<FMapNodeData>& Nodes, FName RootNodeID,
+    TMap<FName, FMapNodeData>& Candidate, FString& Error)
 {
     Error.Empty();
-    TMap<FName, FMapNodeData> Candidate;
+    Candidate.Empty();
     if (MapID.IsNone() || RootNodeID.IsNone() || Nodes.IsEmpty())
     {
         Error = TEXT("Map ID, root ID and nodes are required.");
@@ -94,6 +97,21 @@ bool UMapProgressionSubsystem::InitializeMap(FName MapID, const TArray<FMapNodeD
         return false;
     }
 
+    return true;
+}
+}
+
+bool UMapProgressionSubsystem::ValidateMapDefinition(FName MapID, const TArray<FMapNodeData>& Nodes, FName RootNodeID, FString& Error)
+{
+    TMap<FName, FMapNodeData> Candidate;
+    return BuildValidatedGraph(MapID, Nodes, RootNodeID, Candidate, Error);
+}
+
+bool UMapProgressionSubsystem::InitializeMap(FName MapID, const TArray<FMapNodeData>& Nodes, FName RootNodeID, FString& Error)
+{
+    TMap<FName, FMapNodeData> Candidate;
+    if (!BuildValidatedGraph(MapID, Nodes, RootNodeID, Candidate, Error)) return false;
+
     // Preserve progress on return only if the same map definition is still in use.
     bool bSameGraph = ActiveMapID == MapID && RootID == RootNodeID && Graph.Num() == Candidate.Num();
     if (bSameGraph)
@@ -167,5 +185,3 @@ bool UMapProgressionSubsystem::CompleteCurrentNode()
     OnProgressChanged.Broadcast();
     return true;
 }
-
-
