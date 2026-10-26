@@ -22,6 +22,11 @@ void UEgnisDialogueChoiceProxy::HandleClicked()
 	}
 }
 
+void UEgnisDialogueWidget::SetDialogueComponent(UEgnisDialogueComponent* InComponent)
+{
+	DialogueComponent = InComponent;
+}
+
 UEgnisDialogueWidget::UEgnisDialogueWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

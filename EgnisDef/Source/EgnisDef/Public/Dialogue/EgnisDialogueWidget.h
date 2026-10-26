@@ -41,7 +41,7 @@ class EGNISDEF_API UEgnisDialogueWidget : public UUserWidget
 public:
 	UEgnisDialogueWidget(const FObjectInitializer& ObjectInitializer);
 
-	void SetDialogueComponent(UEgnisDialogueComponent* InComponent) { DialogueComponent = InComponent; }
+	void SetDialogueComponent(UEgnisDialogueComponent* InComponent);
 
 	/** Muestra una línea (con o sin opciones). */
 	UFUNCTION(BlueprintCallable, Category = "Dialogue")
