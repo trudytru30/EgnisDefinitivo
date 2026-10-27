@@ -1,4 +1,5 @@
 #include "Characters/BoardPlayerController.h"
+#include "Components/InteractableComponent.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/BattleManager.h"
@@ -23,6 +24,32 @@ ABoardPlayerController::ABoardPlayerController()
     bShowMouseCursor = true;
 }
 
+void ABoardPlayerController::PlayerTick(float DeltaTime)
+{
+    Super::PlayerTick(DeltaTime);
+    if (IsLocalController()) UpdateHoveredInteractable();
+}
+
+void ABoardPlayerController::UpdateHoveredInteractable()
+{
+    UInteractableComponent* Next = nullptr;
+    FHitResult Hit;
+    if (GetHitResultUnderCursorByChannel(UEngineTypes::ConvertToTraceType(InteractionTraceChannel), false, Hit))
+    {
+        if (AActor* Actor = Hit.GetActor()) Next = Actor->FindComponentByClass<UInteractableComponent>();
+    }
+    if (HoveredInteractable.Get() == Next) return;
+    if (HoveredInteractable.IsValid()) HoveredInteractable->SetHighlighted(false);
+    HoveredInteractable = Next;
+    if (Next) Next->SetHighlighted(true);
+}
+
+void ABoardPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    if (HoveredInteractable.IsValid()) HoveredInteractable->SetHighlighted(false);
+    HoveredInteractable.Reset();
+    Super::EndPlay(EndPlayReason);
+}
 void ABoardPlayerController::BeginPlay()
 {
     Super::BeginPlay();
@@ -70,6 +97,14 @@ void ABoardPlayerController::SetupInputComponent()
     UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent);
     if (!EnhancedInput) return;
 
+    if (InteractAction)
+    {
+        EnhancedInput->BindAction(InteractAction, ETriggerEvent::Started, this, &ABoardPlayerController::HandleInteract);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("InteractAction not assigned"));
+    }
     if (!ClickAction || !PauseAction)
     {
         UE_LOG(LogTemp, Warning, TEXT("ClickAction or PauseAction not found"));
@@ -99,6 +134,7 @@ void ABoardPlayerController::HandleLeftClick()
 
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, TEXT("IA_Click triggered"));
 
+
     // Delegamos según el estado actual
     if (SelectionState != ECardSelectionState::None)
     {
@@ -110,6 +146,16 @@ void ABoardPlayerController::HandleLeftClick()
     }
 }
 
+void ABoardPlayerController::HandleInteract()
+{
+    if (!IsLocalController()) return;
+
+    UpdateHoveredInteractable();
+    if (HoveredInteractable.IsValid())
+    {
+        HoveredInteractable->Interact();
+    }
+}
 void ABoardPlayerController::HandleRightClick()
 {
     if (bIsInMenu) return;
