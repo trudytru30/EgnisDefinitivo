@@ -2,6 +2,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h" // Para localizar el Board en el nivel
 #include "AbilitySystemComponent.h" // Necesario para CreateDefaultSubobject<UAbilitySystemComponent>
+#include "Components/StatusEffectComponent.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -9,6 +10,7 @@ ACharacterBase::ACharacterBase()
 	// Igual patrón que HealthComp/HealthAttributeSet: se crea en construcción para que exista desde el primer frame
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	HealthAttributeSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthAttributeSet"));
+	StatusComp = CreateDefaultSubobject<UStatusEffectComponent>(TEXT("StatusComp"));
 }
 
 void ACharacterBase::BeginPlay()
@@ -29,6 +31,7 @@ void ACharacterBase::BeginPlay()
 	{
 		HealthAttributeSet->InitMaxHealth(MaxHealth);
 		HealthAttributeSet->InitHealth(Health);
+		HealthAttributeSet->InitShield(InitialShield);
 	}
 
 	if (!Board)
@@ -124,23 +127,28 @@ void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)
 {
 	if (!Board) return;
 
-	FVector NewLocation = Board->TileToWorldCenter(CurrentTile);
+	FVector NewLocation = GetStandLocationForTile(CurrentTile);
 
 	if (bKeepCurrentZ)
 	{
 		NewLocation.Z = GetActorLocation().Z;
 	}
-	else
-	{
-		float BaseOffset = TileZOffset;
-		if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
-		{
-			BaseOffset += Capsule->GetScaledCapsuleHalfHeight();
-		}
-		NewLocation.Z += BaseOffset;
-	}
 
 	SetActorLocation(NewLocation);
+}
+
+FVector ACharacterBase::GetStandLocationForTile(const FTileCoord& Tile) const
+{
+	if (!Board) return GetActorLocation();
+
+	// La posición del actor es el centro de la cápsula: hay que subirlo media cápsula para que pise el suelo
+	FVector Location = Board->TileToWorldCenter(Tile);
+	Location.Z += TileZOffset;
+	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Location.Z += Capsule->GetScaledCapsuleHalfHeight();
+	}
+	return Location;
 }
 
 
@@ -152,6 +160,11 @@ float ACharacterBase::GetCurrentHealth() const
 float ACharacterBase::GetMaxHealth() const
 {
 	return HealthAttributeSet ? HealthAttributeSet->GetMaxHealth() : 0.f;
+}
+
+float ACharacterBase::GetCurrentShield() const
+{
+	return HealthAttributeSet ? HealthAttributeSet->GetShield() : 0.f;
 }
 
 

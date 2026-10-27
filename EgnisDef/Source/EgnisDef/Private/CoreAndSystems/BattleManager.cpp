@@ -8,6 +8,8 @@
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
 #include "CoreAndSystems/GameManager.h"
+#include "Components/StatusEffectComponent.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 class AAlly;
 
@@ -28,8 +30,24 @@ void UBattleManager::StartBattle()
 	{
 		CharactersOnField.Add(*It);
 	}
-
+	
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
+	
+	// Referencia para la salud del equipo (musica): vida maxima de los aliados al empezar
+	InitialTeamMaxHealth = 0.0f;
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (Character && Character->GetTeam() == 0)
+		{
+			InitialTeamMaxHealth += Character->GetMaxHealth();
+		}
+	}
+
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+	{
+		AM->PlayTrigger(EEgnisAudioTrigger::CombatStart);
+		AM->SetTeamHealthRatio(GetTeamHealthRatio());
+	}
 	
 	StartPlayerTurn();
 }
@@ -39,12 +57,13 @@ void UBattleManager::StartPlayerTurn()
 {
 	if (bBattleIsOver) return;
 
+	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
+	if (bBattleIsOver) return;
+	
 	// Robar mano al inicio del turno y establecer energia
 	for (ACharacterBase* Character : CharactersOnField)
 	{
 		if (AAlly* Ally = Cast<AAlly>(Character))
-			//
-			//Ally->GainPoints(-1);	// Para reiniciar los puntos al valor default (mirar EnergyComponent)
 			Ally->ResetEnergyForTurn();	 
 	}
 
@@ -71,6 +90,9 @@ void UBattleManager::StartPlayerTurn()
 	}
 
 	OnPlayerTurnStarted.Broadcast();
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(EEgnisAudioTrigger::PlayerTurnStart);
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Player Turn %d"), TurnCount);
 }
@@ -80,8 +102,13 @@ void UBattleManager::StartEnemyTurn()
 {
 	if (bBattleIsOver) return;
 
-	UE_LOG(LogTemp, Log, TEXT("[BattleManager]:Enemy Turn %d"), TurnCount);
+	NotifyTeamTurnStart(1);
 
+	if (bBattleIsOver) return;
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::EnemyTurnStart);
+	
 	//identifica enemigos
 	TArray<AEnemy*> Enemies;
 
@@ -117,6 +144,7 @@ void UBattleManager::EndTurn()
 	switch ( CurrentTurn)
 	{
 		case ETurnEnum::PlayerTurn:
+			NotifyTeamTurnEnd(0);
 			if (DeckManager->GetHand().Num() > 0)
 			{
 				const TArray<UBaseCard*> HandCopy = DeckManager->GetHand();
@@ -130,6 +158,7 @@ void UBattleManager::EndTurn()
 			StartEnemyTurn();
 			break;
 		case ETurnEnum::EnemyTurn:
+			NotifyTeamTurnEnd(1);
 			CurrentTurn = ETurnEnum::PlayerTurn;
 			TurnCount++;
 			StartPlayerTurn();
@@ -154,6 +183,20 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 
+	// Aturdido: no puede jugar cartas
+	if (!UEgnisCombatLibrary::CanAct(Character))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: %s esta aturdido y no puede jugar cartas"), *Character->GetName());
+		return false;
+	}
+	
+	if (!UEgnisCombatLibrary::IsCardTargetInRange(Card, Character, TargetCharacter, Location))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Target out of range for card %s (caster %s)"),
+			*Card->GetName(), *Character->GetName());
+		return false;
+	}
+	
 	if (Character->GetCurrentEnergy() < Card->GetCost())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
@@ -200,6 +243,9 @@ void UBattleManager::UpdateUnitsAlive()
 		}
 	}
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Allies alive: %d, Enemies alive: %d"), AlliesAlive, EnemiesAlive);
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->SetTeamHealthRatio(GetTeamHealthRatio());
 
 	if (AlliesAlive == 0)
 		EndBattle(false);
@@ -211,6 +257,10 @@ void UBattleManager::UpdateUnitsAlive()
 void UBattleManager::EndBattle(bool bPlayerWon)
 {
 	bBattleIsOver = true;
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(bPlayerWon ? EEgnisAudioTrigger::CombatVictory : EEgnisAudioTrigger::CombatDefeat);
+	
 	if (bPlayerWon)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
@@ -254,6 +304,12 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s already moved this turn"), *Unit->GetName());
 		return false;
 	}
+	
+	if (!UEgnisCombatLibrary::CanMove(Unit))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s esta paralizado"), *Unit->GetName());
+		return false;
+	}
 
 	UGridMovementComponent* MoveComp = Unit->FindComponentByClass<UGridMovementComponent>();
 	if (!MoveComp)
@@ -277,12 +333,34 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 	}
 
 	Unit->SnapToCurrentTile(false);
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayLandSound(0);
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::AllyMove, nullptr, Unit);
 	Unit->bHasMoved = true;
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: RequestMove OK: %s -> (%d,%d)"),
 		*Unit->GetName(), Unit->CurrentTile.X, Unit->CurrentTile.Y);
 	return true;
+}
+
+float UBattleManager::GetTeamHealthRatio() const
+{
+	// Sin referencia (combate sin aliados al empezar): se considera salud completa
+	if (InitialTeamMaxHealth <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	// Los aliados muertos ya no estan en el campo, asi que no suman: su vida cuenta como 0 frente a la maxima inicial
+	float CurrentHealth = 0.0f;
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (IsValid(Character) && Character->GetTeam() == 0)
+		{
+			CurrentHealth += FMath::Max(0.0f, Character->GetCurrentHealth());
+		}
+	}
+
+	return FMath::Clamp(CurrentHealth / InitialTeamMaxHealth, 0.0f, 1.0f);
 }
 
 // ===== Getters =====
@@ -299,4 +377,31 @@ TArray<ACharacterBase*> UBattleManager::GetCharactersOnField() const
 bool UBattleManager::IsPlayerTurn() const
 {
 	return CurrentTurn == ETurnEnum::PlayerTurn;
+}
+
+void UBattleManager::NotifyTeamTurnStart(int32 Team)
+{
+	// Copia porque un efecto de inicio de turno puede acabar matando a una unidad y alterar CharactersOnField
+	const TArray<ACharacterBase*> Snapshot = CharactersOnField;
+	for (ACharacterBase* Character : Snapshot)
+	{
+		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
+		{
+			Character->StatusComp->OnOwnerTurnStart();
+		}
+	}
+	
+	UpdateUnitsAlive();
+}
+
+void UBattleManager::NotifyTeamTurnEnd(int32 Team)
+{
+	const TArray<ACharacterBase*> Snapshot = CharactersOnField;
+	for (ACharacterBase* Character : Snapshot)
+	{
+		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
+		{
+			Character->StatusComp->OnOwnerTurnEnd();
+		}
+	}
 }

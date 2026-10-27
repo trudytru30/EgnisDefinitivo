@@ -11,9 +11,23 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 			Effect->Execute_None(Deck);
 			break;
 		case ECardTarget::Ally:
+			// Solo se aplica si el objetivo elegido es del mismo equipo que quien juega la carta
+			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() != Self->GetTeam())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[BaseCard]: %s tiene un efecto de aliado pero el objetivo elegido no "
+								  "es un aliado, se omite"), *GetName());
+				break;
+			}
 			Effect->Execute_Ally(Self, TargetCharacter);
 			break;
 		case ECardTarget::Enemy:
+			// Solo se aplica si el objetivo elegido es del equipo contrario
+			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() == Self->GetTeam())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[BaseCard]: %s tiene un efecto de enemigo pero el objetivo elegido no "
+								  "es un enemigo, se omite"), *GetName());
+				break;
+			}
 			Effect->Execute_Enemy(Self, TargetCharacter);
 			break;
 		case ECardTarget::Self:
@@ -63,6 +77,11 @@ FText UBaseCard::GetDescription() const
 	return Description;
 }
 
+void UBaseCard::SetColor(EColorType NewColor)
+{
+	Color = NewColor;
+}
+
 int32 UBaseCard::GetCost() const
 {
 	return Cost;
@@ -80,8 +99,33 @@ EColorType UBaseCard::GetColor() const
 
 ECardTarget UBaseCard::GetTarget() const
 {
-	return Target;
+	// Objetivo que se pide al jugador al jugar la carta, deducido de los efectos (el campo Target de la carta ya no se
+	// usa): el primer efecto que apunta a Ally, Enemy o Tile manda. Si no hay ninguno, Self si algun efecto es Self;
+	// si no, None. Los efectos Self y None no necesitan que el jugador elija nada, se aplican solos con el resto.
+	ECardTarget Result = ECardTarget::None;
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (!Effect)
+		{
+			continue;
+		}
+
+		switch (Effect->Target)
+		{
+		case ECardTarget::Ally:
+		case ECardTarget::Enemy:
+		case ECardTarget::Tile:
+			return Effect->Target;
+		case ECardTarget::Self:
+			Result = ECardTarget::Self;
+			break;
+		default:
+			break;
+		}
+	}
+	return Result;
 }
+
 int32 UBaseCard::GetRange() const
 {
 	return Range;

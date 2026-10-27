@@ -1,6 +1,7 @@
 #include "Cards/Card_AttackEffect.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy)
 {
@@ -25,7 +26,8 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 			if (Spec.IsValid())
 			{
 				// Negativo porque el Modifier del GE es "Add" — pasamos ya el signo de resta
-				Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, -DamageAmount);
+				Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
+					-UEgnisCombatLibrary::CalculateDamage(Self, Enemy, DamageAmount));
 				TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 			}
 		}
@@ -34,6 +36,7 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 			UE_LOG(LogTemp, Warning, TEXT("[%s] AttackEffect: falta ASC o DamageEffect, no se aplica daño."), *Enemy->GetName());
 		}
 
-		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayAttackSound(0);
+		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+			AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);
 	}
 }

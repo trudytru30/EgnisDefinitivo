@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Components/GridMovementComponent.h"
+#include "Characters/CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Actor.h"
 
@@ -206,6 +205,16 @@ bool UGridMovementComponent::canMoveToTile(const FTileCoord& Target)
 	return false;
 }
 
+bool UGridMovementComponent::canMoveToTileLimited(const FTileCoord& Target, int32 MaxTiles)
+{
+	// Los patrones leen moveRange, asi que se reduce durante la consulta y se restaura justo despues
+	const int32 SavedRange = moveRange;
+	moveRange = FMath::Clamp(MaxTiles, 0, SavedRange);
+	const bool bResult = canMoveToTile(Target);
+	moveRange = SavedRange;
+	return bResult;
+}
+
 bool UGridMovementComponent::moveToTile(const FTileCoord& Target)
 {
 	EnsureBoardActor();
@@ -229,8 +238,12 @@ bool UGridMovementComponent::moveToTile(const FTileCoord& Target)
 		return false;
 	}
 
-	//casilla a pos en juego
+	//casilla a pos en juego (si es un personaje, de pie sobre la casilla y no con medio cuerpo bajo tierra)
 	FVector Destination = BoardActor->TileToWorldCenter(Target);
+	if (const ACharacterBase* OwnerCharacter = Cast<ACharacterBase>(GetOwner()))
+	{
+		Destination = OwnerCharacter->GetStandLocationForTile(Target);
+	}
 
 	//guarda la casilla anterior para liberar
 	FTileCoord OldTile;

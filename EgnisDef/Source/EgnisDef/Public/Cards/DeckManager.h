@@ -33,7 +33,6 @@ public:
 	
 	void DiscardCardFromHand(UBaseCard* Card);
 	void DiscardCardFromDrawPile(UBaseCard* Card);
-	void DiscardHand();
 
 	void AddCardToDeck(UBaseCard* Card);
 	void RemoveCardFromDeck(UBaseCard* Card);
@@ -44,8 +43,13 @@ public:
 	TArray<UBaseCard*> GetHand();
 	void SetDeck(const TArray<UBaseCard*>& InDeck);
 
-	// si hay algún personaje en CharactersInPlay cuyo arquetipo
-	// coincide con el color de esta carta: Grey (arquetipo común) siempre cuenta como disponible.
+	// Al empezar el combate: las cartas del mazo cuyo color no tiene ningun personaje desplegado pasan a Grey.
+	// Solo afecta a las copias de este combate (SetDeck duplica las cartas), no al mazo de la run.
+	// Llamar despues de SetDeck.
+	void ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay);
+	
+	// Si hay algún personaje en CharactersInPlay cuyo arquetipo coincide con el
+	// color de esta carta: Grey siempre cuenta como disponible.
 	UFUNCTION(BlueprintCallable, Category="Cards")
 	bool IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<ACharacterBase*>& CharactersInPlay) const;
 #pragma endregion

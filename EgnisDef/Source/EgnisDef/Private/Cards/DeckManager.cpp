@@ -84,7 +84,8 @@ void UDeckManager::DrawCard()
 		DrawnCard->NotifyHandEnter(nullptr);
 	}
 
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayDrawCardSound(0);
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardDraw);
 	OnHandChanged.Broadcast();
 }
 
@@ -143,6 +144,21 @@ void UDeckManager::ResetDeck()
 	DrawPile.Empty();
 	DiscardedPile.Empty();
 	Hand.Empty();
+}
+
+void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay)
+{
+	for (UBaseCard* Card : Deck)
+	{
+		// IsCardArchetypeAvailable ya da por disponible el color Grey, asi que esas cartas no se tocan
+		if (Card && !IsCardArchetypeAvailable(Card, CharactersInPlay))
+		{
+			UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %s (color %d) sin personaje de su color,"
+							 " pasa a Grey en este combate"),
+				*Card->GetName(), static_cast<int32>(Card->GetColor()));
+			Card->SetColor(EColorType::Grey);
+		}
+	}
 }
 
 //grey-out por arquetipo

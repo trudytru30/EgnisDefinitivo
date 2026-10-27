@@ -19,7 +19,7 @@
 			"LoadingPhase": "PostEngineInit"
 		},
 		{
-			"Name": "SheetsImporterModule",
+			"Name": "EgnisEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default"
 		}

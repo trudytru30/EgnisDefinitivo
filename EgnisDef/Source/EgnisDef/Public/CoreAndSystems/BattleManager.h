@@ -15,7 +15,6 @@ class AEnemy;
 UENUM()
 enum class ETurnEnum { PlayerTurn = 0, EnemyTurn = 1 };	// Para poder aniadir otros tipos en el futuro
 
-
 UCLASS()
 class EGNISDEF_API UBattleManager : public UObject
 {
@@ -55,6 +54,14 @@ public:
 
 private:
 
+	// Avisan a los personajes de un bando de que empieza / termina su turno
+	void NotifyTeamTurnStart(int32 Team);
+	void NotifyTeamTurnEnd(int32 Team);
+	
+	// Salud actual de los aliados respecto a la suma de sus vidas maximas al empezar el combate (0 a 1).
+	// Los aliados muertos cuentan como 0.
+	float GetTeamHealthRatio() const;
+	
 #pragma region Private Variables
 	// ===== Managers =====
 	UPROPERTY()
@@ -68,5 +75,8 @@ private:
 	// ===== Units =====
 	UPROPERTY()
 	TArray<ACharacterBase*> CharactersOnField;
+	
+	// Suma de la vida maxima de los aliados al empezar el combate (referencia de GetTeamHealthRatio)
+	float InitialTeamMaxHealth = 0.0f;
 #pragma endregion
 };
