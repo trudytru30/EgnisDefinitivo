@@ -7,6 +7,7 @@
 #include "BoardPlayerController.generated.h"
 
 class UAudioManager;
+class UInteractableComponent;
 
 class AAlly;
 class UBaseCard;
@@ -95,6 +96,8 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+    virtual void PlayerTick(float DeltaTime) override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     virtual void SetupInputComponent() override;
 
     //Ally seleccionado
@@ -123,6 +126,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     TObjectPtr<UInputAction> RightClickAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    TObjectPtr<UInputAction> InteractAction;
 #pragma endregion
 
     UPROPERTY(EditDefaultsOnly, Category="Click|Trace")
@@ -145,6 +151,12 @@ private:
 
     bool bIsInMenu = false;
 
+    TWeakObjectPtr<UInteractableComponent> HoveredInteractable;
+    void UpdateHoveredInteractable();
+
+    UPROPERTY(EditDefaultsOnly, Category="Interaction")
+    TEnumAsByte<ECollisionChannel> InteractionTraceChannel = ECC_Visibility;
+
     //Cartas
     UPROPERTY()
     TObjectPtr<AAlly> PendingSource = nullptr;
@@ -161,6 +173,7 @@ private:
     // Funciones principales de Input
     void HandleLeftClick();
     void HandleRightClick();
+    void HandleInteract();
     bool TraceUnderCursor(ECollisionChannel Channel, FHitResult& OutHit ) const;
 
     // --- NUEVAS FUNCIONES DE REFACTORIZACIÓN ---
