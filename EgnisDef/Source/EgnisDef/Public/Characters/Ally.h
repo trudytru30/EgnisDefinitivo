@@ -10,6 +10,7 @@
 
 class UAudioManager;
 class UBaseCard;
+class UStaticMeshComponent;
 
 UCLASS()
 class EGNISDEF_API AAlly : public ACharacterBase
@@ -36,6 +37,9 @@ public:
 	// exista en las unidades que realmente lo necesitan.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	UGridMovementComponent* MoveComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	UStaticMeshComponent* ModelMesh;
 
 	// Aarquetipo/color de este aliado
 	// Reutiliza EColorType (ya

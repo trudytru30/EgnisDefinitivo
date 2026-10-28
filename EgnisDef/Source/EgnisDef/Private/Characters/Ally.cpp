@@ -5,12 +5,18 @@
 #include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 AAlly::AAlly()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	MoveComp = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MoveComp"));
-	
+
+	ModelMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ModelMesh"));
+	ModelMesh->SetupAttachment(GetCapsuleComponent());
+	ModelMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	// El ASC vive en ACharacterBase (compartido con AEnemy), pero EnergyAttributeSet solo
 	// tiene sentido en AAlly, así que se crea aquí en vez de en la clase base.
 	EnergyAttributeSet = CreateDefaultSubobject<UEnergyAttributeSet>(TEXT("EnergyAttributeSet"));
@@ -36,9 +42,24 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
     if (!HeroData) return;
 
     // 1. Apariencia y Animación (Asumiendo que CharacterMesh y AnimBP están en el DataAsset)
-    if (HeroData->CharacterMesh && GetMesh())
+    if (HeroData->CharacterModel && ModelMesh)
     {
-        GetMesh()->SetSkeletalMesh(HeroData->CharacterMesh);
+        ModelMesh->SetStaticMesh(HeroData->CharacterModel);
+        ModelMesh->SetRelativeLocation(FVector(0.f, 0.f, -GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()));
+        ModelMesh->SetRelativeScale3D(FVector(HeroData->ModelScale));
+        if (HeroData->CharacterMaterial)
+        {
+            ModelMesh->SetMaterial(0, HeroData->CharacterMaterial);
+        }
+
+        TInlineComponentArray<UStaticMeshComponent*> StaticMeshes(this);
+        for (UStaticMeshComponent* Component : StaticMeshes)
+        {
+            if (Component != ModelMesh)
+            {
+                Component->SetVisibility(false);
+            }
+        }
     }
 
     // 3. Inicializar Estadísticas usando GAS
