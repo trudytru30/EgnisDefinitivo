@@ -82,6 +82,15 @@ public:
     UFUNCTION(BlueprintCallable, Category="Battle|Cards")
     void BeginPlayCard(UBaseCard* Card);
 
+    UFUNCTION(BlueprintCallable, Category="Battle|Cards")
+    void TryPlayCardAtCursor(UBaseCard* Card);
+
+    UFUNCTION(BlueprintCallable, Category="Battle|Cards")
+    void BeginCardDrag(UBaseCard* Card);
+
+    UFUNCTION(BlueprintCallable, Category="Battle|Cards")
+    void CancelPendingCard();
+
     UFUNCTION(BlueprintPure, Category="Battle|Cards")
     TArray<UBaseCard*> GetCurrentHand() const;
 
@@ -90,6 +99,7 @@ public:
 
     UFUNCTION(BlueprintImplementableEvent, Category="Battle|UI")
     void BP_RefreshHandUI();
+    
     
     UPROPERTY()
     UDeckManager* DeckManager = nullptr;
@@ -139,6 +149,10 @@ protected:
 
 private:
 
+    AAlly* GetSelectedCaster(const UBaseCard* Card) const;
+    bool ResolveCardTargetUnderCursor(ACharacterBase*& OutTargetUnit, FVector& OutTargetLocation) const;
+    bool DeprojectCursorToWorld(FVector& OutOrigin, FVector& OutDirection) const;
+
 #pragma region Variables
     UPROPERTY()
     TObjectPtr<UBattleManager> BM = nullptr;
@@ -179,8 +193,6 @@ private:
     // --- NUEVAS FUNCIONES DE REFACTORIZACIÓN ---
     void ProcessCardStateInput();
     void ProcessDefaultStateInput();
-
-    void TrySelectCardSource();
     void TrySelectCardTarget();
     bool TrySelectAlly();
     void TryMoveSelectedAlly(const FHitResult& Hit);
