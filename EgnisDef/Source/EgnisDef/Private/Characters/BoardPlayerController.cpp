@@ -240,9 +240,9 @@ void ABoardPlayerController::TrySelectCardSource()
     }
     
     // Validación de arquetipo
-    if (PendingCard && PendingCard->GetColor() != EColorType::Grey && !ClickedAlly->HasArchetypeColor(PendingCard->GetColor()))
+    if (PendingCard && !PendingCard->CanBePlayedBy(ClickedAlly))
     {
-        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s no puede jugar una carta de arquetipo distinto"), *ClickedAlly->GetName());
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s no tiene el culto de la carta (%s)"), *ClickedAlly->GetName(), *PendingCard->GetCult().ToString());
         return;
     }
 

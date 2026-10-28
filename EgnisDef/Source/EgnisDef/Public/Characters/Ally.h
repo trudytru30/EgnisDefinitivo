@@ -43,13 +43,16 @@ public:
 	// fuerte, Vermillion=ataque ligero)
 	// Lo usa DeckManager::IsCardArchetypeAvailable para
 	// saber si hay que pintar en gris una carta cuyo arquetipo no tiene dueño en el equipo.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Card Archetype")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Cults")
 	//EColorType ArchetypeColor = EColorType::Grey;
-	TArray<EColorType> ArchetypeColors;
+	FGameplayTagContainer Cults;
 
-	UFUNCTION(BlueprintPure, Category="Card Archetype")
+	UFUNCTION(BlueprintPure, Category="Cults")
+	bool HasCult(FGameplayTag Cult) const { return Cults.HasTag(Cult); }
+
+	UFUNCTION(BlueprintPure, Category="Card Archetype", meta=(DeprecatedFunction, DeprecationMessage="Usa CanBePlayedBy de la carta o HasCult"))
 	//EColorType GetArchetypeColor() const { return ArchetypeColor; }
-	bool HasArchetypeColor(EColorType Color) const { return ArchetypeColors.Contains(Color); }
+	bool HasArchetypeColor(EColorType Color) const;
 
 	// Rango base del personaje. Se suma al rango de la carta.
 	// Valor inicial editable; mas adelante se carga desde FHeroClassData::Range.

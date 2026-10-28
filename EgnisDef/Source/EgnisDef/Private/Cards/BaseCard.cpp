@@ -1,4 +1,8 @@
 #include "Cards/BaseCard.h"
+#include "Cards/EgnisCardSettings.h"
+#include "Characters/Ally.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "Engine/Texture2D.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
@@ -77,9 +81,29 @@ FText UBaseCard::GetDescription() const
 	return Description;
 }
 
-void UBaseCard::SetColor(EColorType NewColor)
+void UBaseCard::SetCult(const FGameplayTag& NewCult)
 {
-	Color = NewColor;
+	Cult = NewCult;
+}
+
+bool UBaseCard::CanBePlayedBy(const AAlly* Ally) const
+{
+	if (!Cult.IsValid())
+	{
+		return true;
+	}
+	return Ally && Ally->HasCult(Cult);
+}
+
+void UBaseCard::PostLoad()
+{
+	Super::PostLoad();
+
+	if (!Cult.IsValid() && Color_DEPRECATED != EColorType::Grey)
+	{
+		Cult = EgnisCults::FromLegacyColor(Color_DEPRECATED);
+		Color_DEPRECATED = EColorType::Grey;
+	}
 }
 
 int32 UBaseCard::GetCost() const
@@ -94,7 +118,12 @@ ECardType UBaseCard::GetCardType() const
 
 EColorType UBaseCard::GetColor() const
 {
-	return Color;
+	return EgnisCults::ToLegacyColor(Cult);
+}
+
+FLinearColor UBaseCard::GetCultColor() const
+{
+	return UEgnisCardSettings::GetCultColor(Cult);
 }
 
 ECardTarget UBaseCard::GetTarget() const
@@ -129,4 +158,9 @@ ECardTarget UBaseCard::GetTarget() const
 int32 UBaseCard::GetRange() const
 {
 	return Range;
+}
+
+UTexture2D* UBaseCard::GetCardImage() const
+{
+	return CardImage;
 }

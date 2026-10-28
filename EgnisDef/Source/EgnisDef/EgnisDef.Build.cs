@@ -9,7 +9,7 @@ public class EgnisDef : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore",
-			"EnhancedInput","UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks", "HTTP", "FMODStudio" });
+			"EnhancedInput","UMG", "GameplayAbilities", "GameplayTags", "GameplayTasks", "HTTP", "FMODStudio", "DeveloperSettings" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AssetRegistry", "Slate", "SlateCore" });
 

@@ -5,10 +5,13 @@
 #include "CardTarget.h"
 #include "CardType.h"
 #include "CoreAndSystems/ColorType.h"
+#include "GameplayTagContainer.h"
 #include "BaseCard.generated.h"
 
 class UDeckManager;
 class ACharacterBase;
+class AAlly;
+class UTexture2D;
 
 UCLASS(BlueprintType, Blueprintable)
 class EGNISDEF_API UBaseCard : public UPrimaryDataAsset
@@ -23,11 +26,22 @@ public:
 	ECardType GetCardType() const;
 
 	UFUNCTION(BlueprintPure, Category="Card")
-	EColorType GetColor() const;
+	FGameplayTag GetCult() const { return Cult; }
 
 	// Solo se usa sobre las copias del mazo de un combate (DeckManager::ConvertUnownedCardsToGrey), nunca sobre el asset.
-	void SetColor(EColorType NewColor);
-	
+	void SetCult(const FGameplayTag& NewCult);
+
+	UFUNCTION(BlueprintPure, Category="Card")
+	bool CanBePlayedBy(const AAlly* Ally) const;
+
+	UFUNCTION(BlueprintPure, Category="Card")
+	FLinearColor GetCultColor() const;
+
+	UFUNCTION(BlueprintPure, Category="Card", meta=(DeprecatedFunction, DeprecationMessage="Usa GetCult o CanBePlayedBy"))
+	EColorType GetColor() const;
+
+	virtual void PostLoad() override;
+
 	UFUNCTION(BlueprintPure, Category="Card")
 	int32 GetCost() const;
 
@@ -38,6 +52,9 @@ public:
 	FText GetDescription() const;
 	UFUNCTION(BlueprintPure, Category="Card")
 	int32 GetRange() const;
+
+	UFUNCTION(BlueprintPure, Category="Card")
+	UTexture2D* GetCardImage() const;
 	
 #pragma region Functions
 	// Acciones de las cartas
@@ -57,12 +74,18 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	FText Description;
-	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
+	TObjectPtr<UTexture2D> CardImage;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	ECardType CardType;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
-	EColorType Color;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card", meta=(Categories="Cult"))
+	FGameplayTag Cult;
+
+	UPROPERTY()
+	EColorType Color_DEPRECATED = EColorType::Grey;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	int32 Cost;
