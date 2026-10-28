@@ -141,7 +141,6 @@ FVector ACharacterBase::GetStandLocationForTile(const FTileCoord& Tile) const
 {
 	if (!Board) return GetActorLocation();
 
-	// La posición del actor es el centro de la cápsula: hay que subirlo media cápsula para que pise el suelo
 	FVector Location = Board->TileToWorldCenter(Tile);
 	Location.Z += TileZOffset;
 	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
