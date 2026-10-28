@@ -65,6 +65,16 @@ public:
 	UFUNCTION(BlueprintPure, Category="Stats|Range")
 	int32 GetEffectiveRange(const UBaseCard* Card) const;
 	
+	// Piedad base del personaje (columna Piety de DT_HeroClasses). Escala los efectos de piedad:
+	// vida de obstaculos y espiritus, y tiempo extra.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stats|Piety", meta=(ClampMin="0"))
+	float BasePiety = 0.f;
+
+	// Piedad actual. Punto unico de lectura: heridas (Perforacion), pasivas y reliquias
+	// se aplicaran aqui dentro, igual que con el rango.
+	UFUNCTION(BlueprintPure, Category="Stats|Piety")
+	float GetCharacterPiety() const;
+	
 	UFUNCTION(BlueprintPure, Category="Energy")
 	int32 GetCurrentEnergy() const;
 
