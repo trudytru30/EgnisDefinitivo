@@ -67,10 +67,11 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
     {
     }
 	
-	// Rango del personaje desde la tabla de stats (columna Range de DT_HeroClasses)
+	// Estadísticas del personaje desde la tabla de stats (columna Range y Piety de DT_HeroClasses)
 	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::InitializeFromData")))
 	{
 		BaseRange = Stats->Range;
+		BasePiety = Stats->Piety;
 		
 		// Colores de carta del personaje: uno por cada culto de su clase. Un culto sin color asignado se ignora
 		Cults = Stats->AllowedCults;
@@ -86,7 +87,13 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
 
 int32 AAlly::GetCharacterRange() const
 {
+	
 	return FMath::Max(0, BaseRange);
+}
+
+float AAlly::GetCharacterPiety() const
+{
+	return FMath::Max(0.f, BasePiety);
 }
 
 int32 AAlly::GetEffectiveRange(const UBaseCard* Card) const
