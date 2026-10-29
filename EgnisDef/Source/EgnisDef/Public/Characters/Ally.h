@@ -30,6 +30,9 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UEnergyAttributeSet* EnergyAttributeSet;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
+	class UCharacterStatsAttributeSet* StatsAttributeSet;
 
 	// Componente de movimiento en grid: va aqui, en Ally, y no en CharacterBase — AEnemy no lo usa
 	// (tiene su propia logica de movimiento, ver Enemy::MoveTowardClosesPlayer), y BattleManager::
@@ -58,11 +61,6 @@ public:
 	//EColorType GetArchetypeColor() const { return ArchetypeColor; }
 	bool HasArchetypeColor(EColorType Color) const;
 
-	// Rango base del personaje. Se suma al rango de la carta.
-	// Valor inicial editable; mas adelante se carga desde FHeroClassData::Range.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stats|Range", meta=(ClampMin="0"))
-	int32 BaseRange = 0;
-
 	// Rango actual del personaje. Punto unico de lectura: las heridas, pasivas y reliquias
 	// se aplican aqui dentro.
 	UFUNCTION(BlueprintPure, Category="Stats|Range")
@@ -71,11 +69,6 @@ public:
 	// Rango con el que puede jugar una carta: rango de la carta + rango del personaje.
 	UFUNCTION(BlueprintPure, Category="Stats|Range")
 	int32 GetEffectiveRange(const UBaseCard* Card) const;
-	
-	// Piedad base del personaje (columna Piety de DT_HeroClasses). Escala los efectos de piedad:
-	// vida de obstaculos y espiritus, y tiempo extra.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stats|Piety", meta=(ClampMin="0"))
-	float BasePiety = 0.f;
 
 	// Piedad actual. Punto unico de lectura: heridas (Perforacion), pasivas y reliquias
 	// se aplicaran aqui dentro, igual que con el rango.
@@ -88,6 +81,17 @@ public:
 	UFUNCTION(BlueprintPure, Category="Energy")
 	int32 GetMaxEnergy() const;
 	
+	// Power y velocidad actuales
+	UFUNCTION(BlueprintPure, Category="Stats|Power")
+	float GetCharacterPower() const;
+
+	UFUNCTION(BlueprintPure, Category="Stats|Speed")
+	int32 GetCharacterSpeed() const;
+	
 protected:
 	virtual void BeginPlay() override;
+	
+	// Mantiene GridMovementComponent::moveRange igual que el atributo Speed
+	void RefreshMoveRange();
+	void OnSpeedChanged(const struct FOnAttributeChangeData& Data);
 };
