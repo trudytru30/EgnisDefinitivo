@@ -1,17 +1,40 @@
 #include "Environment/ObstacleBase.h"
 #include "Components/HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "AbilitySystemComponent.h"
+#include "CoreAndSystems/HealthAttributeSet.h"
 
 AObstacleBase::AObstacleBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	HealthComp = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComp"));
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	HealthAttributeSet = CreateDefaultSubobject<UHealthAttributeSet>(TEXT("HealthAttributeSet"));
 }
 
 void AObstacleBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
 
+	if (HealthAttributeSet)
+	{
+		// InitialHealth a 0 = obstaculo antiguo: usa la vida que tenga puesta su HealthComp
+		float StartHealth = InitialHealth;
+		if (StartHealth <= 0.f && HealthComp)
+		{
+			StartHealth = HealthComp->GetMaxHealth();
+		}
+		StartHealth = FMath::Max(1.f, StartHealth);
+
+		HealthAttributeSet->InitMaxHealth(StartHealth);
+		HealthAttributeSet->InitHealth(StartHealth);
+	}
+	
 	if (!Board)
 	{
 		Board = Cast<ABoard>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoard::StaticClass()));
@@ -47,14 +70,19 @@ void AObstacleBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AObstacleBase::ApplyDamage(float Amount)
 {
-	if (!bDestructible || !HealthComp)
+	if (!bDestructible || !AbilitySystemComponent || !HealthAttributeSet)
 	{
 		return;
 	}
 
-	HealthComp->ApplyDelta(-Amount);
+	// SetNumericAttributeBase no pasa por PostGameplayEffectExecute, asi que la destruccion se comprueba aqui
+	const float NewHealth = FMath::Max(0.f, HealthAttributeSet->GetHealth() - Amount);
+	AbilitySystemComponent->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHealth);
 
-	if (HealthComp->GetCurrentHealth() <= 0.f)
+	UE_LOG(LogTemp, Log, TEXT("Obstaculo %s: %.1f de daño, vida %.1f/%.1f"),
+		*GetName(), Amount, NewHealth, HealthAttributeSet->GetMaxHealth());
+
+	if (NewHealth <= 0.f)
 	{
 		HandleDestroyed();
 	}
@@ -69,4 +97,14 @@ void AObstacleBase::HandleDestroyed()
 	bDestroyHandled = true;
 
 	Destroy();
+}
+
+float AObstacleBase::GetCurrentHealth() const
+{
+	return HealthAttributeSet ? HealthAttributeSet->GetHealth() : 0.f;
+}
+
+float AObstacleBase::GetMaxHealth() const
+{
+	return HealthAttributeSet ? HealthAttributeSet->GetMaxHealth() : 0.f;
 }
