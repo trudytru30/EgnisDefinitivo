@@ -84,7 +84,8 @@ void UDeckManager::DrawCard()
 		DrawnCard->NotifyHandEnter(nullptr);
 	}
 
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayDrawCardSound(0);
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardDraw);
 	OnHandChanged.Broadcast();
 }
 
@@ -145,6 +146,21 @@ void UDeckManager::ResetDeck()
 	Hand.Empty();
 }
 
+void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay)
+{
+	for (UBaseCard* Card : Deck)
+	{
+		// IsCardArchetypeAvailable ya da por disponible el color Grey, asi que esas cartas no se tocan
+		if (Card && !IsCardArchetypeAvailable(Card, CharactersInPlay))
+		{
+			UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %s (culto %s) sin personaje de su culto,"
+							 " pasa a carta comun en este combate"),
+				*Card->GetName(), *Card->GetCult().ToString());
+			Card->SetCult(FGameplayTag());
+		}
+	}
+}
+
 //grey-out por arquetipo
 bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<ACharacterBase*>& CharactersInPlay) const
 {
@@ -154,7 +170,7 @@ bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<
 	}
 
 	// Grey = arquetipo comun, siempre disponible, no depende de ningun personaje concreto.
-	if (Card->GetColor() == EColorType::Grey)
+	if (!Card->GetCult().IsValid())
 	{
 		return true;
 	}
@@ -162,7 +178,7 @@ bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<
 	for (const ACharacterBase* Character : CharactersInPlay)
 	{
 		const AAlly* CharAsAlly = Cast<const AAlly>(Character);
-		if (CharAsAlly && CharAsAlly->HasArchetypeColor(Card->GetColor()))
+		if (CharAsAlly && Card->CanBePlayedBy(CharAsAlly))
 		{
 			return true;
 		}

@@ -3,12 +3,20 @@
 #include "CoreAndSystems/AudioManager.h"
 #include "Components/GridMovementComponent.h"
 #include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
+#include "Cards/BaseCard.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 AAlly::AAlly()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	MoveComp = CreateDefaultSubobject<UGridMovementComponent>(TEXT("MoveComp"));
-	
+
+	ModelMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ModelMesh"));
+	ModelMesh->SetupAttachment(GetCapsuleComponent());
+	ModelMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	// El ASC vive en ACharacterBase (compartido con AEnemy), pero EnergyAttributeSet solo
 	// tiene sentido en AAlly, así que se crea aquí en vez de en la clase base.
 	EnergyAttributeSet = CreateDefaultSubobject<UEnergyAttributeSet>(TEXT("EnergyAttributeSet"));
@@ -34,17 +42,65 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
     if (!HeroData) return;
 
     // 1. Apariencia y Animación (Asumiendo que CharacterMesh y AnimBP están en el DataAsset)
-    if (HeroData->CharacterMesh && GetMesh())
+    if (HeroData->CharacterModel && ModelMesh)
     {
-        GetMesh()->SetSkeletalMesh(HeroData->CharacterMesh);
+        ModelMesh->SetStaticMesh(HeroData->CharacterModel);
+        ModelMesh->SetRelativeLocation(FVector(0.f, 0.f, -GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight()));
+        ModelMesh->SetRelativeScale3D(FVector(HeroData->ModelScale));
+        if (HeroData->CharacterMaterial)
+        {
+            ModelMesh->SetMaterial(0, HeroData->CharacterMaterial);
+        }
+
+        TInlineComponentArray<UStaticMeshComponent*> StaticMeshes(this);
+        for (UStaticMeshComponent* Component : StaticMeshes)
+        {
+            if (Component != ModelMesh)
+            {
+                Component->SetVisibility(false);
+            }
+        }
     }
 
     // 3. Inicializar Estadísticas usando GAS
     if (GetAbilitySystemComponent())
     {
     }
-
+	
+	// Rango del personaje desde la tabla de stats (columna Range de DT_HeroClasses)
+	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::InitializeFromData")))
+	{
+		BaseRange = Stats->Range;
+		
+		// Colores de carta del personaje: uno por cada culto de su clase. Un culto sin color asignado se ignora
+		Cults = Stats->AllowedCults;
+		UE_LOG(LogTemp, Log, TEXT("Aliado %s: cultos %s"), *GetName(), *Cults.ToStringSimple());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Aliado %s: sin fila de stats en el DataAsset, BaseRange se queda en %d."), *GetName(), BaseRange);
+	}
+	
     UE_LOG(LogTemp, Log, TEXT("Aliado %s inicializado desde DataAsset."), *GetName());
+}
+
+int32 AAlly::GetCharacterRange() const
+{
+	return FMath::Max(0, BaseRange);
+}
+
+int32 AAlly::GetEffectiveRange(const UBaseCard* Card) const
+{
+	if (!Card)
+	{
+		return 0;
+	}
+	return Card->GetRange() + GetCharacterRange();
+}
+
+bool AAlly::HasArchetypeColor(EColorType Color) const
+{
+	return HasCult(EgnisCults::FromLegacyColor(Color));
 }
 
 int32 AAlly::GetCurrentEnergy() const

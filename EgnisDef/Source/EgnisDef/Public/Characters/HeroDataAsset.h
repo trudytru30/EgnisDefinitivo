@@ -7,6 +7,7 @@
 
 class AAlly;
 class UBaseCard;
+class UStaticMesh;
 
 UCLASS(BlueprintType)
 class EGNISDEF_API UHeroDataAsset : public UDataAsset
@@ -26,8 +27,11 @@ public:
 	UTexture2D* SplashArt;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
-	USkeletalMesh* CharacterMesh;
+	UMaterialInterface* CharacterMaterial;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
-	UMaterialInterface* CharacterMaterial;
+	UStaticMesh* CharacterModel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals", meta = (ClampMin = "0.01"))
+	float ModelScale = 2.5f;
 };

@@ -5,6 +5,7 @@
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "Environment/ObstacleBase.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 {
@@ -27,6 +28,8 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 	Self->Board->GetTilesInRange(CenterTile, AreaRadius, AreaTiles);
 	AreaTiles.Add(CenterTile);
 
+	int32 HitCount = 0;
+	
 	for (const FTileCoord& Tile : AreaTiles)
 	{
 		AActor* Occupant = Self->Board->GetTileOccupant(Tile);
@@ -46,10 +49,12 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 					FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
 					if (Spec.IsValid())
 					{
-						Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, -DamageAmount);
+						Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
+							-UEgnisCombatLibrary::CalculateDamage(Self, Character, DamageAmount));
 						TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 					}
 				}
+				HitCount++;
 			}
 			continue;
 		}
@@ -57,8 +62,13 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 		if (AObstacleBase* Obstacle = Cast<AObstacleBase>(Occupant))
 		{
 			Obstacle->ApplyDamage(DamageAmount);
+			HitCount++;
 		}
 	}
 
-	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) AM->PlayAttackSound(0);
+	UE_LOG(LogTemp, Log, TEXT("AreaDamage: centro (%d,%d), radio %d, %d objetivos golpeados"),
+	CenterTile.X, CenterTile.Y, AreaRadius, HitCount);
+	
+	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardAreaAttack, SoundOverride, Self);
 }

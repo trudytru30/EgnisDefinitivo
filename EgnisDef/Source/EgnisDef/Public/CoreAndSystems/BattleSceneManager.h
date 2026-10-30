@@ -51,7 +51,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Scene Director|Flow")
 	void StartCombatPhase();
-	
+
+	//Condiciones para empezar el combate (de momento: estar en despliegue con al menos un héroe en el tablero)
+	//La UI la usa para activar/desactivar el botón de Start Combat
+	UFUNCTION(BlueprintPure, Category = "Scene Director|Flow")
+	bool CanStartCombat() const;
+
 	UFUNCTION()
 	void OnCombatEnded(bool bPlayerWon);
 
@@ -76,6 +81,10 @@ protected:
 	// Esta es la variable que configuras en tu Blueprint del BattleSceneManager en el Editor:
 	UPROPERTY(EditDefaultsOnly, Category = "Deployment")
 	TSubclassOf<AAlly> BaseAllyClass;
+
+	//Máximo de héroes que se pueden tener a la vez en el tablero durante el despliegue
+	UPROPERTY(EditDefaultsOnly, Category = "Deployment", meta = (ClampMin = "1"))
+	int32 MaxDeployedHeroes = 4;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")
 	UDeployManager* DeployManager;

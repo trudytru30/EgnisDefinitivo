@@ -1,9 +1,6 @@
 # Visual Studio 2015 user specific files
 .vs/
 
-# JetBrains Rider
-.idea/
-
 # Compiled Object files
 *.slo
 *.lo
@@ -82,3 +79,11 @@ DerivedDataCache/*
 **/Intermediate/
 **/Saved/
 EgnisDef/.idea
+
+
+!EgnisDef/Plugins/FMODStudio/Binaries/
+EgnisDef/Plugins/FMODStudio/Binaries/*
+!EgnisDef/Plugins/FMODStudio/Binaries/Win64/
+EgnisDef/Plugins/FMODStudio/Binaries/Win64/*
+!EgnisDef/Plugins/FMODStudio/Binaries/Win64/fmod*.dll
+!EgnisDef/Plugins/FMODStudio/Binaries/Win64/fmod*.lib

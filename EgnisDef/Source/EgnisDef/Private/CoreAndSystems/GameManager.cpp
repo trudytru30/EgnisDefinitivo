@@ -19,7 +19,10 @@ void AGameManager::BeginPlay()
 void AGameManager::InitializeManagers()
 {
 	if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>())
+	{
 		AM->SetAudioData(AudioData);
+		AM->StartFMODMusic();
+	}
 
 	UClass* ClassToUse = BattleSceneManagerClass ? BattleSceneManagerClass.Get() : UBattleSceneManager::StaticClass();
     

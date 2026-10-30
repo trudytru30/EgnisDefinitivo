@@ -42,6 +42,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UHealthAttributeSet* HealthAttributeSet;
+	
+	// Estados alterados
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Status")
+	class UStatusEffectComponent* StatusComp;
 
 	// Implementación obligatoria de la interfaz: así es como cualquier código externo
 	// (BattleManager, AAlly::LossPoints, futuras abilities) obtiene el ASC de este actor
@@ -77,6 +81,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Grid")
 	void SnapToCurrentTile(bool bKeepCurrentZ = false);
+
+	UFUNCTION(BlueprintPure, Category="Grid")
+	FVector GetStandLocationForTile(const FTileCoord& Tile) const;
 
 	
 	// Sustituyen a HealthComp->GetCurrentHealth()/GetMaxHealth() de cara a Blueprint.
