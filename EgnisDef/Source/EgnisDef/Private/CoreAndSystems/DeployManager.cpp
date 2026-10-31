@@ -66,10 +66,9 @@ bool UDeployManager::TryDeployHeroAtTile(ABoard* Board, const FTileCoord& Tile)
 
 	SpawnedAlly->Board = Board;
 	SpawnedAlly->CurrentTile = Tile;
+	SpawnedAlly->HeroAsset = SelectedHero;
 	//ya sabe su tablero y su casilla: termina de spawnear directamente de pie sobre ella
 	SpawnedAlly->FinishSpawning(FTransform(FRotator::ZeroRotator, SpawnedAlly->GetStandLocationForTile(Tile)));
-
-	SpawnedAlly->InitializeFromData(SelectedHero);
 
 	//apunta qué héroe es este personaje del tablero (para las heridas al acabar el combate)
 	DeployedHeroes.Emplace(SpawnedAlly, URunProgressionSubsystem::GetHeroId(SelectedHero));

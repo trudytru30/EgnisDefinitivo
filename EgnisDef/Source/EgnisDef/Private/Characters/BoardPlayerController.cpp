@@ -209,12 +209,6 @@ void ABoardPlayerController::ProcessDefaultStateInput()
             }
             return;
         }
-        
-        //Si no está en fase de despliegue se intenta mover
-        if (CurrentIntent == EInputIntent::Move && SelectedAlly)
-        {
-            TryMoveSelectedAlly(Hit);
-        }
     }
 }
 
@@ -346,39 +340,6 @@ bool ABoardPlayerController::TrySelectAlly()
         }
     }
     return false;
-}
-
-void ABoardPlayerController::TryMoveSelectedAlly(const FHitResult& Hit)
-{
-    if (ABoard* Board = Cast<ABoard>(Hit.GetActor()))
-    {
-        FTileCoord Tile;
-        if (Board->WorldPointToTile(Hit.ImpactPoint, Tile))
-        {
-            if (!SelectedAlly)
-            {
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Red, TEXT("No ally selected"));
-                return;
-            }
-
-            if (!BM) return;
-
-            // Intenta mover
-            if (BM->RequestMove(SelectedAlly, Tile))
-            {
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("Moved to Tile = (%d, %d)"), Tile.X, Tile.Y));
-                
-                FClickResult Result;
-                Result.bHit = true; 
-                Result.bHitBoard = true;
-                Result.HitActor = Board; 
-                Result.WorldPoint = Hit.ImpactPoint;
-                BP_OnclickResolved(Result);
-                
-                DrawDebugSphere(GetWorld(), Result.WorldPoint, 10.f, 12, FColor::Green, false, 1.0f);
-            }
-        }
-    }
 }
 
 // ==========================================
