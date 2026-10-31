@@ -262,7 +262,7 @@ bool ABoardPlayerController::ResolveCardTargetUnderCursor(ACharacterBase*& OutTa
     }
 
     // Comprobación de que no se elige a la misma unidad como objetivo si no es Self
-    if (OutTargetUnit == PendingSource)
+    if (OutTargetUnit == PendingSource && PendingCardTarget != ECardTarget::Ally)
     {
         UE_LOG(LogTemp, Warning, TEXT("Target cannot be the source"));
         return false;
