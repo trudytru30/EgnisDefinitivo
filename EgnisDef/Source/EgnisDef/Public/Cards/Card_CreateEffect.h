@@ -25,4 +25,5 @@ public:
 	float PietyMultiplier = 1.0f;
 
 	virtual void Execute_Tile(ACharacterBase* Self, FVector Location) override;
+	virtual bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const override;
 };

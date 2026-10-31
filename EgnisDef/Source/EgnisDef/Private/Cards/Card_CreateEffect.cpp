@@ -65,3 +65,19 @@ void UCard_CreateEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 		*Ally->GetName(), Ally->GetCharacterPiety(), PietyMultiplier, *ObstacleClass->GetName(), Tile.X, Tile.Y,
 		Obstacle->HealthComp ? Obstacle->GetMaxHealth() : 0.f);
 }
+
+bool UCard_CreateEffect::CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const
+{
+	if (!Self || !Self->Board)
+	{
+		return false;
+	}
+
+	// IsTileOccupied tambien cuenta como ocupadas las casillas fuera del tablero y las Void
+	if (Self->Board->IsTileOccupied(Tile))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CreateEffect: la casilla (%d, %d) no esta libre, elige otra."), Tile.X, Tile.Y);
+		return false;
+	}
+	return true;
+}

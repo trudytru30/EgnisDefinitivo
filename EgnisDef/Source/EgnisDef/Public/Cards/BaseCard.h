@@ -56,6 +56,8 @@ public:
 	UFUNCTION(BlueprintPure, Category="Card")
 	UTexture2D* GetCardImage() const;
 	
+	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
+	
 #pragma region Functions
 	// Acciones de las cartas
 	void Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location);
