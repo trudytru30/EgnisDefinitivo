@@ -11,6 +11,7 @@
 class UAudioManager;
 class UBaseCard;
 class UStaticMeshComponent;
+class UHeroDataAsset;
 
 UCLASS()
 class EGNISDEF_API AAlly : public ACharacterBase
@@ -27,7 +28,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Setup")
 	void InitializeFromData(UHeroDataAsset* HeroData);
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
+	TObjectPtr<UHeroDataAsset> HeroAsset = nullptr;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Abilities")
 	class UEnergyAttributeSet* EnergyAttributeSet;
 	

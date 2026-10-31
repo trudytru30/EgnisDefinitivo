@@ -195,7 +195,6 @@ private:
     void ProcessDefaultStateInput();
     void TrySelectCardTarget();
     bool TrySelectAlly();
-    void TryMoveSelectedAlly(const FHitResult& Hit);
     void ExecuteCardPlay(ACharacterBase* TargetUnit, FVector TargetLocation);
     // -------------------------------------------
 #pragma endregion

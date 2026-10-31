@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Engine/DataTable.h"
+#include "Components/GridMovementComponent.h"
 #include "HeroDataAsset.generated.h"
 
 class AAlly;
@@ -19,6 +20,9 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Excel Link", meta = (RowType = "HeroClassData"))
 	FDataTableRowHandle HeroStatsRow;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+	EMovePattern MovePattern = EMovePattern::Straight_WBlock;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
 	FText HeroName;

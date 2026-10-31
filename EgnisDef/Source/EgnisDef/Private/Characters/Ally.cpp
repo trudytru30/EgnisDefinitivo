@@ -26,6 +26,11 @@ AAlly::AAlly()
 
 void AAlly::BeginPlay()
 {
+	if (HeroAsset)
+	{
+		InitializeFromData(HeroAsset);
+	}
+
 	Super::BeginPlay();
 
 	// Cada vez que cambie Speed (tabla, herida, bufo...) se actualiza el movimiento
@@ -90,6 +95,11 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
         }
     }
 
+    if (MoveComp)
+    {
+        MoveComp->movePattern = HeroData->MovePattern;
+    }
+
     // 3. Inicializar Estadísticas usando GAS
     if (GetAbilitySystemComponent())
     {
@@ -98,6 +108,9 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
 	// Estadísticas del personaje desde la tabla de stats (columna Range y Piety de DT_HeroClasses)
 	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::InitializeFromData")))
 	{
+		MaxHealth = Stats->Vitality;
+		Health = Stats->Vitality;
+
 		// Power, Piety y Speed viven en GAS: la tabla da el valor base
 		if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 		{
