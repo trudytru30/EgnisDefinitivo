@@ -57,6 +57,7 @@ public:
 	UTexture2D* GetCardImage() const;
 	
 	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
+	bool CanTargetObstacle() const;
 	
 #pragma region Functions
 	// Acciones de las cartas

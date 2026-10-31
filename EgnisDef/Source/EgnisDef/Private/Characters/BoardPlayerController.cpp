@@ -20,6 +20,7 @@
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Environment/ObstacleBase.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -238,11 +239,21 @@ bool ABoardPlayerController::ResolveCardTargetUnderCursor(ACharacterBase*& OutTa
     if (PendingCardTarget == ECardTarget::Enemy)
     {
         if (!TraceUnderCursor(UnitTraceChannel, Hit)) return false;
-        OutTargetUnit = Cast<ACharacterBase>(Hit.GetActor());
-        if (!OutTargetUnit || OutTargetUnit->GetTeam() == 0)
+        
+        // Obstaculo destructible: solo si algun efecto de la carta puede golpearlo. Viaja por Location, sin unidad
+        AObstacleBase* Obstacle = Cast<AObstacleBase>(Hit.GetActor());
+        if (Obstacle && Obstacle->bDestructible && PendingCard && PendingCard->CanTargetObstacle())
         {
-            UE_LOG(LogTemp, Warning, TEXT("Selected target is not an enemy."));
-            return false;
+            OutTargetLocation = Obstacle->GetActorLocation();
+        } 
+        else
+        {
+            OutTargetUnit = Cast<ACharacterBase>(Hit.GetActor());
+            if (!OutTargetUnit || OutTargetUnit->GetTeam() == 0)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Selected target is not an enemy."));
+                return false;
+            }
         }
     }
     else if (PendingCardTarget == ECardTarget::Ally)

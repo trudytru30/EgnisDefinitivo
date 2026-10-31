@@ -102,11 +102,19 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 	}
 	else
 	{
-		if (!TargetCharacter)
+		if (TargetCharacter)
+		{
+			TargetTile = TargetCharacter->CurrentTile;
+		}
+		else if (CardTarget == ECardTarget::Enemy && Card->CanTargetObstacle())
+		{
+			// Obstaculo: no hay unidad, la casilla sale de Location
+			if (!Caster->Board->WorldPointToTile(Location, TargetTile)) return false;
+		}
+		else
 		{
 			return false;
 		}
-		TargetTile = TargetCharacter->CurrentTile;
 	}
 
 	const int32 Distance = FMath::Abs(TargetTile.X - Caster->CurrentTile.X) + FMath::Abs(TargetTile.Y - Caster->CurrentTile.Y);

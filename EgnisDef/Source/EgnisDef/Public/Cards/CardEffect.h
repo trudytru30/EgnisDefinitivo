@@ -27,6 +27,8 @@ public:
 	virtual void Execute_None(UDeckManager* Deck) {};
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) {};
 	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) {};
+	virtual void Execute_Obstacle(ACharacterBase* Self, class AObstacleBase* Obstacle) {};
+	virtual bool CanTargetObstacle() const { return false; }
 	virtual void Execute_Self(ACharacterBase* Source) {};
 	//virtual void Execute_Tile(FVector Location) {};
 	virtual void Execute_Tile(ACharacterBase* Self,FVector Location){};
