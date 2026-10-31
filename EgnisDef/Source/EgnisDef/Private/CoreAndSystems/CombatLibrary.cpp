@@ -110,5 +110,15 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 	}
 
 	const int32 Distance = FMath::Abs(TargetTile.X - Caster->CurrentTile.X) + FMath::Abs(TargetTile.Y - Caster->CurrentTile.Y);
-	return Distance <= Caster->GetEffectiveRange(Card);
+	if (Distance > Caster->GetEffectiveRange(Card))
+	{
+		return false;
+	}
+
+	// Casilla que algun efecto no acepta (p. ej. ocupada, al crear un obstaculo): se rechaza antes de gastar la carta
+	if (CardTarget == ECardTarget::Tile && !Card->CanTargetTile(Caster, TargetTile))
+	{
+		return false;
+	}
+	return true;
 }

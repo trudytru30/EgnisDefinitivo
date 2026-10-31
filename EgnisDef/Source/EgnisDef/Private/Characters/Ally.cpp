@@ -105,6 +105,8 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
 			ASC->SetNumericAttributeBase(UCharacterStatsAttributeSet::GetPietyAttribute(), Stats->Piety);
 			ASC->SetNumericAttributeBase(UCharacterStatsAttributeSet::GetSpeedAttribute(), Stats->Speed);
 			ASC->SetNumericAttributeBase(UCharacterStatsAttributeSet::GetRangeAttribute(), Stats->Range);
+			ASC->SetNumericAttributeBase(UHealthAttributeSet::GetMaxHealthAttribute(), Stats->Vitality);
+			ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), Stats->Vitality);
 		}
 		UE_LOG(LogTemp, Log, TEXT("Aliado %s: Power %.1f, Piety %.1f, Speed %d"),
 			*GetName(), GetCharacterPower(), GetCharacterPiety(), GetCharacterSpeed());

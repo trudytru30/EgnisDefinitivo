@@ -106,6 +106,18 @@ void UBaseCard::PostLoad()
 	}
 }
 
+bool UBaseCard::CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const
+{
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Effect && Effect->Target == ECardTarget::Tile && !Effect->CanTargetTile(Self, Tile))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 int32 UBaseCard::GetCost() const
 {
 	return Cost;

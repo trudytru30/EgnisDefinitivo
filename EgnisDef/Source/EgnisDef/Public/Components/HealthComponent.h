@@ -32,6 +32,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Health")
 	FOnHealthChanged OnHealthChanged;
 
+	// Pone la vida maxima y la actual al mismo valor. Para obstaculos creados en partida.
+	UFUNCTION(BlueprintCallable, Category="Health")
+	void InitializeHealth(float NewMaxHealth);
+	
 protected:
 	virtual void BeginPlay() override;
 

@@ -1,6 +1,7 @@
 #include "CoreAndSystems/HealthAttributeSet.h"
 #include "GameplayEffectExtension.h" // Trae la definición completa de FGameplayEffectModCallbackData
 #include "Characters/CharacterBase.h" // Para poder llamar a HandleDeath()
+#include "Environment/ObstacleBase.h"
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -74,6 +75,16 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		? Data.Target.AbilityActorInfo->AvatarActor.Get()
 		: nullptr;
 
+	// Obstaculos: no son ACharacterBase, pero tambien se destruyen al quedarse sin vida
+	if (AObstacleBase* Obstacle = Cast<AObstacleBase>(OwnerActor))
+	{
+		if (Obstacle->bDestructible && GetHealth() <= 0.f)
+		{
+			Obstacle->HandleDestroyed();
+		}
+		return;
+	}
+	
 	ACharacterBase* OwnerCharacter = Cast<ACharacterBase>(OwnerActor);
 	if (!OwnerCharacter)
 	{
