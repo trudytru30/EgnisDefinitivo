@@ -182,6 +182,20 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not player turn or card is null"));
 		return false;
 	}
+	
+	// Con una seleccion de cartas pendiente no se puede jugar otra carta
+	if (DeckManager->IsSelectingFromHand())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: hay una seleccion de cartas pendiente, no se puede jugar %s"), *Card->GetName());
+		return false;
+	}
+	
+	// Con una seleccion de cartas pendiente no se puede jugar otra carta
+	if (DeckManager->IsSelectingFromHand())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: hay una seleccion de cartas pendiente, no se puede jugar %s"), *Card->GetName());
+		return false;
+	}
 
 	// Aturdido: no puede jugar cartas
 	if (!UEgnisCombatLibrary::CanAct(Character))
@@ -344,7 +358,6 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 
 float UBattleManager::GetTeamHealthRatio() const
 {
-	// Sin referencia (combate sin aliados al empezar): se considera salud completa
 	if (InitialTeamMaxHealth <= 0.0f)
 	{
 		return 1.0f;
