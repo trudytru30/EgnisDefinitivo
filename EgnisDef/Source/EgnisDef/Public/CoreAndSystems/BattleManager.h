@@ -50,6 +50,8 @@ public:
 	TArray<ACharacterBase*> GetCharactersOnField() const;
 	UFUNCTION(BlueprintPure)
 	bool IsPlayerTurn() const;
+	// Añade una unidad creada a mitad de combate (invocaciones) a CharactersOnField
+	void RegisterUnit(ACharacterBase* Unit);
 #pragma endregion
 
 private:
