@@ -5,10 +5,17 @@
 #include "Engine/Texture2D.h"
 #include "Environment/ObstacleBase.h"
 #include "CoreAndSystems/Board.h"
+#include "Cards/DeckManager.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
 {
+	// Avisa al mazo de cual es la carta en juego (la usa el efecto Consumir)
+	if (Deck)
+	{
+		Deck->SetCardInPlay(this);
+	}
+	
 	for (UCardEffect* Effect : Effects)
 	{
 		switch (Effect->Target)
@@ -61,6 +68,11 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 		default:
 			break;
 		}
+	}
+	
+	if (Deck)
+	{
+		Deck->SetCardInPlay(nullptr);
 	}
 }
 

@@ -43,6 +43,7 @@ void UDeckManager::InitializeDeck()
 	DrawPile = Deck;
 	DiscardedPile.Empty();
 	Hand.Empty();
+	ConsumedPile.Empty();
 
 	ShuffleDeck();
 }
@@ -137,6 +138,35 @@ void UDeckManager::RemoveCardFromDeck(UBaseCard* Card)
 	Deck.RemoveSingle(Card);
 }
 
+// Consumir: la carta desaparece del combate y se queda en ConsumedPile
+void UDeckManager::ConsumeCard(UBaseCard* Card)
+{
+	if (!Card || ConsumedPile.Contains(Card))
+	{
+		return;
+	}
+
+	const bool bInHand = Hand.Contains(Card);
+	if (!bInHand && !DrawPile.Contains(Card) && !DiscardedPile.Contains(Card))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: Consumir: %s no esta ni en la mano ni en las pilas"), *Card->GetName());
+		return;
+	}
+
+	// Igual que en DiscardCardFromHand: avisar de que sale de la mano antes de moverla
+	if (bInHand)
+	{
+		Card->NotifyHandLeave(nullptr);
+		Hand.Remove(Card);
+	}
+	DrawPile.RemoveSingle(Card);
+	DiscardedPile.RemoveSingle(Card);
+
+	ConsumedPile.Add(Card);
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta consumida: %s (consumidas: %d)"), *Card->GetName(), ConsumedPile.Num());
+	OnHandChanged.Broadcast();
+}
+
 // Reiniciar mazo (al terminar una partida, no una batalla)
 void UDeckManager::ResetDeck()
 {
@@ -144,6 +174,7 @@ void UDeckManager::ResetDeck()
 	DrawPile.Empty();
 	DiscardedPile.Empty();
 	Hand.Empty();
+	ConsumedPile.Empty();
 }
 
 void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay)

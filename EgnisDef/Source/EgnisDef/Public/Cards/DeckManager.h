@@ -36,6 +36,16 @@ public:
 
 	void AddCardToDeck(UBaseCard* Card);
 	void RemoveCardFromDeck(UBaseCard* Card);
+	// Consumir: saca la carta de la mano o de las pilas y la guarda en ConsumedPile hasta que acabe el combate.
+	// No toca Deck ni los assets, asi que en el siguiente combate la carta vuelve a estar.
+	void ConsumeCard(UBaseCard* Card);
+	
+	UFUNCTION(BlueprintPure, Category="Cards")
+	int32 GetConsumedPileSize() const { return ConsumedPile.Num(); }
+
+	// Carta que se esta jugando ahora mismo. La pone UBaseCard::Execute y la leen efectos como Consumir.
+	UBaseCard* GetCardInPlay() const { return CardInPlay; }
+	void SetCardInPlay(UBaseCard* Card) { CardInPlay = Card; }
 	
 	// Getters
 	int32 GetInitialHandSize();
@@ -74,6 +84,12 @@ private:
 
 	UPROPERTY()
 	TArray<UBaseCard*> Hand;
+	
+	UPROPERTY()
+	TArray<UBaseCard*> ConsumedPile;
+
+	UPROPERTY()
+	UBaseCard* CardInPlay = nullptr;
 
 	int32 InitialDeckSize = 20;
 	int32 InitialHandSize = 3;
