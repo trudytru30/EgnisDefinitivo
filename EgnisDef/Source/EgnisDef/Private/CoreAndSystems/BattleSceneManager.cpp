@@ -28,6 +28,7 @@ void UBattleSceneManager::Initialize()
 	BattleManager = NewObject<UBattleManager>(this);
 	check(BattleManager);
 	BattleManager->SetDeckManager(DeckManager);
+	BattleManager->SetEnemyTurnSettings(EnemyTurnSettings);
 
 	// Nos suscribimos al final del combate
 	BattleManager->OnBattleEndedEvent.AddDynamic(this, &UBattleSceneManager::OnCombatEnded);

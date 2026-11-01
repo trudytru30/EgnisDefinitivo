@@ -10,16 +10,23 @@
 #include "AbilitySystemComponent.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Characters/EnemyStatsRow.h"
+#include "Characters/EnemyAIController.h"
 
 AEnemy::AEnemy()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	Team = 1;
+
+	AIControllerClass = AEnemyAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void AEnemy::BeginPlay()
 {
+	ApplyStatsFromTable();
 	Super::BeginPlay();
+	
 	if (!ArchetypeData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Enemy has no ArchetypeData assigned (DA_Enemy_Warrior / DA_Enemy_Healer)."),
@@ -351,4 +358,35 @@ const UActionDataAsset* AEnemy::GetActionById(EActionId ActionId) const
 		}
 	}
 	return nullptr;
+}
+
+
+bool AEnemy::ApplyStatsFromTable()
+{
+	if (StatsRow.IsNull())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Enemy] %s no tiene fila de estadisticas: usa sus valores por defecto."), *GetName());
+		return false;
+	}
+
+	const FEnemyStatsRow* Row = StatsRow.GetRow<FEnemyStatsRow>(TEXT("AEnemy::ApplyStatsFromTable"));
+	if (!Row)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Enemy] %s: no se encuentra la fila '%s' en la tabla."), *GetName(), *StatsRow.RowName.ToString());
+		return false;
+	}
+
+	//Redondea hacia arriba en caso de modificar datos
+	auto RoundUp = [](float Value) { return FMath::Max(0, FMath::CeilToInt(Value - KINDA_SMALL_NUMBER)); };
+
+	MaxHealth = Row->Life;
+	Health = Row->Life;
+	Power = Row->Power;
+	AttackDamage = Row->Power; //ataque actualizado con el poder de la tabla
+	MoveRange = RoundUp(Row->Speed);
+	AttackRange = RoundUp(Row->Range);
+
+	UE_LOG(LogTemp, Log, TEXT("[Enemy] %s = %s -> vida %.0f, poder %.1f, movimiento %d, ataque %d"),
+		*GetName(), *StatsRow.RowName.ToString(), MaxHealth, Power, MoveRange, AttackRange);
+	return true;
 }
