@@ -29,6 +29,7 @@ public:
 
 	// True si la casilla es valida para este personaje
 	bool CanMoveTo(const ACharacterBase* Character, const FTileCoord& Tile) const;
+	virtual bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const override;
 
 	virtual void Execute_Tile(ACharacterBase* Self, FVector Location) override;
 };
