@@ -49,6 +49,9 @@ public:
 	//Behaviour tree
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|AI")
 	TObjectPtr<class UBehaviorTree> BehaviorTree;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Combat")
+	bool bAttacksOverObstacles = false;	
 	
 	virtual void Tick(float DeltaTime) override;
 	
@@ -72,6 +75,27 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Enemy|Combat")
 	TSubclassOf<class UGameplayEffect> HealEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	TSubclassOf<class UGameplayEffect> ShieldEffect;
+
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	float DamageBuffPercent = 0.f;
+
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	int32 DamageBuffTurnsLeft = 0;
+
+	
+	UFUNCTION(BlueprintPure, Category="Enemy|Combat")
+	float GetDamageMultiplier() const { return 1.f + (DamageBuffTurnsLeft > 0 ? DamageBuffPercent : 0.f) / 100.f; }
+
+	
+	void AddDamageBuff(float Percent, int32 Turns, bool bAppliedDuringOwnTurn);
+
+	//Lo llama el AIController al terminar el turno de este enemigo
+	void OnOwnTurnFinished();	
 	
 	UFUNCTION(BlueprintCallable, Category ="Enemy|AI")
 	void MoveTowardClosesPlayer();
@@ -94,4 +118,5 @@ private:
 	ACharacterBase* FindBestTarget(int32 _Range, int32 _BestRatio, int32 _Team);
 
 	bool ApplyStatsFromTable();
+	bool bSkipNextBuffDecrement = false;
 };

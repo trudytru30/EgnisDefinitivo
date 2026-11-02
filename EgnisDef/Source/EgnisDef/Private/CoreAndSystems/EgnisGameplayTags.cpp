@@ -7,6 +7,7 @@ UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Weakened, "Status.Weakened");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Exposed, "Status.Exposed");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Paralyzed, "Status.Paralyzed");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Stunned, "Status.Stunned");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Bleed, "Status.Bleed");
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult, "Cult");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult_Doru, "Cult.Doru");

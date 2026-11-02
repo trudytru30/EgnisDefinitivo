@@ -390,3 +390,39 @@ bool AEnemy::ApplyStatsFromTable()
 		*GetName(), *StatsRow.RowName.ToString(), MaxHealth, Power, MoveRange, AttackRange);
 	return true;
 }
+
+void AEnemy::AddDamageBuff(float Percent, int32 Turns, bool bAppliedDuringOwnTurn)
+{
+	if (Percent <= 0.f || Turns <= 0)
+	{
+		return;
+	}
+
+	const float CurrentPercent = DamageBuffTurnsLeft > 0 ? DamageBuffPercent : 0.f;
+	DamageBuffPercent = FMath::Max(CurrentPercent, Percent);
+	DamageBuffTurnsLeft = FMath::Max(DamageBuffTurnsLeft, Turns);
+	bSkipNextBuffDecrement = bAppliedDuringOwnTurn;
+
+	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s recibe bufo de +%.0f%% de daño durante %d turno(s)."),
+		*GetName(), DamageBuffPercent, DamageBuffTurnsLeft);
+}
+
+void AEnemy::OnOwnTurnFinished()
+{
+	if (DamageBuffTurnsLeft <= 0)
+	{
+		return;
+	}
+	if (bSkipNextBuffDecrement)
+	{
+		bSkipNextBuffDecrement = false;
+		return;
+	}
+
+	--DamageBuffTurnsLeft;
+	if (DamageBuffTurnsLeft == 0)
+	{
+		DamageBuffPercent = 0.f;
+		UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] A %s se le acaba el bufo de daño."), *GetName());
+	}
+}

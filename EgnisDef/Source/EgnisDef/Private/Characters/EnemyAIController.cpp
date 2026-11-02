@@ -80,6 +80,11 @@ void AEnemyAIController::FinishTurn()
 		TurnBlackboard->SetValueAsBool(TurnKeyName, false);
 	}
 
+	if (AEnemy* Enemy = Cast<AEnemy>(GetPawn()))
+	{
+		Enemy->OnOwnTurnFinished();
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("[EnemyAI] %s: termina su turno."), *GetNameSafe(GetPawn()));
 	OnTurnFinished.Broadcast(this);
 }
