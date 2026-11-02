@@ -130,12 +130,18 @@ void UBattleManager::StartEnemyTurn()
 		}
 	}
 
-	for (AEnemy* Enemy:Enemies)
+	if (!EnemyTurnDirector)
 	{
-		Enemy->MoveTowardClosesPlayer();
-		Enemy->MakeAction();
+		EnemyTurnDirector = NewObject<UEnemyTurnDirector>(this);
 	}
+	EnemyTurnDirector->Initialize(this, EnemyTurnSettings);
+	EnemyTurnDirector->StartEnemyPhase(Enemies,
+		FOnEnemyPhaseFinished::CreateUObject(this, &UBattleManager::OnEnemyPhaseFinished));
+}
 
+
+void UBattleManager::OnEnemyPhaseFinished()
+{
 	// Comprobar estado de unidades despues de cada turno enemigo y terminar el turno
 	UpdateUnitsAlive();
 	EndTurn();
@@ -273,6 +279,11 @@ void UBattleManager::UpdateUnitsAlive()
 void UBattleManager::EndBattle(bool bPlayerWon)
 {
 	bBattleIsOver = true;
+
+	if (EnemyTurnDirector)
+	{
+		EnemyTurnDirector->Abort();
+	}
 	
 	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
 		AM->PlayTrigger(bPlayerWon ? EEgnisAudioTrigger::CombatVictory : EEgnisAudioTrigger::CombatDefeat);

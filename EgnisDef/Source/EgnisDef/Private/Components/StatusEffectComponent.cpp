@@ -15,6 +15,7 @@ namespace
 		case EStatusType::Status_Exposed:   return TAG_Status_Exposed;
 		case EStatusType::Status_Paralyzed: return TAG_Status_Paralyzed;
 		case EStatusType::Status_Stunned:   return TAG_Status_Stunned;
+		case EStatusType::Status_Bleed:     return TAG_Status_Bleed;
 		default:                            return FGameplayTag();
 		}
 	}
@@ -116,6 +117,16 @@ void UStatusEffectComponent::OnOwnerTurnStart()
 	{
 		ApplyBurnDamage();
 		if (!IsValid(GetOwner())) return; // murió por la quemadura
+	}
+	//Sangrado: igual que la quemadura, daño puro al empezar su turno
+	if (HasStatus(EStatusType::Status_Bleed))
+	{
+		if (ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner()))
+		{
+			UE_LOG(LogTemp, Log, TEXT("[%s] Sangrado: %.0f de daño puro"), *OwnerChar->GetName(), BleedDamage);
+			UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, BleedDamage);
+		}
+		if (!IsValid(GetOwner())) return; // murió por el sangrado
 	}
 	
 	// Aqui iran los efectos periodicos, antes de descontar el turno

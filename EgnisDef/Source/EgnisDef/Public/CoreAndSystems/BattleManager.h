@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Characters/EnemyTurnDirector.h"
 #include "BattleManager.generated.h"
 
 class UAudioManager;
@@ -50,7 +51,12 @@ public:
 	TArray<ACharacterBase*> GetCharactersOnField() const;
 	UFUNCTION(BlueprintPure)
 	bool IsPlayerTurn() const;
-	// Añade una unidad creada a mitad de combate (invocaciones) a CharactersOnField
+
+	void SetEnemyTurnSettings(const FEnemyTurnSettings& InSettings) { EnemyTurnSettings = InSettings; }
+	UFUNCTION(BlueprintPure, Category = "Battle")
+	bool IsBattleOver() const { return bBattleIsOver; }
+
+	
 	void RegisterUnit(ACharacterBase* Unit);
 #pragma endregion
 
@@ -63,6 +69,8 @@ private:
 	// Salud actual de los aliados respecto a la suma de sus vidas maximas al empezar el combate (0 a 1).
 	// Los aliados muertos cuentan como 0.
 	float GetTeamHealthRatio() const;
+
+	void OnEnemyPhaseFinished();
 	
 #pragma region Private Variables
 	// ===== Managers =====
@@ -80,5 +88,11 @@ private:
 	
 	// Suma de la vida maxima de los aliados al empezar el combate (referencia de GetTeamHealthRatio)
 	float InitialTeamMaxHealth = 0.0f;
+	UPROPERTY()
+	TObjectPtr<UEnemyTurnDirector> EnemyTurnDirector;
+
+	UPROPERTY()
+	FEnemyTurnSettings EnemyTurnSettings;
+	
 #pragma endregion
 };

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Characters/HeroDataAsset.h"
+#include "Characters/EnemyTurnDirector.h"
 #include "BattleSceneManager.generated.h"
 
 class UDeployManager;
@@ -81,6 +82,10 @@ protected:
 	// Esta es la variable que configuras en tu Blueprint del BattleSceneManager en el Editor:
 	UPROPERTY(EditDefaultsOnly, Category = "Deployment")
 	TSubclassOf<AAlly> BaseAllyClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Enemy Turn")
+	FEnemyTurnSettings EnemyTurnSettings;
+	
 
 	//Máximo de héroes que se pueden tener a la vez en el tablero durante el despliegue
 	UPROPERTY(EditDefaultsOnly, Category = "Deployment", meta = (ClampMin = "1"))
