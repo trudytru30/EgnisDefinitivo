@@ -10,6 +10,7 @@
 #include "CoreAndSystems/GameManager.h"
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Characters/SummonUnit.h"
 
 class AAlly;
 
@@ -73,6 +74,10 @@ void UBattleManager::StartPlayerTurn()
 		if (Character && Character->GetTeam() == 0)
 		{
 			Character->bHasMoved = false;
+			if (ASummonUnit* Summon = Cast<ASummonUnit>(Character))
+			{
+				Summon->SetSummoningSick(false);
+			}
 		}
 	}
 
@@ -195,13 +200,6 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: hay una seleccion de cartas pendiente, no se puede jugar %s"), *Card->GetName());
 		return false;
 	}
-	
-	// Con una seleccion de cartas pendiente no se puede jugar otra carta
-	if (DeckManager->IsSelectingFromHand())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: hay una seleccion de cartas pendiente, no se puede jugar %s"), *Card->GetName());
-		return false;
-	}
 
 	// Aturdido: no puede jugar cartas
 	if (!UEgnisCombatLibrary::CanAct(Character))
@@ -242,7 +240,7 @@ void UBattleManager::UpdateUnitsAlive()
 {
 	int32 AlliesAlive = 0;
 	int32 EnemiesAlive = 0;
-
+	
 	// Limpiar punteros invalidos
 	for (int32 i = CharactersOnField.Num()-1; i >= 0; i--)
 	{
@@ -255,7 +253,11 @@ void UBattleManager::UpdateUnitsAlive()
 	{
 		if (Character->GetTeam() == 0)
 		{
-			AlliesAlive++;
+			const AAlly* Ally = Cast<AAlly>(Character);
+			if (!Ally || Ally->CountsForVictory())
+			{
+				AlliesAlive++;
+			}
 		}
 		else
 		{
@@ -380,6 +382,11 @@ float UBattleManager::GetTeamHealthRatio() const
 	{
 		if (IsValid(Character) && Character->GetTeam() == 0)
 		{
+			const AAlly* Ally = Cast<AAlly>(Character);
+			if (Ally && !Ally->CountsForVictory())
+			{
+				continue;
+			}
 			CurrentHealth += FMath::Max(0.0f, Character->GetCurrentHealth());
 		}
 	}
@@ -427,5 +434,13 @@ void UBattleManager::NotifyTeamTurnEnd(int32 Team)
 		{
 			Character->StatusComp->OnOwnerTurnEnd();
 		}
+	}
+}
+
+void UBattleManager::RegisterUnit(ACharacterBase* Unit)
+{
+	if (IsValid(Unit))
+	{
+		CharactersOnField.AddUnique(Unit);
 	}
 }

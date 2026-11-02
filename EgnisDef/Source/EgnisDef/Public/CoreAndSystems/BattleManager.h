@@ -55,7 +55,9 @@ public:
 	void SetEnemyTurnSettings(const FEnemyTurnSettings& InSettings) { EnemyTurnSettings = InSettings; }
 	UFUNCTION(BlueprintPure, Category = "Battle")
 	bool IsBattleOver() const { return bBattleIsOver; }
+
 	
+	void RegisterUnit(ACharacterBase* Unit);
 #pragma endregion
 
 private:
