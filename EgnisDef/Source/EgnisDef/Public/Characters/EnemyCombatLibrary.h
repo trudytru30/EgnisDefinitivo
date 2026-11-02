@@ -100,6 +100,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Actions")
 	static float EnemyLoseShieldPercent(AEnemy* Enemy, float Percent = 50.f);
+
+	//Taunt
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Actions")
+	static int32 EnemyTaunt(AEnemy* Caster, int32 Turns = 1, int32 MaxDistance = 0);
+
 	
 	//MOV tanque
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Movement")

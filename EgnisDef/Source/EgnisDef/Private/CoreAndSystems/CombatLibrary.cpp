@@ -6,6 +6,7 @@
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/Board.h"
 #include "Characters/SummonUnit.h"
+#include "Components/StatusEffectComponent.h"
 
 namespace
 {
@@ -96,6 +97,18 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 		return true;
 	}
 
+	//Taunt
+	if (CardTarget == ECardTarget::Enemy && Caster->StatusComp)
+	{
+		const ACharacterBase* Taunter = Caster->StatusComp->GetStatusSource(EStatusType::Status_Taunt);
+		if (IsValid(Taunter) && Taunter->GetCurrentHealth() > 0.f && TargetCharacter != Taunter)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Taunt] %s esta provocado por %s: solo puede apuntarle a el."),
+				*Caster->GetName(), *Taunter->GetName());
+			return false;
+		}
+	}
+	
 	if (!Caster->Board)
 	{
 		return false;

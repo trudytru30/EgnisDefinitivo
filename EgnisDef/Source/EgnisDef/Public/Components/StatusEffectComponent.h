@@ -46,6 +46,9 @@ public:
 	int32 GetTurnsLeft(EStatusType Type) const;
 
 	UFUNCTION(BlueprintPure, Category = "Status")
+	ACharacterBase* GetStatusSource(EStatusType Type) const;
+	
+	UFUNCTION(BlueprintPure, Category = "Status")
 	TArray<FActiveStatus> GetActiveStatuses() const { return ActiveStatuses; }
 	
 	// Inicio y final del turno del bando del personaje (los llama BattleManager)

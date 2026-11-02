@@ -64,6 +64,11 @@ bool AEnemyAIController::StartTurn()
 	bTurnActive = true;
 	TurnBlackboard->SetValueAsBool(TurnKeyName, true);
 	UE_LOG(LogTemp, Log, TEXT("[EnemyAI] %s: empieza su turno."), *GetNameSafe(GetPawn()));
+
+	if (AEnemy* Enemy = Cast<AEnemy>(GetPawn()))
+	{
+		Enemy->OnEnemyTurnStarted();
+	}
 	return true;
 }
 
@@ -83,6 +88,7 @@ void AEnemyAIController::FinishTurn()
 	if (AEnemy* Enemy = Cast<AEnemy>(GetPawn()))
 	{
 		Enemy->OnOwnTurnFinished();
+		Enemy->OnEnemyTurnEnded();
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[EnemyAI] %s: termina su turno."), *GetNameSafe(GetPawn()));

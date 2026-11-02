@@ -12,6 +12,25 @@ class UActionDataAsset;
 class UEnemyArchetypeDataAsset;
 
 
+//Que accion ha hecho el enemigo(para animaciones / efectos)
+UENUM(BlueprintType)
+enum class EEnemyActionType : uint8
+{
+	Attack,
+	AreaAttack,
+	Shield,
+	Heal,
+	DamageBuff,
+	Execute,
+	HalveHealth,
+	Bleed,
+	Taunt,
+	LoseShield
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnEnemyActionDone, AEnemy*, Enemy, EEnemyActionType, Action, ACharacterBase*, Target, float, Amount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnEnemyMovedDone, AEnemy*, Enemy, FTileCoord, From, FTileCoord, To, int32, Steps);
+
 UCLASS()
 class EGNISDEF_API AEnemy : public ACharacterBase
 {
@@ -96,6 +115,42 @@ public:
 
 	//Lo llama el AIController al terminar el turno de este enemigo
 	void OnOwnTurnFinished();	
+
+
+	//Orden en el turno enemigo: los numeros mas bajos actuan antes (empate = orden de aparicion)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI")
+	int32 TurnOrder = 0;
+
+	//conexiones para animaciones / efectos
+	//Se implementan en el BP del enemigo (Add Event)
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy|Animation")
+	void OnEnemyTurnStarted();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy|Animation")
+	void OnEnemyTurnEnded();
+
+	//Ya esta en la casilla nueva (el movimiento es instantaneo): From/To/Steps para animar el recorrido
+	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy|Animation")
+	void OnEnemyMoved(FTileCoord From, FTileCoord To, int32 Steps);
+
+	//Accion hecha
+	//Target puede ser nulo (area, taunt) o el propio enemigo (escudo/cura a si mismo)
+	//Amount = daño, escudo, cura, nº de heroes
+	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy|Animation")
+	void OnEnemyAction(EEnemyActionType Action, ACharacterBase* Target, float Amount);
+
+	//Lo mismo, para engancharse desde fuera (UI, camara, etc)
+	UPROPERTY(BlueprintAssignable, Category = "Enemy|Animation")
+	FOnEnemyActionDone OnActionDone;
+
+	UPROPERTY(BlueprintAssignable, Category = "Enemy|Animation")
+	FOnEnemyMovedDone OnMovedDone;
+
+	//Lo llama la libreria de acciones
+	void NotifyAction(EEnemyActionType Action, ACharacterBase* Target, float Amount);
+	void NotifyMoved(const FTileCoord& From, const FTileCoord& To, int32 Steps);	
+
 	
 	UFUNCTION(BlueprintCallable, Category ="Enemy|AI")
 	void MoveTowardClosesPlayer();
