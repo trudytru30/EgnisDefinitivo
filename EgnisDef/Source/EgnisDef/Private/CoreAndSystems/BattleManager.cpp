@@ -7,10 +7,10 @@
 #include "Characters/Enemy.h"
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
-#include "CoreAndSystems/GameManager.h"
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Characters/SummonUnit.h"
+#include "CoreAndSystems/Board.h"
 
 class AAlly;
 
@@ -30,6 +30,14 @@ void UBattleManager::StartBattle()
 	for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It)
 	{
 		CharactersOnField.Add(*It);
+	}
+	
+	// Tablero (para las casillas en llamas)
+	Board = nullptr;
+	for (TActorIterator<ABoard> It(GetWorld()); It; ++It)
+	{
+		Board = *It;
+		break;
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
@@ -57,9 +65,11 @@ void UBattleManager::StartBattle()
 void UBattleManager::StartPlayerTurn()
 {
 	if (bBattleIsOver) return;
-
+	
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
 	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
-	if (bBattleIsOver) return;
 	
 	// Robar mano al inicio del turno y establecer energia
 	for (ACharacterBase* Character : CharactersOnField)
@@ -107,9 +117,11 @@ void UBattleManager::StartEnemyTurn()
 {
 	if (bBattleIsOver) return;
 
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
 	NotifyTeamTurnStart(1);
-
-	if (bBattleIsOver) return;
+	
 	
 	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
 		AM->PlayTrigger(EEgnisAudioTrigger::EnemyTurnStart);

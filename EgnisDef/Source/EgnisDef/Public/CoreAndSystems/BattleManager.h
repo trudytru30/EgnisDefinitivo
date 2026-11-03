@@ -11,6 +11,7 @@ class UDeckManager;
 class UBaseCard;
 class ACharacterBase;
 class AEnemy;
+class ABoard;
 
 // Enumerador de los posibles turnos
 UENUM()
@@ -37,6 +38,9 @@ public:
 
 #pragma region Functions
 	void SetDeckManager(UDeckManager* InDeckManager);
+	// Tablero del combate. Se usa para apagar las casillas en llamas al empezar cada turno.
+	UPROPERTY()
+	TObjectPtr<ABoard> Board = nullptr;
 	void StartBattle();
 	void StartPlayerTurn();
 	void StartEnemyTurn();
