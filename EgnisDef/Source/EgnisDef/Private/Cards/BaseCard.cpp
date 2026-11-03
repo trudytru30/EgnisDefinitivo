@@ -3,10 +3,19 @@
 #include "Characters/Ally.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "Engine/Texture2D.h"
+#include "Environment/ObstacleBase.h"
+#include "CoreAndSystems/Board.h"
+#include "Cards/DeckManager.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
 {
+	// Avisa al mazo de cual es la carta en juego (la usa el efecto Consumir)
+	if (Deck)
+	{
+		Deck->SetCardInPlay(this);
+	}
+	
 	for (UCardEffect* Effect : Effects)
 	{
 		switch (Effect->Target)
@@ -14,6 +23,7 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 		case ECardTarget::None:
 			Effect->Execute_None(Deck);
 			break;
+			
 		case ECardTarget::Ally:
 			// Solo se aplica si el objetivo elegido es del mismo equipo que quien juega la carta
 			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() != Self->GetTeam())
@@ -24,7 +34,20 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 			}
 			Effect->Execute_Ally(Self, TargetCharacter);
 			break;
+			
 		case ECardTarget::Enemy:
+			// Objetivo sin personaje: puede ser un obstaculo destructible, se busca por la casilla de Location
+			if (!TargetCharacter && Self && Self->Board)
+			{
+				FTileCoord Tile;
+				AObstacleBase* Obstacle = Self->Board->WorldPointToTile(Location, Tile)
+					? Cast<AObstacleBase>(Self->Board->GetTileOccupant(Tile)) : nullptr;
+				if (Obstacle && Obstacle->bDestructible)
+				{
+					Effect->Execute_Obstacle(Self, Obstacle);
+					break;
+				}
+			}
 			// Solo se aplica si el objetivo elegido es del equipo contrario
 			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() == Self->GetTeam())
 			{
@@ -37,6 +60,7 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 		case ECardTarget::Self:
 			Effect->Execute_Self(Self);
 			break;
+			
 		case ECardTarget::Tile:
 			//Effect->Execute_Tile(Location);
 			Effect->Execute_Tile(Self,Location);
@@ -44,6 +68,11 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 		default:
 			break;
 		}
+	}
+	
+	if (Deck)
+	{
+		Deck->SetCardInPlay(nullptr);
 	}
 }
 
@@ -116,6 +145,18 @@ bool UBaseCard::CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile
 		}
 	}
 	return true;
+}
+
+bool UBaseCard::CanTargetObstacle() const
+{
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Effect && Effect->Target == ECardTarget::Enemy && Effect->CanTargetObstacle())
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 int32 UBaseCard::GetCost() const

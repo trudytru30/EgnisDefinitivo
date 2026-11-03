@@ -27,7 +27,10 @@ public:
 	void ResetEnergyForTurn();
 
 	UFUNCTION(BlueprintCallable, Category = "Setup")
-	void InitializeFromData(UHeroDataAsset* HeroData);
+	virtual void InitializeFromData(UHeroDataAsset* HeroData);
+	
+	// Si cuenta para victoria/derrota y para la salud del equipo. Las invocaciones lo sobrescriben a false
+	virtual bool CountsForVictory() const { return true; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TObjectPtr<UHeroDataAsset> HeroAsset = nullptr;

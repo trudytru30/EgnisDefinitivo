@@ -49,6 +49,11 @@ bool UCard_MoveEffect::CanMoveTo(const ACharacterBase* Character, const FTileCoo
 	return MoveComp && MoveComp->canMoveToTileLimited(Tile, MaxTiles);
 }
 
+bool UCard_MoveEffect::CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const
+{
+	return CanMoveTo(Self, Tile);
+}
+
 void UCard_MoveEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 {
 	Super::Execute_Tile(Self, Location);

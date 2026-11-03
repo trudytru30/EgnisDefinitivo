@@ -28,6 +28,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
 	float BurnDamage = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
+	float BleedDamage = 2.f;
 	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
@@ -42,6 +45,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Status")
 	int32 GetTurnsLeft(EStatusType Type) const;
 
+	UFUNCTION(BlueprintPure, Category = "Status")
+	ACharacterBase* GetStatusSource(EStatusType Type) const;
+	
 	UFUNCTION(BlueprintPure, Category = "Status")
 	TArray<FActiveStatus> GetActiveStatuses() const { return ActiveStatuses; }
 	

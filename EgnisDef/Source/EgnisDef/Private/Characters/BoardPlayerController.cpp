@@ -20,6 +20,7 @@
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Environment/ObstacleBase.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -133,6 +134,9 @@ void ABoardPlayerController::SetupInputComponent()
 void ABoardPlayerController::HandleLeftClick()
 {
     if (bIsInMenu) return;
+    
+    // Mientras se eligen cartas de la mano, los clics en el tablero no hacen nada
+    if (DeckManager && DeckManager->IsSelectingFromHand()) return;
 
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, TEXT("IA_Click triggered"));
 
@@ -232,11 +236,21 @@ bool ABoardPlayerController::ResolveCardTargetUnderCursor(ACharacterBase*& OutTa
     if (PendingCardTarget == ECardTarget::Enemy)
     {
         if (!TraceUnderCursor(UnitTraceChannel, Hit)) return false;
-        OutTargetUnit = Cast<ACharacterBase>(Hit.GetActor());
-        if (!OutTargetUnit || OutTargetUnit->GetTeam() == 0)
+        
+        // Obstaculo destructible: solo si algun efecto de la carta puede golpearlo. Viaja por Location, sin unidad
+        AObstacleBase* Obstacle = Cast<AObstacleBase>(Hit.GetActor());
+        if (Obstacle && Obstacle->bDestructible && PendingCard && PendingCard->CanTargetObstacle())
         {
-            UE_LOG(LogTemp, Warning, TEXT("Selected target is not an enemy."));
-            return false;
+            OutTargetLocation = Obstacle->GetActorLocation();
+        } 
+        else
+        {
+            OutTargetUnit = Cast<ACharacterBase>(Hit.GetActor());
+            if (!OutTargetUnit || OutTargetUnit->GetTeam() == 0)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Selected target is not an enemy."));
+                return false;
+            }
         }
     }
     else if (PendingCardTarget == ECardTarget::Ally)
@@ -415,6 +429,9 @@ void ABoardPlayerController::BeginPlayCard(UBaseCard* Card)
 {
     UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: BeginPlayCard llamada con carta: %s"), Card ? *Card->GetName() : TEXT("NULL"));
     if (!Card) return;
+    
+    // Mientras se eligen cartas de la mano, el clic marca/desmarca en vez de jugar
+    if (HandleCardClickWhileSelecting(Card)) return;
 
     if (!BM || !BM->IsPlayerTurn())
     {
@@ -462,6 +479,9 @@ void ABoardPlayerController::TryPlayCardAtCursor(UBaseCard* Card)
 {
     if (bIsInMenu || !Card) return;
 
+    // Mientras se eligen cartas de la mano no se puede jugar otra carta
+    if (DeckManager && DeckManager->IsSelectingFromHand()) return;
+    
     if (!BM || !BM->IsPlayerTurn())
     {
         UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: Cannot play card: Not player turn"));
@@ -502,6 +522,9 @@ void ABoardPlayerController::TryPlayCardAtCursor(UBaseCard* Card)
 void ABoardPlayerController::BeginCardDrag(UBaseCard* Card)
 {
     if (bIsInMenu || !Card || !BM || !BM->IsPlayerTurn()) return;
+    
+    // Mientras se eligen cartas de la mano no se puede jugar otra carta
+    if (DeckManager && DeckManager->IsSelectingFromHand()) return;
 
     AAlly* Caster = GetSelectedCaster(Card);
     if (!Caster) return;
@@ -514,6 +537,12 @@ void ABoardPlayerController::BeginCardDrag(UBaseCard* Card)
 
 void ABoardPlayerController::RequestEndTurn()
 {
+    if (DeckManager && DeckManager->IsSelectingFromHand())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: Cannot end turn: hay una seleccion de cartas pendiente"));
+        return;
+    }
+    
     if (!BM || !BM->IsPlayerTurn())
     {
        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: Cannot end turn: Not player turn"));
@@ -624,4 +653,29 @@ AAlly* ABoardPlayerController::GetSelectedCaster(const UBaseCard* Card) const
     }
 
     return Ally;
+}
+
+bool ABoardPlayerController::HandleCardClickWhileSelecting(UBaseCard* Card)
+{
+    if (!DeckManager || !DeckManager->IsSelectingFromHand())
+    {
+        return false;
+    }
+
+    if (Card && !DeckManager->ToggleCardSelection(Card))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: no se puede marcar %s (no es elegible o ya estan marcadas las necesarias)"),
+            *Card->GetName());
+    }
+    return true;
+}
+
+void ABoardPlayerController::DebugConfirmHandSelection()
+{
+    if (!DeckManager || !DeckManager->CanConfirmHandSelection())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: no se puede confirmar: no hay seleccion o faltan cartas por marcar"));
+        return;
+    }
+    DeckManager->ConfirmHandSelection();
 }

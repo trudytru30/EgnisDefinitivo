@@ -24,4 +24,6 @@ public:
 	TSubclassOf<class UGameplayEffect> DamageEffect;
 	
 	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) override;
+	virtual void Execute_Obstacle(ACharacterBase* Self, AObstacleBase* Obstacle) override;
+	virtual bool CanTargetObstacle() const override { return true; }
 };

@@ -2,6 +2,7 @@
 #include "CoreAndSystems/AudioManager.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Environment/ObstacleBase.h"
 
 void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy)
 {
@@ -39,4 +40,15 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
 			AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);
 	}
+}
+
+void UCard_AttackEffect::Execute_Obstacle(ACharacterBase* Self, AObstacleBase* Obstacle)
+{
+	if (!Self || !Obstacle || DamageAmount < 0) return;
+
+	// TODO: de momento el daño es el base de la carta, sin CalculateDamage (Debilidad, etc.), como ya pasaba con ApplyDamage
+	Obstacle->ApplyDamage(DamageAmount);
+
+	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);
 }
