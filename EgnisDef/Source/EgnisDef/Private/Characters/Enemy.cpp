@@ -426,3 +426,16 @@ void AEnemy::OnOwnTurnFinished()
 		UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] A %s se le acaba el bufo de daño."), *GetName());
 	}
 }
+
+void AEnemy::NotifyAction(EEnemyActionType Action, ACharacterBase* Target, float Amount)
+{
+	ACharacterBase* SafeTarget = IsValid(Target) ? Target : nullptr;
+	OnEnemyAction(Action, SafeTarget, Amount);
+	OnActionDone.Broadcast(this, Action, SafeTarget, Amount);
+}
+
+void AEnemy::NotifyMoved(const FTileCoord& From, const FTileCoord& To, int32 Steps)
+{
+	OnEnemyMoved(From, To, Steps);
+	OnMovedDone.Broadcast(this, From, To, Steps);
+}

@@ -16,6 +16,7 @@ namespace
 		case EStatusType::Status_Paralyzed: return TAG_Status_Paralyzed;
 		case EStatusType::Status_Stunned:   return TAG_Status_Stunned;
 		case EStatusType::Status_Bleed:     return TAG_Status_Bleed;
+		case EStatusType::Status_Taunt:     return TAG_Status_Taunt;
 		default:                            return FGameplayTag();
 		}
 	}
@@ -51,6 +52,12 @@ int32 UStatusEffectComponent::GetTurnsLeft(EStatusType Type) const
 {
 	const FActiveStatus* Found = FindStatus(Type);
 	return Found ? Found->TurnsLeft : 0;
+}
+
+ACharacterBase* UStatusEffectComponent::GetStatusSource(EStatusType Type) const
+{
+	const FActiveStatus* Found = FindStatus(Type);
+	return Found ? Found->Source.Get() : nullptr;
 }
 
 bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source)

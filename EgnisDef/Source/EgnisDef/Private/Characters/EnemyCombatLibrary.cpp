@@ -221,6 +221,9 @@ float UEnemyCombatLibrary::EnemyAttack(AEnemy* Attacker, ACharacterBase* Target)
 		*Attacker->GetName(), *TargetName, Damage, Multiplier,
 		IsValid(Target) ? Target->GetCurrentHealth() : 0.f,
 		IsValid(Target) ? Target->GetCurrentShield() : 0.f);
+
+	Attacker->NotifyAction(EEnemyActionType::Attack, Target, Damage);
+	
 	return Damage;
 }
 
@@ -254,6 +257,9 @@ float UEnemyCombatLibrary::EnemyShield(AEnemy* Caster, ACharacterBase* Receiver)
 
 	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s da %.0f de escudo a %s (escudo total %.0f)."),
 		*Caster->GetName(), Amount, *Receiver->GetName(), Receiver->GetCurrentShield());
+
+	Caster->NotifyAction(EEnemyActionType::Shield, Receiver, Amount);
+	
 	return Amount;
 }
 
@@ -276,6 +282,9 @@ bool UEnemyCombatLibrary::EnemyDamageBuff(AEnemy* Caster, AEnemy* Receiver, floa
 	//Si el receptor esta en su propio turno, el final de este turno no le descuenta
 	const AEnemyAIController* ReceiverAI = Cast<AEnemyAIController>(Receiver->GetController());
 	Receiver->AddDamageBuff(Percent, Turns, ReceiverAI && ReceiverAI->IsTurnActive());
+
+	Caster->NotifyAction(EEnemyActionType::DamageBuff, Receiver, Percent);
+	
 	return true;
 }
 
@@ -321,6 +330,9 @@ float UEnemyCombatLibrary::EnemyHeal(AEnemy* Caster, ACharacterBase* Receiver)
 
 	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s cura %.0f a %s (vida %.0f/%.0f)."),
 		*Caster->GetName(), Amount, *Receiver->GetName(), Receiver->GetCurrentHealth(), Receiver->GetMaxHealth());
+
+	Caster->NotifyAction(EEnemyActionType::Heal, Receiver, Amount);
+
 	return Amount;
 }
 
@@ -490,6 +502,9 @@ float UEnemyCombatLibrary::EnemyAreaAttack(AEnemy* Attacker, const FTileCoord& C
 	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s ataque en area en (%d,%d) radio %d%s: %d heroes, %.0f de daño total (bufo x%.2f)."),
 		*Attacker->GetName(), Center.X, Center.Y, Radius, bSplitDamage ? TEXT(" repartido") : TEXT(""),
 		Targets.Num(), Total, Multiplier);
+
+	Attacker->NotifyAction(EEnemyActionType::AreaAttack, nullptr, Total);
+	
 	return Total;
 }
 
@@ -515,6 +530,9 @@ bool UEnemyCombatLibrary::EnemyExecute(AEnemy* Attacker, ACharacterBase* Target,
 	{
 		AM->PlayTrigger(EEgnisAudioTrigger::EnemyAttack, nullptr, Attacker);
 	}
+
+	Attacker->NotifyAction(EEnemyActionType::Execute, Target, 0.f);
+	
 	return true;
 }
 
@@ -534,6 +552,8 @@ float UEnemyCombatLibrary::EnemyHalveHealth(AEnemy* Attacker, ACharacterBase* Ta
 	}
 	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s le quita la mitad de la vida a %s: -%.0f (le queda %.0f)."),
 		*Attacker->GetName(), *TargetName, Amount, IsValid(Target) ? Target->GetCurrentHealth() : 0.f);
+
+	Attacker->NotifyAction(EEnemyActionType::HalveHealth, Target, Amount);
 	return Amount;
 }
 
@@ -546,6 +566,9 @@ bool UEnemyCombatLibrary::EnemyApplyBleed(AEnemy* Attacker, ACharacterBase* Targ
 	const bool bApplied = Target->StatusComp->ApplyStatus(EStatusType::Status_Bleed, FMath::Max(1, Turns), Attacker);
 	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s pone sangrado a %s durante %d turnos."),
 		*Attacker->GetName(), *Target->GetName(), FMath::Max(1, Turns));
+
+	Attacker->NotifyAction(EEnemyActionType::Bleed, Target, Turns);
+	
 	return bApplied;
 }
 
@@ -665,6 +688,9 @@ bool UEnemyCombatLibrary::EnemyMoveToTile(AEnemy* Enemy, const FTileCoord& Targe
 
 	UE_LOG(LogTemp, Log, TEXT("[EnemyMove] %s se mueve de (%d,%d) a (%d,%d): %d pasos de %d."),
 		*Enemy->GetName(), From.X, From.Y, Target.X, Target.Y, *StepsToTarget, Enemy->GetMoveRange());
+	
+	Enemy->NotifyMoved(From, Target, *StepsToTarget);
+
 	return true;
 }
 
@@ -852,5 +878,45 @@ float UEnemyCombatLibrary::EnemyLoseShieldPercent(AEnemy* Enemy, float Percent)
 	}
 	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s pierde %.0f de escudo (%.0f%%): le queda %.0f. Vida+escudo = %.0f%%."),
 		*Enemy->GetName(), Amount, Percent, Enemy->GetCurrentShield(), GetHealthPlusShieldPercent(Enemy));
+
+	Enemy->NotifyAction(EEnemyActionType::LoseShield, Enemy, Amount);
+	
 	return Amount;
+}
+
+int32 UEnemyCombatLibrary::EnemyTaunt(AEnemy* Caster, int32 Turns, int32 MaxDistance)
+{
+	if (!IsValid(Caster) || !Caster->GetWorld())
+	{
+		return 0;
+	}
+	if (!UEgnisCombatLibrary::CanAct(Caster))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s esta aturdido: no provoca."), *Caster->GetName());
+		return 0;
+	}
+
+	int32 Count = 0;
+	for (TActorIterator<ACharacterBase> It(Caster->GetWorld()); It; ++It)
+	{
+		ACharacterBase* Hero = *It;
+		if (!IsValid(Hero) || Hero->GetTeam() != 0 || Hero->GetCurrentHealth() <= 0.f || !Hero->StatusComp)
+		{
+			continue;
+		}
+		if (MaxDistance > 0 && TileDistance(Caster->CurrentTile, Hero->CurrentTile) > MaxDistance)
+		{
+			continue;
+		}
+		if (Hero->StatusComp->ApplyStatus(EStatusType::Status_Taunt, FMath::Max(1, Turns), Caster))
+		{
+			++Count;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[EnemyCombat] %s provoca a %d heroes durante %d turno(s)%s."), *Caster->GetName(), Count,
+		FMath::Max(1, Turns), MaxDistance > 0 ? *FString::Printf(TEXT(" (a %d casillas o menos)"), MaxDistance) : TEXT(""));
+
+	Caster->NotifyAction(EEnemyActionType::Taunt, nullptr, Count);
+	return Count;
 }

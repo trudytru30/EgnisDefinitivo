@@ -4,6 +4,7 @@
 #include "CoreAndSystems/BattleManager.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Algo/StableSort.h"
 
 void UEnemyTurnDirector::Initialize(UBattleManager* InBattleManager, const FEnemyTurnSettings& InSettings)
 {
@@ -23,6 +24,16 @@ void UEnemyTurnDirector::StartEnemyPhase(const TArray<AEnemy*>& Enemies, FOnEnem
 			Queue.Add(Enemy);
 		}
 	}
+
+	//Orden configurable: TurnOrder mas bajo primero; si empatan, se respeta el orden de aparicion
+	Algo::StableSortBy(Queue, [](const TWeakObjectPtr<AEnemy>& E) { return E.IsValid() ? E->TurnOrder : MAX_int32; });
+
+	FString OrderText;
+	for (const TWeakObjectPtr<AEnemy>& E : Queue)
+	{
+		OrderText += FString::Printf(TEXT("%s(%d) "), *GetNameSafe(E.Get()), E.IsValid() ? E->TurnOrder : 0);
+	}
+	UE_LOG(LogTemp, Log, TEXT("[EnemyTurn] Orden: %s"), *OrderText);
 
 	CurrentIndex = 0;
 	OnPhaseFinished = OnFinished;

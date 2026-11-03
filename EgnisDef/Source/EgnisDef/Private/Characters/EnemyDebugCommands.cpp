@@ -11,6 +11,7 @@
 #include "HAL/IConsoleManager.h"
 #include "DrawDebugHelpers.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Components/StatusEffectComponent.h"
 
 namespace
 {
@@ -294,4 +295,43 @@ namespace
 				UEnemyCombatLibrary::EnemyLoseShieldPercent(*It, Percent);
 			}
 		}));
+
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyTaunt(
+	TEXT("Egnis.Enemy.Taunt"),
+	TEXT("Egnis.Enemy.Taunt [turnos=1] [distancia=0]: cada enemigo provoca a los heroes (0 = todos)."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		const int32 Turns = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 1;
+		const int32 Distance = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+		for (TActorIterator<AEnemy> It(World); It; ++It)
+		{
+			UEnemyCombatLibrary::EnemyTaunt(*It, Turns, Distance);
+		}
+	}));
+
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyTauntCheck(
+	TEXT("Egnis.Enemy.TauntCheck"),
+	TEXT("Muestra que heroes estan provocados, por quien, y a que enemigos podrian apuntar con una carta."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+		{
+			if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+			const ACharacterBase* Taunter = Hero->StatusComp->GetStatusSource(EStatusType::Status_Taunt);
+			if (!IsValid(Taunter) || Taunter->GetCurrentHealth() <= 0.f)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[TauntCheck] %s NO esta provocado: puede apuntar a cualquier enemigo."), *Hero->GetName());
+				continue;
+			}
+			UE_LOG(LogTemp, Log, TEXT("[TauntCheck] %s provocado por %s (%d turnos)."), *Hero->GetName(), *Taunter->GetName(),
+				Hero->StatusComp->GetTurnsLeft(EStatusType::Status_Taunt));
+			for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[TauntCheck]   -> %s: %s"), *Enemy->GetName(),
+					*Enemy == Taunter ? TEXT("SI puede apuntarle") : TEXT("NO (bloqueado por el taunt)"));
+			}
+		}
+	}));
 }
