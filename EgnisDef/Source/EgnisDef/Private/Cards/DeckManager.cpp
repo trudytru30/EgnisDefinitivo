@@ -2,12 +2,13 @@
 #include "CoreAndSystems/AudioManager.h"
 #include "Characters/Ally.h"
 #include "Algo/RandomShuffle.h"
+#include "Cards/EgnisCardSettings.h"
 
 // Aniadir cartas al mazo
 //Construye el mazo desde cero
 void UDeckManager::GenerateDeck(const TArray<TSubclassOf<UBaseCard>>& SelectedCarts)
 {
-	if (SelectedCarts.Num() < InitialDeckSize)
+	if (SelectedCarts.Num() < GetDefault<UEgnisCardSettings>()->InitialDeckSize)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[DeckManager]: No hay suficientes cartas seleccionadas para generar el mazo"));
 		return;
@@ -43,6 +44,8 @@ void UDeckManager::InitializeDeck()
 	DrawPile = Deck;
 	DiscardedPile.Empty();
 	Hand.Empty();
+	ConsumedPile.Empty();
+	ClearSelectionState();
 
 	ShuffleDeck();
 }
@@ -137,6 +140,35 @@ void UDeckManager::RemoveCardFromDeck(UBaseCard* Card)
 	Deck.RemoveSingle(Card);
 }
 
+// Consumir: la carta desaparece del combate y se queda en ConsumedPile
+void UDeckManager::ConsumeCard(UBaseCard* Card)
+{
+	if (!Card || ConsumedPile.Contains(Card))
+	{
+		return;
+	}
+
+	const bool bInHand = Hand.Contains(Card);
+	if (!bInHand && !DrawPile.Contains(Card) && !DiscardedPile.Contains(Card))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: Consumir: %s no esta ni en la mano ni en las pilas"), *Card->GetName());
+		return;
+	}
+
+	// Igual que en DiscardCardFromHand: avisar de que sale de la mano antes de moverla
+	if (bInHand)
+	{
+		Card->NotifyHandLeave(nullptr);
+		Hand.Remove(Card);
+	}
+	DrawPile.RemoveSingle(Card);
+	DiscardedPile.RemoveSingle(Card);
+
+	ConsumedPile.Add(Card);
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta consumida: %s (consumidas: %d)"), *Card->GetName(), ConsumedPile.Num());
+	OnHandChanged.Broadcast();
+}
+
 // Reiniciar mazo (al terminar una partida, no una batalla)
 void UDeckManager::ResetDeck()
 {
@@ -144,6 +176,8 @@ void UDeckManager::ResetDeck()
 	DrawPile.Empty();
 	DiscardedPile.Empty();
 	Hand.Empty();
+	ConsumedPile.Empty();
+	ClearSelectionState();
 }
 
 void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay)
@@ -153,10 +187,10 @@ void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& Char
 		// IsCardArchetypeAvailable ya da por disponible el color Grey, asi que esas cartas no se tocan
 		if (Card && !IsCardArchetypeAvailable(Card, CharactersInPlay))
 		{
-			UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %s (color %d) sin personaje de su color,"
-							 " pasa a Grey en este combate"),
-				*Card->GetName(), static_cast<int32>(Card->GetColor()));
-			Card->SetColor(EColorType::Grey);
+			UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %s (culto %s) sin personaje de su culto,"
+							 " pasa a carta comun en este combate"),
+				*Card->GetName(), *Card->GetCult().ToString());
+			Card->SetCult(FGameplayTag());
 		}
 	}
 }
@@ -170,7 +204,7 @@ bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<
 	}
 
 	// Grey = arquetipo comun, siempre disponible, no depende de ningun personaje concreto.
-	if (Card->GetColor() == EColorType::Grey)
+	if (!Card->GetCult().IsValid())
 	{
 		return true;
 	}
@@ -178,7 +212,7 @@ bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<
 	for (const ACharacterBase* Character : CharactersInPlay)
 	{
 		const AAlly* CharAsAlly = Cast<const AAlly>(Character);
-		if (CharAsAlly && CharAsAlly->HasArchetypeColor(Card->GetColor()))
+		if (CharAsAlly && Card->CanBePlayedBy(CharAsAlly))
 		{
 			return true;
 		}
@@ -187,15 +221,139 @@ bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<
 	return false;
 }
 
+void UDeckManager::RequestHandSelection(int32 Count, TFunction<void(const TArray<UBaseCard*>&)> OnConfirmed)
+{
+	if (Count <= 0 || !OnConfirmed)
+	{
+		return;
+	}
+
+	FHandSelectionRequest Request;
+	Request.Count = Count;
+	Request.OnConfirmed = MoveTemp(OnConfirmed);
+	Request.Excluded = CardInPlay;
+	SelectionQueue.Add(MoveTemp(Request));
+
+	StartNextSelection();
+}
+
+// Activa la primera peticion de la cola. Las que se pueden resolver solas se resuelven aqui mismo.
+void UDeckManager::StartNextSelection()
+{
+	while (!bSelecting && SelectionQueue.Num() > 0)
+	{
+		const int32 Count = SelectionQueue[0].Count;
+		UBaseCard* Excluded = SelectionQueue[0].Excluded;
+
+		TArray<UBaseCard*> Eligible;
+		for (UBaseCard* Card : Hand)
+		{
+			if (Card && Card != Excluded)
+			{
+				Eligible.Add(Card);
+			}
+		}
+
+		// Pocas cartas: no hay nada que elegir, se resuelve con todas las elegibles
+		if (Eligible.Num() <= Count)
+		{
+			FHandSelectionRequest Done = MoveTemp(SelectionQueue[0]);
+			SelectionQueue.RemoveAt(0);
+			Done.OnConfirmed(Eligible);
+			continue;
+		}
+
+		EligibleForSelection = Eligible;
+		SelectedCards.Empty();
+		RequiredSelection = Count;
+		bSelecting = true;
+		UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Seleccion de cartas iniciada: hay que marcar %d de %d elegibles"), Count, Eligible.Num());
+		OnHandSelectionChanged.Broadcast();
+	}
+}
+
+bool UDeckManager::IsCardSelectable(const UBaseCard* Card) const
+{
+	return bSelecting && Card && EligibleForSelection.Contains(Card);
+}
+
+bool UDeckManager::IsCardSelected(const UBaseCard* Card) const
+{
+	return bSelecting && Card && SelectedCards.Contains(Card);
+}
+
+bool UDeckManager::ToggleCardSelection(UBaseCard* Card)
+{
+	if (!IsCardSelectable(Card))
+	{
+		return false;
+	}
+
+	if (SelectedCards.Contains(Card))
+	{
+		SelectedCards.Remove(Card);
+	}
+	else
+	{
+		// No se pueden marcar mas de las necesarias
+		if (SelectedCards.Num() >= RequiredSelection)
+		{
+			return false;
+		}
+		SelectedCards.Add(Card);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Seleccion: %s %s (%d/%d)"), *Card->GetName(),
+	SelectedCards.Contains(Card) ? TEXT("marcada") : TEXT("desmarcada"), SelectedCards.Num(), RequiredSelection);
+	
+	OnHandSelectionChanged.Broadcast();
+	return true;
+}
+
+void UDeckManager::ConfirmHandSelection()
+{
+	if (!CanConfirmHandSelection())
+	{
+		return;
+	}
+
+	// Se cierra la seleccion ANTES de llamar al callback: el callback puede pedir otra seleccion
+	const TArray<UBaseCard*> Chosen = SelectedCards;
+	FHandSelectionRequest Request = MoveTemp(SelectionQueue[0]);
+	SelectionQueue.RemoveAt(0);
+	EligibleForSelection.Empty();
+	SelectedCards.Empty();
+	RequiredSelection = 0;
+	bSelecting = false;
+	OnHandSelectionChanged.Broadcast();
+
+	Request.OnConfirmed(Chosen);
+
+	StartNextSelection();
+}
+
+void UDeckManager::ClearSelectionState()
+{
+	SelectionQueue.Empty();
+	EligibleForSelection.Empty();
+	SelectedCards.Empty();
+	RequiredSelection = 0;
+	if (bSelecting)
+	{
+		bSelecting = false;
+		OnHandSelectionChanged.Broadcast();
+	}
+}
+
 // ===== Getters =====
 int32 UDeckManager::GetInitialHandSize()
 {
-	return InitialHandSize;
+	return GetDefault<UEgnisCardSettings>()->InitialHandSize;
 }
 
 int32 UDeckManager::GetMaxHandSize()
 {
-	return MaxHandSize;
+	return GetDefault<UEgnisCardSettings>()->MaxHandSize;
 }
 
 TArray<UBaseCard*> UDeckManager::GetHand()

@@ -3,10 +3,12 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Engine/DataTable.h"
+#include "Components/GridMovementComponent.h"
 #include "HeroDataAsset.generated.h"
 
 class AAlly;
 class UBaseCard;
+class UStaticMesh;
 
 UCLASS(BlueprintType)
 class EGNISDEF_API UHeroDataAsset : public UDataAsset
@@ -19,6 +21,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Excel Link", meta = (RowType = "HeroClassData"))
 	FDataTableRowHandle HeroStatsRow;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+	EMovePattern MovePattern = EMovePattern::Straight_WBlock;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
 	FText HeroName;
 
@@ -26,8 +31,11 @@ public:
 	UTexture2D* SplashArt;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
-	USkeletalMesh* CharacterMesh;
+	UMaterialInterface* CharacterMaterial;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
-	UMaterialInterface* CharacterMaterial;
+	UStaticMesh* CharacterModel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals", meta = (ClampMin = "0.01"))
+	float ModelScale = 2.5f;
 };

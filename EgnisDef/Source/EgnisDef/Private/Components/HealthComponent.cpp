@@ -50,6 +50,17 @@ float UHealthComponent::ApplyDelta(float Delta)
 	return CurrentHealth;
 }
 
+void UHealthComponent::InitializeHealth(float NewMaxHealth)
+{
+	MaxHealth = FMath::Max(1.0f, NewMaxHealth);
+	CurrentHealth = MaxHealth;
+
+	if (OnHealthChanged.IsBound())
+	{
+		OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+	}
+}
+
 void UHealthComponent::OnDeath()
 {
 	// PARCHE TEMPORAL  — mientras no exista GAS: antes esto llamaba manualmente a

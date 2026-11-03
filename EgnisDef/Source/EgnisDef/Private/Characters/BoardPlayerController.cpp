@@ -18,6 +18,9 @@
 #include "CoreAndSystems/DeployManager.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Environment/ObstacleBase.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -131,6 +134,9 @@ void ABoardPlayerController::SetupInputComponent()
 void ABoardPlayerController::HandleLeftClick()
 {
     if (bIsInMenu) return;
+    
+    // Mientras se eligen cartas de la mano, los clics en el tablero no hacen nada
+    if (DeckManager && DeckManager->IsSelectingFromHand()) return;
 
     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, TEXT("IA_Click triggered"));
 
@@ -178,11 +184,7 @@ void ABoardPlayerController::HandleRightClick()
 
 void ABoardPlayerController::ProcessCardStateInput()
 {
-    if (SelectionState == ECardSelectionState::SelectingUnit)
-    {
-        TrySelectCardSource();
-    }
-    else if (SelectionState == ECardSelectionState::SelectingTarget)
+    if (SelectionState == ECardSelectionState::SelectingTarget)
     {
         TrySelectCardTarget();
     }
@@ -210,104 +212,78 @@ void ABoardPlayerController::ProcessDefaultStateInput()
             }
             return;
         }
-        
-        //Si no está en fase de despliegue se intenta mover
-        if (CurrentIntent == EInputIntent::Move && SelectedAlly)
-        {
-            TryMoveSelectedAlly(Hit);
-        }
     }
-}
-
-void ABoardPlayerController::TrySelectCardSource()
-{
-    FHitResult Hit;
-    if (!TraceUnderCursor(UnitTraceChannel, Hit)) return;
-
-    AAlly* ClickedAlly = Cast<AAlly>(Hit.GetActor());
-    
-    if (!ClickedAlly)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerComponent: Clicked actor is not an ally"));
-        return;
-    }
-
-    // Aturdido: no puede jugar cartas
-    if (!UEgnisCombatLibrary::CanAct(ClickedAlly))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s esta aturdido y no puede jugar cartas"), *ClickedAlly->GetName());
-        return;
-    }
-    
-    // Validación de arquetipo
-    if (PendingCard && PendingCard->GetColor() != EColorType::Grey && !ClickedAlly->HasArchetypeColor(PendingCard->GetColor()))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s no puede jugar una carta de arquetipo distinto"), *ClickedAlly->GetName());
-        return;
-    }
-
-    PendingSource = ClickedAlly;
-
-    // Si no necesita target, la jugamos inmediatamente
-    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
-    {
-        ExecuteCardPlay(nullptr, FVector::ZeroVector);
-        return;
-    }
-
-    // Si necesita target, pasamos a la siguiente fase
-    SelectionState = ECardSelectionState::SelectingTarget;
 }
 
 void ABoardPlayerController::TrySelectCardTarget()
 {
-    FHitResult Hit;
+    UE_LOG(LogTemp, Warning, TEXT("[SelectingTarget] PendingTarget=%d"), (int32)PendingCardTarget);
+
     ACharacterBase* TargetUnit = nullptr;
     FVector TargetLocation = FVector::ZeroVector;
+    if (ResolveCardTargetUnderCursor(TargetUnit, TargetLocation))
+    {
+        ExecuteCardPlay(TargetUnit, TargetLocation);
+    }
+}
 
-    UE_LOG(LogTemp, Warning, TEXT("[SelectingTarget] PendingTarget=%d"), (int32)PendingCardTarget);
+bool ABoardPlayerController::ResolveCardTargetUnderCursor(ACharacterBase*& OutTargetUnit, FVector& OutTargetLocation) const
+{
+    FHitResult Hit;
+    OutTargetUnit = nullptr;
+    OutTargetLocation = FVector::ZeroVector;
 
     if (PendingCardTarget == ECardTarget::Enemy)
     {
-        if (!TraceUnderCursor(UnitTraceChannel, Hit)) return;
-        TargetUnit = Cast<ACharacterBase>(Hit.GetActor());
-        if (!TargetUnit || TargetUnit->GetTeam() == 0)
+        if (!TraceUnderCursor(UnitTraceChannel, Hit)) return false;
+        
+        // Obstaculo destructible: solo si algun efecto de la carta puede golpearlo. Viaja por Location, sin unidad
+        AObstacleBase* Obstacle = Cast<AObstacleBase>(Hit.GetActor());
+        if (Obstacle && Obstacle->bDestructible && PendingCard && PendingCard->CanTargetObstacle())
         {
-            UE_LOG(LogTemp, Warning, TEXT("Selected target is not an enemy."));
-            return;
+            OutTargetLocation = Obstacle->GetActorLocation();
+        } 
+        else
+        {
+            OutTargetUnit = Cast<ACharacterBase>(Hit.GetActor());
+            if (!OutTargetUnit || OutTargetUnit->GetTeam() == 0)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Selected target is not an enemy."));
+                return false;
+            }
         }
     }
     else if (PendingCardTarget == ECardTarget::Ally)
     {
-        if (!TraceUnderCursor(UnitTraceChannel, Hit)) return;
-        TargetUnit = Cast<ACharacterBase>(Hit.GetActor());
-        if (!TargetUnit || TargetUnit->GetTeam() != 0)
+        if (!TraceUnderCursor(UnitTraceChannel, Hit)) return false;
+        OutTargetUnit = Cast<ACharacterBase>(Hit.GetActor());
+        if (!OutTargetUnit || OutTargetUnit->GetTeam() != 0)
         {
             UE_LOG(LogTemp, Warning, TEXT("Selected target is not an ally."));
-            return;
+            return false;
         }
     }
     else if (PendingCardTarget == ECardTarget::Tile)
     {
-        if (!TraceUnderCursor(BoardTraceChannel, Hit)) return;
-        TargetLocation = Hit.ImpactPoint;
+        if (!TraceUnderCursor(BoardTraceChannel, Hit)) return false;
+        OutTargetLocation = Hit.ImpactPoint;
     }
 
     // Comprobación de que no se elige a la misma unidad como objetivo si no es Self
-    if (TargetUnit == PendingSource)
+    if (OutTargetUnit == PendingSource && PendingCardTarget != ECardTarget::Ally)
     {
         UE_LOG(LogTemp, Warning, TEXT("Target cannot be the source"));
-        return;
+        return false;
     }
 
     // Objetivo fuera de rango: se ignora el clic y la carta sigue seleccionada para elegir otro objetivo
-    if (!UEgnisCombatLibrary::IsCardTargetInRange(PendingCard, PendingSource, TargetUnit, TargetLocation))
+    if (!UEgnisCombatLibrary::IsCardTargetInRange(PendingCard, PendingSource, OutTargetUnit, OutTargetLocation))
     {
         UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: objetivo fuera de rango, elige otro"));
-        return;
+        return false;
     }
-    
-    ExecuteCardPlay(TargetUnit, TargetLocation);
+
+    return true;
 }
 
 void ABoardPlayerController::ExecuteCardPlay(ACharacterBase* TargetUnit, FVector TargetLocation)
@@ -369,47 +345,28 @@ bool ABoardPlayerController::TrySelectAlly()
     return false;
 }
 
-void ABoardPlayerController::TryMoveSelectedAlly(const FHitResult& Hit)
-{
-    if (ABoard* Board = Cast<ABoard>(Hit.GetActor()))
-    {
-        FTileCoord Tile;
-        if (Board->WorldPointToTile(Hit.ImpactPoint, Tile))
-        {
-            if (!SelectedAlly)
-            {
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Red, TEXT("No ally selected"));
-                return;
-            }
-
-            if (!BM) return;
-
-            // Intenta mover
-            if (BM->RequestMove(SelectedAlly, Tile))
-            {
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("Moved to Tile = (%d, %d)"), Tile.X, Tile.Y));
-                
-                FClickResult Result;
-                Result.bHit = true; 
-                Result.bHitBoard = true;
-                Result.HitActor = Board; 
-                Result.WorldPoint = Hit.ImpactPoint;
-                BP_OnclickResolved(Result);
-                
-                DrawDebugSphere(GetWorld(), Result.WorldPoint, 10.f, 12, FColor::Green, false, 1.0f);
-            }
-        }
-    }
-}
-
 // ==========================================
 // ======== RESTO DE LAS FUNCIONES ========
 // ==========================================
 
+bool ABoardPlayerController::DeprojectCursorToWorld(FVector& OutOrigin, FVector& OutDirection) const
+{
+    if (FSlateApplication::IsInitialized())
+    {
+        FVector2D PixelPosition, ViewportPosition;
+        USlateBlueprintLibrary::AbsoluteToViewport(this, FSlateApplication::Get().GetCursorPos(), PixelPosition, ViewportPosition);
+        if (DeprojectScreenPositionToWorld(static_cast<float>(PixelPosition.X), static_cast<float>(PixelPosition.Y), OutOrigin, OutDirection))
+        {
+            return true;
+        }
+    }
+    return DeprojectMousePositionToWorld(OutOrigin, OutDirection);
+}
+
 bool ABoardPlayerController::TraceUnderCursor(ECollisionChannel Channel, FHitResult& OutHit) const
 {
     FVector WorldOrigin, WorldDirection;
-    if (!DeprojectMousePositionToWorld(WorldOrigin, WorldDirection))
+    if (!DeprojectCursorToWorld(WorldOrigin, WorldDirection))
     {
        return false;
     }
@@ -472,6 +429,9 @@ void ABoardPlayerController::BeginPlayCard(UBaseCard* Card)
 {
     UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: BeginPlayCard llamada con carta: %s"), Card ? *Card->GetName() : TEXT("NULL"));
     if (!Card) return;
+    
+    // Mientras se eligen cartas de la mano, el clic marca/desmarca en vez de jugar
+    if (HandleCardClickWhileSelecting(Card)) return;
 
     if (!BM || !BM->IsPlayerTurn())
     {
@@ -481,24 +441,108 @@ void ABoardPlayerController::BeginPlayCard(UBaseCard* Card)
 
     if (SelectionState != ECardSelectionState::None && PendingCard == Card)
     {
-       PendingCard = nullptr;
-       PendingSource = nullptr;
-       SelectionState = ECardSelectionState::None;
-       CurrentIntent = EInputIntent::Move;
-       BP_RefreshHandUI();
+       CancelPendingCard();
        return;
     }
 
+    AAlly* Caster = GetSelectedCaster(Card);
+    if (!Caster)
+    {
+        return;
+    }
+
     PendingCard = Card;
-    PendingSource = nullptr;
+    PendingSource = Caster;
     PendingCardTarget = Card->GetTarget();
-    SelectionState = ECardSelectionState::SelectingUnit;
-    CurrentIntent = EInputIntent::Action; 
+    CurrentIntent = EInputIntent::Action;
+
+    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
+    {
+        ExecuteCardPlay(nullptr, FVector::ZeroVector);
+        return;
+    }
+
+    SelectionState = ECardSelectionState::SelectingTarget;
     BP_RefreshHandUI();
+}
+
+void ABoardPlayerController::CancelPendingCard()
+{
+    PendingCard = nullptr;
+    PendingSource = nullptr;
+    SelectionState = ECardSelectionState::None;
+    CurrentIntent = EInputIntent::Move;
+    BP_RefreshHandUI();
+}
+
+void ABoardPlayerController::TryPlayCardAtCursor(UBaseCard* Card)
+{
+    if (bIsInMenu || !Card) return;
+
+    // Mientras se eligen cartas de la mano no se puede jugar otra carta
+    if (DeckManager && DeckManager->IsSelectingFromHand()) return;
+    
+    if (!BM || !BM->IsPlayerTurn())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: Cannot play card: Not player turn"));
+        return;
+    }
+
+    AAlly* Caster = GetSelectedCaster(Card);
+    if (!Caster) return;
+
+    PendingCard = Card;
+    PendingSource = Caster;
+    PendingCardTarget = Card->GetTarget();
+
+    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
+    {
+        FHitResult Hit;
+        if (TraceUnderCursor(BoardTraceChannel, Hit) || TraceUnderCursor(UnitTraceChannel, Hit))
+        {
+            ExecuteCardPlay(nullptr, FVector::ZeroVector);
+            return;
+        }
+    }
+    else
+    {
+        ACharacterBase* TargetUnit = nullptr;
+        FVector TargetLocation = FVector::ZeroVector;
+        if (ResolveCardTargetUnderCursor(TargetUnit, TargetLocation))
+        {
+            ExecuteCardPlay(TargetUnit, TargetLocation);
+            return;
+        }
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: no hay un objetivo valido bajo el raton para %s"), *Card->GetName());
+    CancelPendingCard();
+}
+
+void ABoardPlayerController::BeginCardDrag(UBaseCard* Card)
+{
+    if (bIsInMenu || !Card || !BM || !BM->IsPlayerTurn()) return;
+    
+    // Mientras se eligen cartas de la mano no se puede jugar otra carta
+    if (DeckManager && DeckManager->IsSelectingFromHand()) return;
+
+    AAlly* Caster = GetSelectedCaster(Card);
+    if (!Caster) return;
+
+    PendingCard = Card;
+    PendingSource = Caster;
+    PendingCardTarget = Card->GetTarget();
+    SelectionState = ECardSelectionState::None;
 }
 
 void ABoardPlayerController::RequestEndTurn()
 {
+    if (DeckManager && DeckManager->IsSelectingFromHand())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: Cannot end turn: hay una seleccion de cartas pendiente"));
+        return;
+    }
+    
     if (!BM || !BM->IsPlayerTurn())
     {
        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: Cannot end turn: Not player turn"));
@@ -584,4 +628,54 @@ void ABoardPlayerController::DebugDamageSelectedUnit(float Amount)
 
     UE_LOG(LogTemp, Log, TEXT("[Debug] GE aplicado a %s. Vida restante: %.0f"),
        *SelectedAlly->GetName(), SelectedAlly->HealthAttributeSet->GetHealth());
+}
+
+//Comprueba que personaje va a usar la carta seleccionada
+AAlly* ABoardPlayerController::GetSelectedCaster(const UBaseCard* Card) const
+{
+    AAlly* Ally = Cast<AAlly>(SelectedAlly);
+    if (!IsValid(Ally))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: selecciona primero el aliado que va a jugar la carta"));
+        return nullptr;
+    }
+
+    if (!UEgnisCombatLibrary::CanAct(Ally))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s esta aturdido y no puede jugar cartas"), *Ally->GetName());
+        return nullptr;
+    }
+
+    if (Card && !Card->CanBePlayedBy(Ally))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BoardPlayerController: %s no tiene el culto de la carta (%s)"), *Ally->GetName(), *Card->GetCult().ToString());
+        return nullptr;
+    }
+
+    return Ally;
+}
+
+bool ABoardPlayerController::HandleCardClickWhileSelecting(UBaseCard* Card)
+{
+    if (!DeckManager || !DeckManager->IsSelectingFromHand())
+    {
+        return false;
+    }
+
+    if (Card && !DeckManager->ToggleCardSelection(Card))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: no se puede marcar %s (no es elegible o ya estan marcadas las necesarias)"),
+            *Card->GetName());
+    }
+    return true;
+}
+
+void ABoardPlayerController::DebugConfirmHandSelection()
+{
+    if (!DeckManager || !DeckManager->CanConfirmHandSelection())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[BoardPlayerController]: no se puede confirmar: no hay seleccion o faltan cartas por marcar"));
+        return;
+    }
+    DeckManager->ConfirmHandSelection();
 }

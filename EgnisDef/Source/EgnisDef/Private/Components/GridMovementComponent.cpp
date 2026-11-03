@@ -238,7 +238,7 @@ bool UGridMovementComponent::moveToTile(const FTileCoord& Target)
 		return false;
 	}
 
-	//casilla a pos en juego (si es un personaje, de pie sobre la casilla y no con medio cuerpo bajo tierra)
+	//casilla a pos en juego
 	FVector Destination = BoardActor->TileToWorldCenter(Target);
 	if (const ACharacterBase* OwnerCharacter = Cast<ACharacterBase>(GetOwner()))
 	{

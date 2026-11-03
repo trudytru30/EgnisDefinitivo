@@ -82,9 +82,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Grid")
 	void SnapToCurrentTile(bool bKeepCurrentZ = false);
 
-	// Dónde tiene que estar el actor para quedar de pie en esa casilla: centro de la casilla + media cápsula + TileZOffset.
-	// Todo lo que coloque o mueva personajes por el tablero (C++ o Blueprint) debería usar esto en vez de TileToWorldCenter,
-	// que devuelve la posición en el suelo y deja el centro de la cápsula (y medio personaje) bajo tierra
 	UFUNCTION(BlueprintPure, Category="Grid")
 	FVector GetStandLocationForTile(const FTileCoord& Tile) const;
 

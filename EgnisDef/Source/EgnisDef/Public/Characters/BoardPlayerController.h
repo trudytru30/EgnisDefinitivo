@@ -82,6 +82,15 @@ public:
     UFUNCTION(BlueprintCallable, Category="Battle|Cards")
     void BeginPlayCard(UBaseCard* Card);
 
+    UFUNCTION(BlueprintCallable, Category="Battle|Cards")
+    void TryPlayCardAtCursor(UBaseCard* Card);
+
+    UFUNCTION(BlueprintCallable, Category="Battle|Cards")
+    void BeginCardDrag(UBaseCard* Card);
+
+    UFUNCTION(BlueprintCallable, Category="Battle|Cards")
+    void CancelPendingCard();
+
     UFUNCTION(BlueprintPure, Category="Battle|Cards")
     TArray<UBaseCard*> GetCurrentHand() const;
 
@@ -90,6 +99,11 @@ public:
 
     UFUNCTION(BlueprintImplementableEvent, Category="Battle|UI")
     void BP_RefreshHandUI();
+    
+    // SOLO PARA PRUEBAS (consola del editor): confirma la seleccion de cartas sin necesitar el boton de la UI.
+    // TODO: quitar cuando la UI tenga el boton Confirmar.
+    UFUNCTION(Exec)
+    void DebugConfirmHandSelection();
     
     UPROPERTY()
     UDeckManager* DeckManager = nullptr;
@@ -139,6 +153,14 @@ protected:
 
 private:
 
+    AAlly* GetSelectedCaster(const UBaseCard* Card) const;
+    bool ResolveCardTargetUnderCursor(ACharacterBase*& OutTargetUnit, FVector& OutTargetLocation) const;
+    bool DeprojectCursorToWorld(FVector& OutOrigin, FVector& OutDirection) const;
+    
+    // Si hay una seleccion de cartas en curso, el clic en una carta la marca o desmarca en vez de jugarla.
+    // Devuelve true si estaba seleccionando (y por tanto el clic ya esta gestionado).
+    bool HandleCardClickWhileSelecting(UBaseCard* Card);
+
 #pragma region Variables
     UPROPERTY()
     TObjectPtr<UBattleManager> BM = nullptr;
@@ -179,11 +201,8 @@ private:
     // --- NUEVAS FUNCIONES DE REFACTORIZACIÓN ---
     void ProcessCardStateInput();
     void ProcessDefaultStateInput();
-
-    void TrySelectCardSource();
     void TrySelectCardTarget();
     bool TrySelectAlly();
-    void TryMoveSelectedAlly(const FHitResult& Hit);
     void ExecuteCardPlay(ACharacterBase* TargetUnit, FVector TargetLocation);
     // -------------------------------------------
 #pragma endregion

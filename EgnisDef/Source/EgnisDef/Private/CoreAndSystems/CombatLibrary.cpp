@@ -5,6 +5,8 @@
 #include "Characters/Ally.h"
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/Board.h"
+#include "Characters/SummonUnit.h"
+#include "Components/StatusEffectComponent.h"
 
 namespace
 {
@@ -66,11 +68,19 @@ void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)
 
 bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 {
+	if (const ASummonUnit* Summon = Cast<ASummonUnit>(Character); Summon && Summon->IsSummoningSick())
+	{
+		return false;
+	}
 	return !HasStatusTag(Character, TAG_Status_Stunned);
 }
 
 bool UEgnisCombatLibrary::CanMove(const ACharacterBase* Character)
 {
+	if (const ASummonUnit* Summon = Cast<ASummonUnit>(Character); Summon && Summon->IsSummoningSick())
+	{
+		return false;
+	}
 	return !HasStatusTag(Character, TAG_Status_Paralyzed);
 }
 
@@ -87,6 +97,18 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 		return true;
 	}
 
+	//Taunt
+	if (CardTarget == ECardTarget::Enemy && Caster->StatusComp)
+	{
+		const ACharacterBase* Taunter = Caster->StatusComp->GetStatusSource(EStatusType::Status_Taunt);
+		if (IsValid(Taunter) && Taunter->GetCurrentHealth() > 0.f && TargetCharacter != Taunter)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Taunt] %s esta provocado por %s: solo puede apuntarle a el."),
+				*Caster->GetName(), *Taunter->GetName());
+			return false;
+		}
+	}
+	
 	if (!Caster->Board)
 	{
 		return false;
@@ -102,13 +124,31 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 	}
 	else
 	{
-		if (!TargetCharacter)
+		if (TargetCharacter)
+		{
+			TargetTile = TargetCharacter->CurrentTile;
+		}
+		else if (CardTarget == ECardTarget::Enemy && Card->CanTargetObstacle())
+		{
+			// Obstaculo: no hay unidad, la casilla sale de Location
+			if (!Caster->Board->WorldPointToTile(Location, TargetTile)) return false;
+		}
+		else
 		{
 			return false;
 		}
-		TargetTile = TargetCharacter->CurrentTile;
 	}
 
 	const int32 Distance = FMath::Abs(TargetTile.X - Caster->CurrentTile.X) + FMath::Abs(TargetTile.Y - Caster->CurrentTile.Y);
-	return Distance <= Caster->GetEffectiveRange(Card);
+	if (Distance > Caster->GetEffectiveRange(Card))
+	{
+		return false;
+	}
+
+	// Casilla que algun efecto no acepta (p. ej. ocupada, al crear un obstaculo): se rechaza antes de gastar la carta
+	if (CardTarget == ECardTarget::Tile && !Card->CanTargetTile(Caster, TargetTile))
+	{
+		return false;
+	}
+	return true;
 }
