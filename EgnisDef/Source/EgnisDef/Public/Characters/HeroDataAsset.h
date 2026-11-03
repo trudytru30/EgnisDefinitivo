@@ -27,6 +27,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
 	FText HeroName;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Info")
+	FText Alias;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Info", meta = (MultiLine = "true"))
+	FText Description;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
 	UTexture2D* SplashArt;
 
@@ -38,4 +44,6 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals", meta = (ClampMin = "0.01"))
 	float ModelScale = 2.5f;
+
+	
 };
