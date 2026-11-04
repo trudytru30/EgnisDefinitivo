@@ -43,7 +43,7 @@ public:
 	UStaticMesh* CharacterModel;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals", meta = (ClampMin = "0.01"))
-	float ModelScale = 2.5f;
+	float ModelScale = 4.f;
 
 	
 };
