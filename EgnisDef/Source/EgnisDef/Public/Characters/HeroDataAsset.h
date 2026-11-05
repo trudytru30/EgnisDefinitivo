@@ -9,6 +9,7 @@
 class AAlly;
 class UBaseCard;
 class UStaticMesh;
+class UGameplayAbility;
 
 UCLASS(BlueprintType)
 class EGNISDEF_API UHeroDataAsset : public UDataAsset
@@ -23,6 +24,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	EMovePattern MovePattern = EMovePattern::Straight_WBlock;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> UniqueAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
 	FText HeroName;

@@ -14,7 +14,7 @@
 namespace
 {
 	//GE "Add" con Set By Caller (daño negativo, escudo positivo)
-	bool ApplyEnemyAmountEffect(ACharacterBase* Receiver, TSubclassOf<UGameplayEffect> Effect, float Magnitude)
+	bool ApplyEnemyAmountEffect(ACharacterBase* Receiver, TSubclassOf<UGameplayEffect> Effect, float Magnitude, AActor* Instigator = nullptr)
 	{
 		UAbilitySystemComponent* ASC = Receiver ? Receiver->GetAbilitySystemComponent() : nullptr;
 		if (!ASC || !Effect)
@@ -23,6 +23,10 @@ namespace
 		}
 
 		FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+		if (Instigator)
+		{
+			Context.AddInstigator(Instigator, Instigator);
+		}
 		FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(Effect, 1.f, Context);
 		if (!Spec.IsValid())
 		{
@@ -206,7 +210,7 @@ float UEnemyCombatLibrary::EnemyAttack(AEnemy* Attacker, ACharacterBase* Target)
 	const float Damage = UEgnisCombatLibrary::CalculateDamage(Attacker, Target, Rolled);
 	const FString TargetName = Target->GetName();
 
-	if (!ApplyEnemyAmountEffect(Target, Attacker->AttackEffect, -Damage))
+	if (!ApplyEnemyAmountEffect(Target, Attacker->AttackEffect, -Damage, Attacker))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[EnemyCombat] %s no tiene Attack Effect (GE_CardDamage) asignado."), *Attacker->GetName());
 		return 0.f;
@@ -484,7 +488,7 @@ float UEnemyCombatLibrary::EnemyAreaAttack(AEnemy* Attacker, const FTileCoord& C
 		}
 		const float Damage = UEgnisCombatLibrary::CalculateDamage(Attacker, Target, PerTarget);
 		const FString TargetName = Target->GetName();
-		if (!ApplyEnemyAmountEffect(Target, Attacker->AttackEffect, -Damage))
+		if (!ApplyEnemyAmountEffect(Target, Attacker->AttackEffect, -Damage, Attacker))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[EnemyCombat] %s no tiene Attack Effect (GE_CardDamage) asignado."), *Attacker->GetName());
 			return Total;

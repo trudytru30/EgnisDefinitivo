@@ -8,6 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "CoreAndSystems/CharacterStatsAttributesSet.h"
+#include "Abilities/GameplayAbility.h"
 
 AAlly::AAlly()
 {
@@ -135,8 +136,41 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
 		UE_LOG(LogTemp, Warning, TEXT("Aliado %s: sin fila de stats en el DataAsset,"
 								" las stats se quedan a 0."), *GetName());
 	}
-	
+
+	GrantHeroAbilities(HeroData);
+
     UE_LOG(LogTemp, Log, TEXT("Aliado %s inicializado desde DataAsset."), *GetName());
+}
+
+void AAlly::GrantHeroAbilities(const UHeroDataAsset* HeroData)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC || !HeroData)
+	{
+		return;
+	}
+
+	for (const FGameplayAbilitySpecHandle& Handle : GrantedHeroAbilities)
+	{
+		ASC->ClearAbility(Handle);
+	}
+	GrantedHeroAbilities.Reset();
+
+	TArray<TSubclassOf<UGameplayAbility>> Abilities;
+	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::GrantHeroAbilities")))
+	{
+		Abilities.Add(Stats->ClassAbility);
+	}
+	Abilities.Add(HeroData->UniqueAbility);
+
+	for (const TSubclassOf<UGameplayAbility>& AbilityClass : Abilities)
+	{
+		if (AbilityClass)
+		{
+			GrantedHeroAbilities.Add(ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, this)));
+			UE_LOG(LogTemp, Log, TEXT("Aliado %s: habilidad %s concedida"), *GetName(), *AbilityClass->GetName());
+		}
+	}
 }
 
 void AAlly::LossPoints(int32 Cost)

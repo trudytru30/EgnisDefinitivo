@@ -46,6 +46,7 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 				if (TargetASC && DamageEffect)
 				{
 					FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+					Context.AddInstigator(Self, Self);
 					FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
 					if (Spec.IsValid())
 					{

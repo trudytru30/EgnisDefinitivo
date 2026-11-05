@@ -233,6 +233,7 @@ void AEnemy::MakeAction()
 			if (AttackEffect)
 			{
 				FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+				Context.AddInstigator(this, this);
 				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(AttackEffect, 1.f, Context);
 				if (Spec.IsValid())
 				{

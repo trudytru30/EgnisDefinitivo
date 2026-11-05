@@ -3,6 +3,8 @@
 #include "Kismet/GameplayStatics.h" // Para localizar el Board en el nivel
 #include "AbilitySystemComponent.h" // Necesario para CreateDefaultSubobject<UAbilitySystemComponent>
 #include "Components/StatusEffectComponent.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -89,6 +91,10 @@ void ACharacterBase::HandleDeath()
 	}
 	bDeathHandled = true;
 
+	AActor* Killer = LastDamageInstigator.Get();
+	UEgnisAbilityLibrary::SendEvent(Killer, TAG_Event_Unit_Killed, Killer, this, 0.f, nullptr, FGameplayTagContainer());
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Unit_Died, Killer, this, 0.f, this);
+
 	if (Board)
 	{
 		Board->UnregisterOccupant(CurrentTile, this);
@@ -120,7 +126,11 @@ bool ACharacterBase::SetCurrentTile(const FTileCoord& NewTile)
 		return false;
 	}
 
+	PreviousTile = CurrentTile;
 	CurrentTile = NewTile;
+
+	const int32 Distance = FMath::Max(FMath::Abs(NewTile.X - PreviousTile.X), FMath::Abs(NewTile.Y - PreviousTile.Y));
+	UEgnisAbilityLibrary::SendEvent(this, TAG_Event_Unit_Moved, this, nullptr, Distance, nullptr, FGameplayTagContainer());
 	return true;
 }
 void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)

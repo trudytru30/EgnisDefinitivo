@@ -6,6 +6,8 @@
 #include "CoreAndSystems/BattleSceneManager.h"
 #include "CoreAndSystems/GameManager.h"
 #include "Engine/World.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 UCard_SummonEffect::UCard_SummonEffect()
 {
@@ -80,6 +82,8 @@ void UCard_SummonEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SummonEffect: no se encontro el BattleManager, la invocacion no cuenta en el combate."));
 	}
+
+	UEgnisAbilityLibrary::SendEvent(Self, TAG_Event_Summon_Created, Self, Summon, 0.f, nullptr, FGameplayTagContainer());
 
 	UE_LOG(LogTemp, Log, TEXT("SummonEffect: %s (piedad %.1f x %.1f) invoca %s en (%d, %d) con %.1f de vida, mareo de invocacion: %s"),
 		*Caster->GetName(), Caster->GetCharacterPiety(), PietyMultiplier, *Summon->GetName(), Tile.X, Tile.Y,

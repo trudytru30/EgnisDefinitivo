@@ -11,6 +11,8 @@
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Characters/SummonUnit.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 class AAlly;
 
@@ -230,6 +232,17 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);
+
+	if (IsValid(Character))
+	{
+		FGameplayTagContainer CardTags;
+		if (Card->GetCult().IsValid())
+		{
+			CardTags.AddTag(Card->GetCult());
+		}
+		UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Card_Played, Character, TargetCharacter, Card->GetCost(), Card, CardTags);
+	}
+
 	UpdateUnitsAlive();
 
 	return true;
@@ -420,6 +433,11 @@ void UBattleManager::NotifyTeamTurnStart(int32 Team)
 		{
 			Character->StatusComp->OnOwnerTurnStart();
 		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_Start, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
+		}
 	}
 	
 	UpdateUnitsAlive();
@@ -433,6 +451,11 @@ void UBattleManager::NotifyTeamTurnEnd(int32 Team)
 		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
 		{
 			Character->StatusComp->OnOwnerTurnEnd();
+		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_End, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
 		}
 	}
 }

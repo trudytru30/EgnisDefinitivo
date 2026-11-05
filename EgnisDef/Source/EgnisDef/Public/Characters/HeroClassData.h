@@ -5,6 +5,8 @@
 #include "GameplayTagContainer.h"
 #include "HeroClassData.generated.h"
 
+class UGameplayAbility;
+
 USTRUCT(BlueprintType)
 struct FHeroClassData : public FTableRowBase
 {
@@ -30,4 +32,7 @@ struct FHeroClassData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Class & Cults")
 	FGameplayTagContainer AllowedCults; // Tags de cultos
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> ClassAbility;
 };

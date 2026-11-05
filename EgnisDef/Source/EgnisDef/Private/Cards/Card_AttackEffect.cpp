@@ -23,6 +23,7 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 		if (TargetASC && DamageEffect)
 		{
 			FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+			Context.AddInstigator(Self, Self);
 			FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
 			if (Spec.IsValid())
 			{

@@ -2,6 +2,8 @@
 #include "GameplayEffectExtension.h" // Trae la definición completa de FGameplayEffectModCallbackData
 #include "Characters/CharacterBase.h" // Para poder llamar a HandleDeath()
 #include "Environment/ObstacleBase.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -89,6 +91,23 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	if (!OwnerCharacter)
 	{
 		return;
+	}
+
+	if (Data.EvaluatedData.Magnitude < 0.f)
+	{
+		AActor* DamageInstigator = Data.EffectSpec.GetContext().GetOriginalInstigator();
+		if (DamageInstigator == OwnerCharacter)
+		{
+			DamageInstigator = nullptr;
+		}
+
+		const float DamageAmount = -Data.EvaluatedData.Magnitude;
+		if (DamageInstigator)
+		{
+			OwnerCharacter->LastDamageInstigator = DamageInstigator;
+		}
+		UEgnisAbilityLibrary::SendEvent(OwnerCharacter, TAG_Event_Damage_Taken, DamageInstigator, OwnerCharacter, DamageAmount, nullptr, FGameplayTagContainer());
+		UEgnisAbilityLibrary::SendEvent(DamageInstigator, TAG_Event_Damage_Dealt, DamageInstigator, OwnerCharacter, DamageAmount, nullptr, FGameplayTagContainer());
 	}
 
 	// Equivalente exacto a la comprobación "HealthComp->GetCurrentHealth() <= 0" que había

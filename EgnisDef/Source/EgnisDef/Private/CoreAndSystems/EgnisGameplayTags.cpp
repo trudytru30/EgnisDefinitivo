@@ -16,6 +16,22 @@ UE_DEFINE_GAMEPLAY_TAG(TAG_Cult_Egnis, "Cult.Egnis");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult_Mern, TEXT("Cult.Mérn"));
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult_Wers, "Cult.Wers");
 
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Turn_Start, "Event.Turn.Start");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Turn_End, "Event.Turn.End");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Card_Played, "Event.Card.Played");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Damage_Taken, "Event.Damage.Taken");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Damage_Dealt, "Event.Damage.Dealt");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Unit_Killed, "Event.Unit.Killed");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Unit_Died, "Event.Unit.Died");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Unit_Moved, "Event.Unit.Moved");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Summon_Created, "Event.Summon.Created");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Obstacle_Created, "Event.Obstacle.Created");
+
+UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Class, "Ability.Class");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Unique, "Ability.Unique");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Rule, "Rule");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Immunity, "Immunity");
+
 namespace EgnisCults
 {
 	FGameplayTag FromLegacyColor(EColorType Color)

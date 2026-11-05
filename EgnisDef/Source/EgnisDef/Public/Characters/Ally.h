@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "CoreAndSystems/EnergyAttributeSet.h"
 #include "Characters/HeroClassData.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "Ally.generated.h"
 
 class UAudioManager;
@@ -101,4 +102,9 @@ protected:
 	// Mantiene GridMovementComponent::moveRange igual que el atributo Speed
 	void RefreshMoveRange();
 	void OnSpeedChanged(const struct FOnAttributeChangeData& Data);
+
+	void GrantHeroAbilities(const UHeroDataAsset* HeroData);
+
+private:
+	TArray<FGameplayAbilitySpecHandle> GrantedHeroAbilities;
 };
