@@ -28,9 +28,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Setup")
 	virtual void InitializeFromData(UHeroDataAsset* HeroData);
-	
-	// Si cuenta para victoria/derrota y para la salud del equipo. Las invocaciones lo sobrescriben a false
-	virtual bool CountsForVictory() const { return true; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TObjectPtr<UHeroDataAsset> HeroAsset = nullptr;
@@ -51,6 +48,23 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	UStaticMeshComponent* ModelMesh;
 
+	// Invocaciones (espiritus): un aliado mas, pero no cuenta para ganar o perder ni para la salud del equipo.
+	// Lo pone Card_SummonEffect al crearlo.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Summon")
+	bool bIsSummon = false;
+
+	// Vida con la que nace una invocacion (0 = usa la Vitality de la tabla).
+	float HealthOverride = 0.f;
+
+	bool CountsForVictory() const { return !bIsSummon; }
+
+	// "Mareo de invocacion": true = no puede jugar cartas ni moverse. BattleManager lo quita
+	// al empezar el siguiente turno del jugador.
+	UFUNCTION(BlueprintPure, Category = "Summon")
+	bool IsSummoningSick() const { return bSummoningSick; }
+
+	void SetSummoningSick(bool bSick) { bSummoningSick = bSick; }
+	
 	// Aarquetipo/color de este aliado
 	// Reutiliza EColorType (ya
 	// definido para las cartas: Grey=comun, Turquoise=area, Indigo=utilidad, DarkMagenta=ataque
@@ -101,4 +115,7 @@ protected:
 	// Mantiene GridMovementComponent::moveRange igual que el atributo Speed
 	void RefreshMoveRange();
 	void OnSpeedChanged(const struct FOnAttributeChangeData& Data);
+	
+private:
+	bool bSummoningSick = false;
 };

@@ -136,6 +136,19 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
 								" las stats se quedan a 0."), *GetName());
 	}
 	
+	// Invocaciones: la vida que fija el efecto (piedad x multiplicador) manda sobre la Vitality de la tabla
+	if (HealthOverride > 0.f)
+	{
+		MaxHealth = HealthOverride;
+		Health = HealthOverride;
+		if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+		{
+			ASC->SetNumericAttributeBase(UHealthAttributeSet::GetMaxHealthAttribute(), HealthOverride);
+			ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), HealthOverride);
+		}
+		UE_LOG(LogTemp, Log, TEXT("Invocacion %s: vida fijada a %.1f"), *GetName(), HealthOverride);
+	}
+	
     UE_LOG(LogTemp, Log, TEXT("Aliado %s inicializado desde DataAsset."), *GetName());
 }
 

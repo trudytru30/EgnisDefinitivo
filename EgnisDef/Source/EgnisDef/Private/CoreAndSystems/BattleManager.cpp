@@ -9,7 +9,6 @@
 #include "Components/GridMovementComponent.h"
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
-#include "Characters/SummonUnit.h"
 #include "CoreAndSystems/Board.h"
 
 class AAlly;
@@ -84,9 +83,9 @@ void UBattleManager::StartPlayerTurn()
 		if (Character && Character->GetTeam() == 0)
 		{
 			Character->bHasMoved = false;
-			if (ASummonUnit* Summon = Cast<ASummonUnit>(Character))
+			if (AAlly* Ally = Cast<AAlly>(Character))
 			{
-				Summon->SetSummoningSick(false);
+				Ally->SetSummoningSick(false);
 			}
 		}
 	}

@@ -5,7 +5,6 @@
 #include "Characters/Ally.h"
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/Board.h"
-#include "Characters/SummonUnit.h"
 #include "Components/StatusEffectComponent.h"
 
 namespace
@@ -68,7 +67,7 @@ void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)
 
 bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 {
-	if (const ASummonUnit* Summon = Cast<ASummonUnit>(Character); Summon && Summon->IsSummoningSick())
+	if (const AAlly* Ally = Cast<AAlly>(Character); Ally && Ally->IsSummoningSick())
 	{
 		return false;
 	}
@@ -77,7 +76,7 @@ bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 
 bool UEgnisCombatLibrary::CanMove(const ACharacterBase* Character)
 {
-	if (const ASummonUnit* Summon = Cast<ASummonUnit>(Character); Summon && Summon->IsSummoningSick())
+	if (const AAlly* Ally = Cast<AAlly>(Character); Ally && Ally->IsSummoningSick())
 	{
 		return false;
 	}
