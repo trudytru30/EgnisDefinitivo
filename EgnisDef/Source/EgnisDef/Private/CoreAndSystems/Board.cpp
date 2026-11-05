@@ -7,6 +7,7 @@
 #include "Engine/CollisionProfile.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 void ABoard::GenerateBoard()
 {
@@ -493,6 +494,19 @@ void ABoard::AddFireTile(const FTileCoord& Tile, int32 Turns, float Damage)
 
 	UE_LOG(LogTemp, Log, TEXT("[Board]: casilla (%d,%d) en llamas (%d turnos, daño %.0f)"), Tile.X, Tile.Y, Turns, Damage);
 	OnFireTilesChanged.Broadcast();
+
+	// Si ya hay alguien encima cuando aparece el fuego, también se quema
+	if (ACharacterBase* Occupant = Cast<ACharacterBase>(GetTileOccupant(Tile)))
+	{
+		const FString Name = Occupant->GetName();
+		const float HealthBefore = Occupant->GetCurrentHealth();
+		UEgnisCombatLibrary::ApplyPureDamage(Occupant, Damage);
+		// Si murió, el actor ya está destruido: solo uso el nombre guardado
+		UE_LOG(LogTemp, Log, TEXT("[Fire] %s estaba en (%d,%d) cuando apareció el fuego: daño puro %.0f, vida %.0f -> %.0f%s"),
+			*Name, Tile.X, Tile.Y, Damage, HealthBefore,
+			IsValid(Occupant) ? Occupant->GetCurrentHealth() : 0.f,
+			IsValid(Occupant) ? TEXT("") : TEXT(" (MUERTO)"));
+	}
 }
 
 bool ABoard::IsTileOnFire(const FTileCoord& Tile) const
