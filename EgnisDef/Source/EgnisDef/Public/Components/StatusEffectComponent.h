@@ -32,6 +32,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
 	float BleedDamage = 2.f;
 	
+	// Rastro de la Quemadura: turnos que dura cada casilla en llamas (sin contar el turno en que se crea)
+	// y daño puro que hace al pisarla. Editables por diseño.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "1"))
+	int32 BurnTrailTurns = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
+	float BurnTrailDamage = 2.f;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr);

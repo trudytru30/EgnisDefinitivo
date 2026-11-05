@@ -15,11 +15,9 @@ class EGNISDEF_API UCard_AttackEffect : public UCardEffect
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AttackEffect")
-	float DamageAmount = 10.0f;
+	float DamageMultiplier = 1.0f;
 
-	// GameplayEffect que aplica el daño de verdad (GE_CardDamage). Se asigna por carta,
-	// igual que DamageAmount, por si en el futuro alguna carta quiere un GE distinto
-	// (por ejemplo, uno que además aplique un tag de "quemado").
+	// GameplayEffect que aplica el daño de verdad (GE_CardDamage).
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "AttackEffect")
 	TSubclassOf<class UGameplayEffect> DamageEffect;
 	

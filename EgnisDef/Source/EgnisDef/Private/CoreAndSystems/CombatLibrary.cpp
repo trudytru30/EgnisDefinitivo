@@ -6,6 +6,7 @@
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/Board.h"
 #include "Components/StatusEffectComponent.h"
+#include "Characters/Enemy.h"
 
 namespace
 {
@@ -45,6 +46,13 @@ float UEgnisCombatLibrary::CalculateDamage(const ACharacterBase* Source, const A
 	UE_LOG(LogTemp, Log, TEXT("CalculateDamage: base %.1f -> final %.1f (objetivo %s)"),
 		BaseDamage, Damage, Target ? *Target->GetName() : TEXT("null"));
 	return Damage;
+}
+
+float UEgnisCombatLibrary::GetAttackPower(const ACharacterBase* Character)
+{
+	if (const AAlly* Ally = Cast<AAlly>(Character)) return Ally->GetCharacterPower();
+	if (const AEnemy* Enemy = Cast<AEnemy>(Character)) return Enemy->GetPower();
+	return 0.f;
 }
 
 void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)

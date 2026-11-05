@@ -21,6 +21,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static float CalculateDamage(const ACharacterBase* Source, const ACharacterBase* Target, float BaseDamage);
 	
+	// Poder de un personaje: GAS en aliados, propio en enemigos.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static float GetAttackPower(const ACharacterBase* Character);
+	
 	// Daño que ignora escudo, Debilidad y Expuesto (quemadura...).
     static void ApplyPureDamage(ACharacterBase* Target, float Amount);
 	

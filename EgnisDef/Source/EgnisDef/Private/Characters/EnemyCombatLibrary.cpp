@@ -683,6 +683,9 @@ bool UEnemyCombatLibrary::EnemyMoveToTile(AEnemy* Enemy, const FTileCoord& Targe
 	{
 		return false;
 	}
+	
+	if (!IsValid(Enemy)) return true; // murio al pisar fuego
+	
 	Enemy->SnapToCurrentTile();
 
 	if (UAudioManager* AM = Enemy->GetGameInstance()->GetSubsystem<UAudioManager>())
