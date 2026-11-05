@@ -3,6 +3,9 @@
 #include "AbilitySystemComponent.h"
 #include "Characters/CharacterBase.h"
 #include "EngineUtils.h"
+#include "Cards/DeckManager.h"
+#include "CoreAndSystems/BattleSceneManager.h"
+#include "CoreAndSystems/GameManager.h"
 
 void UEgnisAbilityLibrary::SendEvent(AActor* Receiver, FGameplayTag EventTag, AActor* Instigator, AActor* Target,
 	float Magnitude, const UObject* OptionalObject, const FGameplayTagContainer& InstigatorTags)
@@ -51,4 +54,12 @@ bool UEgnisAbilityLibrary::HasRule(const AActor* Actor, FGameplayTag RuleTag)
 {
 	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(const_cast<AActor*>(Actor));
 	return ASC && RuleTag.IsValid() && ASC->HasMatchingGameplayTag(RuleTag);
+}
+
+UDeckManager* UEgnisAbilityLibrary::GetDeckManager(const UObject* WorldContextObject)
+{
+	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
+	const AGameManager* GM = World ? Cast<AGameManager>(World->GetAuthGameMode()) : nullptr;
+	const UBattleSceneManager* BSM = GM ? GM->GetBattleSceneManager() : nullptr;
+	return BSM ? BSM->GetDeckManager() : nullptr;
 }

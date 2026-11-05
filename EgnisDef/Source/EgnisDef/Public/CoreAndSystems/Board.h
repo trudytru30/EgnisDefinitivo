@@ -196,5 +196,9 @@ private:
 
 	TMap<FTileCoord, TWeakObjectPtr<AActor>> OccupiedBy;
 	TMap<FTileCoord, FFireTile> FireTiles;
+
+	void QueueBoardChanged();
+	void BroadcastBoardChanged();
+	bool bBoardChangedQueued = false;
 };
 

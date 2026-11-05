@@ -36,6 +36,15 @@ public:
 
 	void AddCardToDeck(UBaseCard* Card);
 	void RemoveCardFromDeck(UBaseCard* Card);
+
+	UFUNCTION(BlueprintCallable, Category="Cards")
+	void AddCardToHand(UBaseCard* Card);
+
+	UFUNCTION(BlueprintPure, Category="Cards")
+	TArray<UBaseCard*> GetDiscardPile() const { return DiscardedPile; }
+
+	UFUNCTION(BlueprintCallable, Category="Cards")
+	bool ReturnCardFromDiscardToHand(UBaseCard* Card);
 	// Consumir: saca la carta de la mano o de las pilas y la guarda en ConsumedPile hasta que acabe el combate.
 	// No toca Deck ni los assets, asi que en el siguiente combate la carta vuelve a estar.
 	void ConsumeCard(UBaseCard* Card);

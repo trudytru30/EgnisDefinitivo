@@ -102,6 +102,36 @@ void UDeckManager::DrawCardAmount(int32 Amount)
 }
 
 // Descartar cartas de la mano a la pila de descarte
+void UDeckManager::AddCardToHand(UBaseCard* Card)
+{
+	if (!Card)
+	{
+		return;
+	}
+
+	if (Hand.Num() >= GetMaxHandSize())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: Mano llena, %s va al descarte"), *Card->GetName());
+		DiscardedPile.Add(Card);
+		return;
+	}
+
+	Hand.Add(Card);
+	Card->NotifyHandEnter(nullptr);
+	OnHandChanged.Broadcast();
+}
+
+bool UDeckManager::ReturnCardFromDiscardToHand(UBaseCard* Card)
+{
+	if (!Card || DiscardedPile.RemoveSingle(Card) == 0)
+	{
+		return false;
+	}
+
+	AddCardToHand(Card);
+	return true;
+}
+
 void UDeckManager::DiscardCardFromHand(UBaseCard* Card)
 {
 	if (Hand.Contains(Card))

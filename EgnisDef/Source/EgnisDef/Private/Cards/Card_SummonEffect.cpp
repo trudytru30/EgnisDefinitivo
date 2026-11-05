@@ -64,6 +64,7 @@ void UCard_SummonEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 	Summon->CurrentTile = Tile;
 	Summon->HeroAsset = SummonData;
 	Summon->bIsSummon = true;
+	Summon->SummonOwner = Self;
 	Summon->HealthOverride = Health;
 	Summon->SetSummoningSick(bSummonCooldown);
 	Summon->FinishSpawning(FTransform(FRotator::ZeroRotator, Summon->GetStandLocationForTile(Tile)));

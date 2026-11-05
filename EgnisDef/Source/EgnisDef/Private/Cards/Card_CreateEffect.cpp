@@ -61,6 +61,7 @@ void UCard_CreateEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 	Obstacle->CurrentTile = Tile;
 	Obstacle->bDestructible = true; // si no, ApplyDamage lo ignoraria
 	Obstacle->InitialHealth = Health;
+	Obstacle->Creator = Self;
 	Obstacle->FinishSpawning(SpawnTransform);
 	UEgnisAbilityLibrary::SendEvent(Self, TAG_Event_Obstacle_Created, Self, Obstacle, 0.f, nullptr, FGameplayTagContainer());
 

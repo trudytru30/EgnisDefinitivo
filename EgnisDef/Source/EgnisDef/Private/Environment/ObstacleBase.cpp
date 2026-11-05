@@ -3,6 +3,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "AbilitySystemComponent.h"
 #include "CoreAndSystems/HealthAttributeSet.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 AObstacleBase::AObstacleBase()
 {
@@ -95,6 +97,8 @@ void AObstacleBase::HandleDestroyed()
 		return;
 	}
 	bDestroyHandled = true;
+
+	UEgnisAbilityLibrary::SendEvent(Creator.Get(), TAG_Event_Obstacle_Destroyed, Creator.Get(), this, 0.f, nullptr, FGameplayTagContainer());
 
 	Destroy();
 }

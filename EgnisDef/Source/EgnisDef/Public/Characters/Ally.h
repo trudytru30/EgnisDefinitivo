@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "CoreAndSystems/EnergyAttributeSet.h"
 #include "Characters/HeroClassData.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "Ally.generated.h"
 
 class UAudioManager;
@@ -52,6 +53,9 @@ public:
 	// Lo pone Card_SummonEffect al crearlo.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Summon")
 	bool bIsSummon = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Summon")
+	TWeakObjectPtr<ACharacterBase> SummonOwner;
 
 	// Vida con la que nace una invocacion (0 = usa la Vitality de la tabla).
 	float HealthOverride = 0.f;
@@ -115,7 +119,11 @@ protected:
 	// Mantiene GridMovementComponent::moveRange igual que el atributo Speed
 	void RefreshMoveRange();
 	void OnSpeedChanged(const struct FOnAttributeChangeData& Data);
-	
+
+	void GrantHeroAbilities(const UHeroDataAsset* HeroData);
+
 private:
 	bool bSummoningSick = false;
+
+	TArray<FGameplayAbilitySpecHandle> GrantedHeroAbilities;
 };

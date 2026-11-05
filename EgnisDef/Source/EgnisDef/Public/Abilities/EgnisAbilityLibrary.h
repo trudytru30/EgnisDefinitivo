@@ -5,6 +5,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "EgnisAbilityLibrary.generated.h"
 
+class UDeckManager;
+
 UCLASS()
 class EGNISDEF_API UEgnisAbilityLibrary : public UBlueprintFunctionLibrary
 {
@@ -21,4 +23,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Abilities|Rules")
 	static bool HasRule(const AActor* Actor, FGameplayTag RuleTag);
+
+	UFUNCTION(BlueprintPure, Category = "Abilities|Cards", meta = (WorldContext = "WorldContextObject"))
+	static UDeckManager* GetDeckManager(const UObject* WorldContextObject);
 };

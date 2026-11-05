@@ -26,6 +26,9 @@ UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Unit_Died, "Event.Unit.Died");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Unit_Moved, "Event.Unit.Moved");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Summon_Created, "Event.Summon.Created");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Obstacle_Created, "Event.Obstacle.Created");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Obstacle_Destroyed, "Event.Obstacle.Destroyed");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Battle_Start, "Event.Battle.Start");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Board_Changed, "Event.Board.Changed");
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Class, "Ability.Class");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Unique, "Ability.Unique");

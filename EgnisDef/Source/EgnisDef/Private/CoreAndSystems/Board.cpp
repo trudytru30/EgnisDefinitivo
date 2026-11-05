@@ -7,6 +7,9 @@
 #include "Engine/CollisionProfile.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "TimerManager.h"
 
 void ABoard::GenerateBoard()
 {
@@ -373,6 +376,7 @@ bool ABoard::RegisterOccupant(const FTileCoord& Tile, AActor* Occupant)
 		return false;
 	}
 	OccupiedBy.Add(Tile, Occupant);
+	QueueBoardChanged();
 	return true;
 }
 
@@ -388,8 +392,27 @@ void ABoard::UnregisterOccupant(const FTileCoord& Tile, AActor* Occupant)
 		if (Found->Get() == Occupant)
 		{
 			OccupiedBy.Remove(Tile);
+			QueueBoardChanged();
 		}
 	}
+}
+
+void ABoard::QueueBoardChanged()
+{
+	UWorld* World = GetWorld();
+	if (bBoardChangedQueued || !World || !World->IsGameWorld())
+	{
+		return;
+	}
+
+	bBoardChangedQueued = true;
+	World->GetTimerManager().SetTimerForNextTick(this, &ABoard::BroadcastBoardChanged);
+}
+
+void ABoard::BroadcastBoardChanged()
+{
+	bBoardChangedQueued = false;
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Board_Changed);
 }
 
 void ABoard::GetNeighbors4_Free(const FTileCoord& From, TArray<FTileCoord>& OutNeighbors) const
@@ -431,6 +454,7 @@ void ABoard::SetTileOccupant(const FTileCoord& Tile, AActor* Occupant)
 	{
 		OccupiedBy.Remove(Tile);
 	}
+	QueueBoardChanged();
 }
 
 void ABoard::GetTilesInRange(const FTileCoord& From, int32 Range, TArray<FTileCoord>& OutTiles) const
