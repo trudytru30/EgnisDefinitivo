@@ -4,7 +4,7 @@
 #include "CardEffect.h"
 #include "Card_SummonEffect.generated.h"
 
-class ASummonUnit;
+class AAlly;
 class UHeroDataAsset;
 
 // Invoca una invocacion (espiritu) en la casilla elegida. Su vida es la piedad de quien juega la carta multiplicada
@@ -20,7 +20,7 @@ public:
 	// Blueprint que se crea: un BP hijo de ASummon con la misma configuracion que BP_Ally
 	// (colisiones para que se pueda clicar, etc.).
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SummonEffect")
-	TSubclassOf<ASummonUnit> SummonClass;
+	TSubclassOf<AAlly> SummonClass;
 
 	// DataAsset de la invocacion: malla, patron de movimiento y fila de DT_HeroClasses (rango, piedad,
 	// velocidad, poder y cultos). La Vitality de esa fila se ignora, la vida sale de la piedad.

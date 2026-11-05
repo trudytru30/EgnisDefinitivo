@@ -218,6 +218,7 @@ void ABoard::ClearGeneratedBoard()
 	SpawnedEnemies.Empty();
 
 	TileTypes.Empty();
+	FireTiles.Empty();
 }
 
 void ABoard::SyncSizeFromLevelData()
@@ -478,4 +479,57 @@ void ABoard::BeginPlay()
 void ABoard::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void ABoard::AddFireTile(const FTileCoord& Tile, int32 Turns, float Damage)
+{
+	if (!IsInside(Tile) || Turns <= 0) return;
+
+	FFireTile Fire;
+	Fire.Tile = Tile;
+	Fire.TurnsLeft = Turns + 1; // el turno en el que se crea no cuenta
+	Fire.Damage = Damage;
+	FireTiles.Add(Tile, Fire);
+
+	UE_LOG(LogTemp, Log, TEXT("[Board]: casilla (%d,%d) en llamas (%d turnos, daño %.0f)"), Tile.X, Tile.Y, Turns, Damage);
+	OnFireTilesChanged.Broadcast();
+}
+
+bool ABoard::IsTileOnFire(const FTileCoord& Tile) const
+{
+	return FireTiles.Contains(Tile);
+}
+
+bool ABoard::GetFireTile(const FTileCoord& Tile, FFireTile& OutFire) const
+{
+	if (const FFireTile* Found = FireTiles.Find(Tile))
+	{
+		OutFire = *Found;
+		return true;
+	}
+	return false;
+}
+
+TArray<FFireTile> ABoard::GetFireTiles() const
+{
+	TArray<FFireTile> Result;
+	FireTiles.GenerateValueArray(Result);
+	return Result;
+}
+
+void ABoard::AdvanceFireTiles()
+{
+	if (FireTiles.Num() == 0) return;
+
+	for (auto It = FireTiles.CreateIterator(); It; ++It)
+	{
+		It.Value().TurnsLeft--;
+		if (It.Value().TurnsLeft <= 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Board]: se apaga la casilla (%d,%d)"), It.Key().X, It.Key().Y);
+			It.RemoveCurrent();
+		}
+	}
+
+	OnFireTilesChanged.Broadcast();
 }

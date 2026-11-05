@@ -7,12 +7,9 @@
 #include "Characters/Enemy.h"
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
-#include "CoreAndSystems/GameManager.h"
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
-#include "Characters/SummonUnit.h"
-#include "Abilities/EgnisAbilityLibrary.h"
-#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/Board.h"
 
 class AAlly;
 
@@ -32,6 +29,14 @@ void UBattleManager::StartBattle()
 	for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It)
 	{
 		CharactersOnField.Add(*It);
+	}
+	
+	// Tablero (para las casillas en llamas)
+	Board = nullptr;
+	for (TActorIterator<ABoard> It(GetWorld()); It; ++It)
+	{
+		Board = *It;
+		break;
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
@@ -59,9 +64,11 @@ void UBattleManager::StartBattle()
 void UBattleManager::StartPlayerTurn()
 {
 	if (bBattleIsOver) return;
-
+	
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
 	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
-	if (bBattleIsOver) return;
 	
 	// Robar mano al inicio del turno y establecer energia
 	for (ACharacterBase* Character : CharactersOnField)
@@ -76,9 +83,9 @@ void UBattleManager::StartPlayerTurn()
 		if (Character && Character->GetTeam() == 0)
 		{
 			Character->bHasMoved = false;
-			if (ASummonUnit* Summon = Cast<ASummonUnit>(Character))
+			if (AAlly* Ally = Cast<AAlly>(Character))
 			{
-				Summon->SetSummoningSick(false);
+				Ally->SetSummoningSick(false);
 			}
 		}
 	}
@@ -109,9 +116,11 @@ void UBattleManager::StartEnemyTurn()
 {
 	if (bBattleIsOver) return;
 
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
 	NotifyTeamTurnStart(1);
-
-	if (bBattleIsOver) return;
+	
 	
 	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
 		AM->PlayTrigger(EEgnisAudioTrigger::EnemyTurnStart);
@@ -232,17 +241,6 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);
-
-	if (IsValid(Character))
-	{
-		FGameplayTagContainer CardTags;
-		if (Card->GetCult().IsValid())
-		{
-			CardTags.AddTag(Card->GetCult());
-		}
-		UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Card_Played, Character, TargetCharacter, Card->GetCost(), Card, CardTags);
-	}
-
 	UpdateUnitsAlive();
 
 	return true;
@@ -433,11 +431,6 @@ void UBattleManager::NotifyTeamTurnStart(int32 Team)
 		{
 			Character->StatusComp->OnOwnerTurnStart();
 		}
-
-		if (IsValid(Character) && Character->GetTeam() == Team)
-		{
-			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_Start, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
-		}
 	}
 	
 	UpdateUnitsAlive();
@@ -451,11 +444,6 @@ void UBattleManager::NotifyTeamTurnEnd(int32 Team)
 		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
 		{
 			Character->StatusComp->OnOwnerTurnEnd();
-		}
-
-		if (IsValid(Character) && Character->GetTeam() == Team)
-		{
-			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_End, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
 		}
 	}
 }
