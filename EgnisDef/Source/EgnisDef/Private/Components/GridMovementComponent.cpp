@@ -2,6 +2,7 @@
 #include "Characters/CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Actor.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 UGridMovementComponent::UGridMovementComponent(){}
 
@@ -79,6 +80,14 @@ bool UGridMovementComponent::getCurrentTile(FTileCoord& OutTile)
 void UGridMovementComponent::getRachableTiles(TArray<FTileCoord>& OutTiles)
 {
 	OutTiles.Reset();//.Empty();
+	
+	if (const ACharacterBase* OwnerCharacter = Cast<ACharacterBase>(GetOwner()))
+	{
+		if (!UEgnisCombatLibrary::CanMove(OwnerCharacter))
+		{
+			return;
+		}
+	}
 
 	EnsureBoardActor();
 
@@ -166,6 +175,8 @@ void UGridMovementComponent::getRachableTiles(TArray<FTileCoord>& OutTiles)
 	default:
 		break;
 	}
+	UE_LOG(LogTemp, Warning, TEXT("[Mov] %s: patron=%d rango=%d casilla=(%d,%d) alcanzables=%d"),
+	*GetNameSafe(GetOwner()), (int32)movePattern, moveRange, CurrentTile.X, CurrentTile.Y, OutTiles.Num());
 }
 
 bool UGridMovementComponent::canMoveToTile(const FTileCoord& Target)
