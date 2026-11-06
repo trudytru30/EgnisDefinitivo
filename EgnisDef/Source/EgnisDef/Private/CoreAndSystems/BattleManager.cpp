@@ -10,6 +10,7 @@
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "CoreAndSystems/Board.h"
+#include "CoreAndSystems/CombatCameraSubsystem.h"
 
 class AAlly;
 
@@ -55,6 +56,16 @@ void UBattleManager::StartBattle()
 	{
 		AM->PlayTrigger(EEgnisAudioTrigger::CombatStart);
 		AM->SetTeamHealthRatio(GetTeamHealthRatio());
+	}
+	
+	// Efectos de camara: reinicia y empieza a escuchar el daño de los aliados que ya estan en el campo
+	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+	{
+		Cam->BeginCombat();
+		for (ACharacterBase* Character : CharactersOnField)
+		{
+			Cam->WatchAlly(Character);
+		}
 	}
 	
 	StartPlayerTurn();
@@ -290,6 +301,12 @@ void UBattleManager::UpdateUnitsAlive()
 void UBattleManager::EndBattle(bool bPlayerWon)
 {
 	bBattleIsOver = true;
+	
+	// Efectos de camara: para el balanceo y deja de escuchar el daño
+	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+	{
+		Cam->EndCombat();
+	}
 
 	if (EnemyTurnDirector)
 	{
@@ -453,5 +470,11 @@ void UBattleManager::RegisterUnit(ACharacterBase* Unit)
 	if (IsValid(Unit))
 	{
 		CharactersOnField.AddUnique(Unit);
+
+		// Efectos de camara: las unidades nuevas (invocaciones) tambien sacuden la camara al recibir daño
+		if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+		{
+			Cam->WatchAlly(Unit);
+		}
 	}
 }
