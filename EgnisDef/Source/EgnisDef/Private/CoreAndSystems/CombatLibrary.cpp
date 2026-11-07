@@ -92,6 +92,24 @@ bool UEgnisCombatLibrary::CanMove(const ACharacterBase* Character)
 	return !HasStatusTag(Character, TAG_Status_Paralyzed);
 }
 
+int32 UEgnisCombatLibrary::GetEffectiveCost(const UBaseCard* Card, const ACharacterBase* Caster)
+{
+	if (!Card)
+	{
+		return 0;
+	}
+
+	int32 Cost = Card->GetCost();
+
+	// Fatigado: las cartas cuestan mas para este personaje
+	if (HasStatusTag(Caster, TAG_Status_Fatigued))
+	{
+		const int32 Multiplier = (Caster && Caster->StatusComp) ? Caster->StatusComp->FatigueCostMultiplier : 2;
+		Cost *= Multiplier;
+	}
+	return Cost;
+}
+
 bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly* Caster, const ACharacterBase* TargetCharacter, const FVector& Location)
 {
 	if (!Card || !Caster)
