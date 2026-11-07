@@ -10,7 +10,9 @@
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "CoreAndSystems/Board.h"
+#include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/CombatCameraSubsystem.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 class AAlly;
 
@@ -57,6 +59,8 @@ void UBattleManager::StartBattle()
 		AM->PlayTrigger(EEgnisAudioTrigger::CombatStart);
 		AM->SetTeamHealthRatio(GetTeamHealthRatio());
 	}
+
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Battle_Start);
 	
 	// Efectos de camara: reinicia y empieza a escuchar el daño de los aliados que ya estan en el campo
 	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
@@ -241,7 +245,7 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 	
-	if (Character->GetCurrentEnergy() < Card->GetCost())
+	if (!Character->CanPayCardCost(Card))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
@@ -252,10 +256,21 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
-	Character->LossPoints(Card->GetCost());
+	Character->PayCardCost(Card);
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);
+
+	if (IsValid(Character))
+	{
+		FGameplayTagContainer CardTags;
+		if (Card->GetCult().IsValid())
+		{
+			CardTags.AddTag(Card->GetCult());
+		}
+		UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Card_Played, Character, TargetCharacter, Card->GetCost(), Card, CardTags);
+	}
+
 	UpdateUnitsAlive();
 
 	return true;
@@ -334,10 +349,9 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
-// Pedir movimiento
-bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 {
-	if (!Unit)
+	if (!IsValid(Unit))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit is null"));
 		return false;
@@ -370,6 +384,17 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 		return false;
 	}
 
+	return true;
+}
+
+// Pedir movimiento
+bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+{
+	if (!CanUnitMove(Unit))
+	{
+		return false;
+	}
+
 	UGridMovementComponent* MoveComp = Unit->FindComponentByClass<UGridMovementComponent>();
 	if (!MoveComp)
 	{
@@ -391,8 +416,12 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 		return false;
 	}
 
-	Unit->SnapToCurrentTile(false);
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+	if (!IsValid(Unit))
+	{
+		return false;
+	}
+
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
 		AM->PlayTrigger(EEgnisAudioTrigger::AllyMove, nullptr, Unit);
 	Unit->bHasMoved = true;
 
@@ -452,6 +481,11 @@ void UBattleManager::NotifyTeamTurnStart(int32 Team)
 		{
 			Character->StatusComp->OnOwnerTurnStart();
 		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_Start, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
+		}
 	}
 	
 	UpdateUnitsAlive();
@@ -465,6 +499,11 @@ void UBattleManager::NotifyTeamTurnEnd(int32 Team)
 		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
 		{
 			Character->StatusComp->OnOwnerTurnEnd();
+		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_End, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
 		}
 	}
 }
