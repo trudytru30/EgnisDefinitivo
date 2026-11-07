@@ -205,8 +205,7 @@ void UBattleManager::EndTurn()
 }
 
 // Comprobar si el player puede jugar una carta (es decir, que sea su turno y tenga energia)
-bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
-	ACharacterBase* TargetCharacter, FVector Location)
+bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location)
 {
 	if (!Character || !Character->EnergyAttributeSet)
 	{
@@ -241,7 +240,8 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 	
-	if (Character->GetCurrentEnergy() < Card->GetCost())
+	const int32 Cost = UEgnisCombatLibrary::GetEffectiveCost(Card, Character);
+	if (Character->GetCurrentEnergy() < Cost)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
@@ -252,7 +252,7 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
-	Character->LossPoints(Card->GetCost());
+	Character->LossPoints(Cost);
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);

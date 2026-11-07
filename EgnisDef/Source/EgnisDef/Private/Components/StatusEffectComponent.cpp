@@ -17,6 +17,7 @@ namespace
 		case EStatusType::Status_Stunned:   return TAG_Status_Stunned;
 		case EStatusType::Status_Bleed:     return TAG_Status_Bleed;
 		case EStatusType::Status_Taunt:     return TAG_Status_Taunt;
+		case EStatusType::Status_Fatigued:   return TAG_Status_Fatigued;
 		default:                            return FGameplayTag();
 		}
 	}

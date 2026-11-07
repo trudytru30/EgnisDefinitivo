@@ -42,4 +42,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static bool IsCardTargetInRange(const UBaseCard* Card, const AAlly* Caster,
 		const ACharacterBase* TargetCharacter, const FVector& Location);
+	
+	// Coste real de una carta para este lanzador: el de la carta, multiplicado si esta Fatigado.
+	// La UI debe usar esta funcion en vez de GetCost de la carta para pintar el coste.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static int32 GetEffectiveCost(const UBaseCard* Card, const ACharacterBase* Caster);
 };

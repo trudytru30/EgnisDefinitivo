@@ -40,6 +40,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
 	float BurnTrailDamage = 2.f;
 	
+	// Fatigado: el coste de las cartas de este personaje se multiplica por esto
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "1"))
+	int32 FatigueCostMultiplier = 2;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr);
