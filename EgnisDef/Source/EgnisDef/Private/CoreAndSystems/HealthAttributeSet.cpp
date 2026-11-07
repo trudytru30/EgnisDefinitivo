@@ -4,6 +4,7 @@
 #include "Environment/ObstacleBase.h"
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -38,6 +39,15 @@ bool UHealthAttributeSet::PreGameplayEffectExecute(FGameplayEffectModCallbackDat
 	if (!Super::PreGameplayEffectExecute(Data))
 	{
 		return false;
+	}
+	
+	// Espinas: se guarda el daño tal como llega, antes de que el escudo se coma parte
+	IncomingDamage = 0.f;
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute()
+		&& Data.EvaluatedData.ModifierOp == EGameplayModOp::Additive
+		&& Data.EvaluatedData.Magnitude < 0.f)
+	{
+		IncomingDamage = -Data.EvaluatedData.Magnitude;
 	}
 
 	// Solo el daño: un GE "Add" sobre Health con magnitud negativa (es como lo aplica
@@ -109,6 +119,15 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		UEgnisAbilityLibrary::SendEvent(OwnerCharacter, TAG_Event_Damage_Taken, DamageInstigator, OwnerCharacter, DamageAmount, nullptr, FGameplayTagContainer());
 		UEgnisAbilityLibrary::SendEvent(DamageInstigator, TAG_Event_Damage_Dealt, DamageInstigator, OwnerCharacter, DamageAmount, nullptr, FGameplayTagContainer());
 	}
+	
+	// Espinas: cuanto reflejaria el objetivo. Se calcula ya, con el objetivo todavia vivo, y se aplica al final
+	ACharacterBase* ThornsAttacker = Cast<ACharacterBase>(Data.EffectSpec.GetContext().GetOriginalInstigator());
+	float ThornsDamage = 0.f;
+	if (ThornsAttacker && ThornsAttacker != OwnerCharacter)
+	{
+		ThornsDamage = UEgnisCombatLibrary::GetThornsDamage(OwnerCharacter, IncomingDamage);
+	}
+	IncomingDamage = 0.f;
 
 	// Equivalente exacto a la comprobación "HealthComp->GetCurrentHealth() <= 0" que había
 	// en LossHealth(). GetHealth() ya lee el CurrentValue post-clamp gracias a PreAttributeChange.
@@ -118,4 +137,8 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		// dos veces si el camino viejo (LossHealth) también llegó a dispararla.
 		OwnerCharacter->HandleDeath();
 	}
+	
+	// Espinas: lo ultimo, para que tambien refleje si el golpe mata al objetivo.
+	// ApplyPureDamage ignora atacantes no validos y cantidades 0, y al no pasar por un GE no vuelve a reflejar.
+	UEgnisCombatLibrary::ApplyPureDamage(ThornsAttacker, ThornsDamage);
 }

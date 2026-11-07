@@ -16,7 +16,8 @@ enum class EStatusType : uint8
 	Status_Stunned,
 	Status_Bleed,
 	Status_Taunt,
-	Status_Fatigued
+	Status_Fatigued,
+	Status_Thorns
 };
 
 // Estado activo en un personaje (lo que guarda UStatusEffectComponent y lee la UI).

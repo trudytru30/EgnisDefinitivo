@@ -44,6 +44,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "1"))
 	int32 FatigueCostMultiplier = 2;
 	
+	// Espinas: fraccion del daño recibido que se refleja al atacante
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
+	float ThornsReflectFraction = 0.5f;
+
+	// Espinas: true redondea el daño reflejado hacia arriba, false hacia abajo
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
+	bool bThornsRoundUp = true;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr);

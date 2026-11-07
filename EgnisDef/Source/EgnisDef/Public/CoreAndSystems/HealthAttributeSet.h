@@ -47,4 +47,9 @@ protected:
 	// pase de MaxHealth o baje de 0). Equivalente a los FMath::Clamp que ya había en
 	// HealthComponent::ApplyDelta.
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+
+private:
+	// Daño del ultimo GE de daño tal como llego, antes de que el escudo absorba nada.
+	// Lo guarda PreGameplayEffectExecute y lo lee PostGameplayEffectExecute (Espinas refleja esto).
+	float IncomingDamage = 0.f;
 };

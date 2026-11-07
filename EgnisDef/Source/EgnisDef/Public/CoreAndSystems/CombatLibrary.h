@@ -21,6 +21,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static float CalculateDamage(const ACharacterBase* Source, const ACharacterBase* Target, float BaseDamage);
 	
+	// Daño que un objetivo con Espinas devolveria al atacante por recibir DamageDealt (0 si no tiene Espinas).
+	// Llamar ANTES de que el golpe pueda matar al objetivo: despues ya no se puede consultar.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static float GetThornsDamage(const ACharacterBase* Target, float DamageDealt);
+	
 	// Poder de un personaje: GAS en aliados, propio en enemigos.
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static float GetAttackPower(const ACharacterBase* Character);

@@ -334,8 +334,9 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
-// Pedir movimiento
-bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+// TODO: estas comprobaciones estaban dentro de RequestMove y se han movido aqui (como en la version de tu compañero),
+// para que BoardPlayerController::CanUnitMoveThisTurn las pueda consultar sin mover la unidad
+bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 {
 	if (!Unit)
 	{
@@ -367,6 +368,17 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 	if (!UEgnisCombatLibrary::CanMove(Unit))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s esta paralizado"), *Unit->GetName());
+		return false;
+	}
+
+	return true;
+}
+
+// Pedir movimiento
+bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+{
+	if (!CanUnitMove(Unit))
+	{
 		return false;
 	}
 
