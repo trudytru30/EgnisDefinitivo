@@ -104,6 +104,8 @@ void UBattleManager::StartPlayerTurn()
 	if (DeckManager)
 	{
 		int32 NumCardsToDraw = DeckManager->GetInitialHandSize() - DeckManager->GetHand().Num();
+		NumCardsToDraw += DeckManager->GetKeptCount();
+		
 		if (NumCardsToDraw <= 0){
 			UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Hand is already full. No cards drawn."));
 		}
@@ -112,6 +114,7 @@ void UBattleManager::StartPlayerTurn()
 			DeckManager->DrawCardAmount(NumCardsToDraw);
 			UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Drawn %d cards"), DeckManager->GetHand().Num());
 		}
+		DeckManager->ClearKeptCards();
 	}
 
 	OnPlayerTurnStarted.Broadcast();
@@ -183,6 +186,7 @@ void UBattleManager::EndTurn()
 				const TArray<UBaseCard*> HandCopy = DeckManager->GetHand();
 				for (UBaseCard* Card : HandCopy)
 				{
+					if (DeckManager->IsCardKept(Card)) continue;
 					DeckManager->DiscardCardFromHand(Card);
 				}
 			}

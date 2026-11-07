@@ -45,7 +45,9 @@ void UDeckManager::InitializeDeck()
 	DiscardedPile.Empty();
 	Hand.Empty();
 	ConsumedPile.Empty();
+	KeptCards.Empty();
 	ClearSelectionState();
+	
 
 	ShuffleDeck();
 }
@@ -113,6 +115,7 @@ void UDeckManager::DiscardCardFromHand(UBaseCard* Card)
 		}
 
 		Hand.Remove(Card);
+		KeptCards.RemoveSingle(Card);
 		DiscardedPile.Add(Card);
 		OnHandChanged.Broadcast();
 	}
@@ -163,9 +166,37 @@ void UDeckManager::ConsumeCard(UBaseCard* Card)
 	}
 	DrawPile.RemoveSingle(Card);
 	DiscardedPile.RemoveSingle(Card);
+	KeptCards.RemoveSingle(Card);
 
 	ConsumedPile.Add(Card);
 	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta consumida: %s (consumidas: %d)"), *Card->GetName(), ConsumedPile.Num());
+	OnHandChanged.Broadcast();
+}
+
+// Guardar: la carta se marca como guardada. Sigue en la mano (visible y jugable este turno), pero al terminar
+// el turno no se descarta y pasa a la mano del siguiente
+void UDeckManager::KeepCard(UBaseCard* Card)
+{
+	if (!Card || KeptCards.Contains(Card) || !Hand.Contains(Card))
+	{
+		return;
+	}
+
+	KeptCards.Add(Card);
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta guardada: %s (guardadas: %d)"), *Card->GetName(), KeptCards.Num());
+	OnHandChanged.Broadcast(); // para que la UI refresque la marca
+}
+
+// Las guardadas ya han pasado el descarte de fin de turno: vuelven a ser cartas normales
+void UDeckManager::ClearKeptCards()
+{
+	if (KeptCards.Num() == 0)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %d cartas guardadas pasan a ser normales"), KeptCards.Num());
+	KeptCards.Empty();
 	OnHandChanged.Broadcast();
 }
 
@@ -177,6 +208,7 @@ void UDeckManager::ResetDeck()
 	DiscardedPile.Empty();
 	Hand.Empty();
 	ConsumedPile.Empty();
+	KeptCards.Empty();
 	ClearSelectionState();
 }
 

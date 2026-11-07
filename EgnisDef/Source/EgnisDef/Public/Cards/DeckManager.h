@@ -9,7 +9,7 @@ class UBaseCard;
 class ACharacterBase;
 
 
-UCLASS()
+UCLASS(BlueprintType)
 class EGNISDEF_API UDeckManager : public UObject
 {
 	GENERATED_BODY()
@@ -42,6 +42,18 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category="Cards")
 	int32 GetConsumedPileSize() const { return ConsumedPile.Num(); }
+	
+	// Guardar: marca la carta de la mano como guardada. Sigue en la mano y se puede jugar este turno,
+	// pero al terminar el turno no se descarta y pasa a la mano del siguiente.
+	void KeepCard(UBaseCard* Card);
+	void ClearKeptCards();
+
+	// Para que la UI pueda pintar las cartas guardadas
+	UFUNCTION(BlueprintPure, Category="Cards")
+	bool IsCardKept(const UBaseCard* Card) const { return Card && KeptCards.Contains(Card); }
+
+	UFUNCTION(BlueprintPure, Category="Cards")
+	int32 GetKeptCount() const { return KeptCards.Num(); }
 
 	// Carta que se esta jugando ahora mismo. La pone UBaseCard::Execute y la leen efectos como Consumir.
 	UBaseCard* GetCardInPlay() const { return CardInPlay; }
@@ -128,6 +140,10 @@ private:
 	
 	UPROPERTY()
 	TArray<UBaseCard*> ConsumedPile;
+	
+	// Cartas marcadas con Guardar: siguen en Hand, solo se libran del descarte de fin de turno
+	UPROPERTY()
+	TArray<UBaseCard*> KeptCards;
 
 	UPROPERTY()
 	UBaseCard* CardInPlay = nullptr;
