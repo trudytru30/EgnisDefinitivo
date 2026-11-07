@@ -11,3 +11,8 @@ void UCombatTimerSubsystem::ModifyTime(float Seconds)
 	UE_LOG(LogTemp, Log, TEXT("[CombatTimer]: %+.1f s al temporizador."), Seconds);
 	OnTimeModified.Broadcast(Seconds);
 }
+
+void UCombatTimerSubsystem::ReportTimeRemaining(float TimeRemaining, float TotalTime)
+{
+	OnTimeRemainingChanged.Broadcast(TimeRemaining, TotalTime);
+}
