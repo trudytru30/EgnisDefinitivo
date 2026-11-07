@@ -33,6 +33,10 @@ UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Board_Changed, "Event.Board.Changed");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Class, "Ability.Class");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Unique, "Ability.Unique");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Rule, "Rule");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Rule_Cost_VitalDebt, "Rule.Cost.VitalDebt");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Rule_Cost_SecondWind, "Rule.Cost.SecondWind");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Rule_Targeting_Seeding, "Rule.Targeting.Seeding");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Rule_UI_HiddenHealth, "Rule.UI.HiddenHealth");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Immunity, "Immunity");
 
 namespace EgnisCults

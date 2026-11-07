@@ -9,6 +9,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "CoreAndSystems/CharacterStatsAttributesSet.h"
 #include "Abilities/GameplayAbility.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 AAlly::AAlly()
 {
@@ -172,7 +174,7 @@ void AAlly::GrantHeroAbilities(const UHeroDataAsset* HeroData)
 	TArray<TSubclassOf<UGameplayAbility>> Abilities;
 	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::GrantHeroAbilities")))
 	{
-		Abilities.Add(Stats->ClassAbility);
+		Abilities.Add(Stats->ClassAbility.LoadSynchronous());
 	}
 	Abilities.Add(HeroData->UniqueAbility);
 
@@ -251,6 +253,69 @@ int32 AAlly::GetCurrentEnergy() const
 int32 AAlly::GetMaxEnergy() const
 {
 	return EnergyAttributeSet ? FMath::RoundToInt(EnergyAttributeSet->GetMaxEnergy()) : 0;
+}
+
+int32 AAlly::GetSecondWindEnergy() const
+{
+	return EnergyAttributeSet ? FMath::RoundToInt(EnergyAttributeSet->GetSecondWindEnergy()) : 0;
+}
+
+void AAlly::AddSecondWindEnergy(int32 Amount, int32 MaxAmount)
+{
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		const int32 NewValue = FMath::Clamp(GetSecondWindEnergy() + Amount, 0, MaxAmount);
+		ASC->SetNumericAttributeBase(UEnergyAttributeSet::GetSecondWindEnergyAttribute(), NewValue);
+		UE_LOG(LogTemp, Log, TEXT("Aliado %s: segunda reserva de mana = %d"), *GetName(), NewValue);
+	}
+}
+
+bool AAlly::CanPayCardCost(const UBaseCard* Card) const
+{
+	if (!Card)
+	{
+		return false;
+	}
+
+	const int32 Missing = Card->GetCost() - GetCurrentEnergy();
+	if (Missing <= 0)
+	{
+		return true;
+	}
+
+	if (UEgnisAbilityLibrary::HasRule(this, TAG_Rule_Cost_SecondWind) && GetSecondWindEnergy() >= Missing)
+	{
+		return true;
+	}
+
+	return UEgnisAbilityLibrary::HasRule(this, TAG_Rule_Cost_VitalDebt) && GetCurrentEnergy() > 0 && GetCurrentHealth() > Missing;
+}
+
+void AAlly::PayCardCost(const UBaseCard* Card)
+{
+	if (!Card)
+	{
+		return;
+	}
+
+	const int32 Cost = Card->GetCost();
+	const int32 EnergyPaid = FMath::Min(Cost, GetCurrentEnergy());
+	LossPoints(EnergyPaid);
+
+	const int32 Missing = Cost - EnergyPaid;
+	if (Missing <= 0)
+	{
+		return;
+	}
+
+	if (UEgnisAbilityLibrary::HasRule(this, TAG_Rule_Cost_SecondWind) && GetSecondWindEnergy() >= Missing)
+	{
+		AddSecondWindEnergy(-Missing, GetSecondWindEnergy());
+		return;
+	}
+
+	UEgnisCombatLibrary::ApplyPureDamage(this, Missing);
+	UE_LOG(LogTemp, Log, TEXT("Aliado %s: paga %d de vida por %s"), *GetName(), Missing, *Card->GetName());
 }
 
 float AAlly::GetCharacterPiety() const

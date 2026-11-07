@@ -105,6 +105,17 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Energy")
 	int32 GetMaxEnergy() const;
+
+	UFUNCTION(BlueprintPure, Category="Energy")
+	int32 GetSecondWindEnergy() const;
+
+	UFUNCTION(BlueprintCallable, Category="Energy")
+	void AddSecondWindEnergy(int32 Amount, int32 MaxAmount);
+
+	UFUNCTION(BlueprintPure, Category="Energy")
+	bool CanPayCardCost(const UBaseCard* Card) const;
+
+	void PayCardCost(const UBaseCard* Card);
 	
 	// Power y velocidad actuales
 	UFUNCTION(BlueprintPure, Category="Stats|Power")

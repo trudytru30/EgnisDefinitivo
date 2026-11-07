@@ -6,6 +6,7 @@
 #include "Environment/ObstacleBase.h"
 #include "CoreAndSystems/Board.h"
 #include "Cards/DeckManager.h"
+#include "Abilities/EgnisAbilityLibrary.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
@@ -25,6 +26,17 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 			break;
 			
 		case ECardTarget::Ally:
+			if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
+			{
+				for (ACharacterBase* Ally : UEgnisAbilityLibrary::GetSeedingTargets(Self, true))
+				{
+					if (IsValid(Ally))
+					{
+						Effect->Execute_Ally(Self, Ally);
+					}
+				}
+				break;
+			}
 			// Solo se aplica si el objetivo elegido es del mismo equipo que quien juega la carta
 			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() != Self->GetTeam())
 			{
@@ -36,6 +48,17 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 			break;
 			
 		case ECardTarget::Enemy:
+			if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
+			{
+				for (ACharacterBase* Enemy : UEgnisAbilityLibrary::GetSeedingTargets(Self, false))
+				{
+					if (IsValid(Enemy))
+					{
+						Effect->Execute_Enemy(Self, Enemy);
+					}
+				}
+				break;
+			}
 			// Objetivo sin personaje: puede ser un obstaculo destructible, se busca por la casilla de Location
 			if (!TargetCharacter && Self && Self->Board)
 			{

@@ -50,6 +50,8 @@ public:
 	void EndBattle(bool bPlayerWon);
 	UFUNCTION(BlueprintCallable, Category="Battle|Player")
 	bool RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile);
+	UFUNCTION(BlueprintPure, Category="Battle|Player")
+	bool CanUnitMove(ACharacterBase* Unit) const;
 	// Getters
 	int32 GetTurnCount() const;
 	TArray<ACharacterBase*> GetCharactersOnField() const;

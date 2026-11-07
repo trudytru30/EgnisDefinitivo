@@ -7,6 +7,7 @@
 #include "CoreAndSystems/Board.h"
 #include "Components/StatusEffectComponent.h"
 #include "Characters/Enemy.h"
+#include "Abilities/EgnisAbilityLibrary.h"
 
 namespace
 {
@@ -100,6 +101,11 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 
 	const ECardTarget CardTarget = Card->GetTarget();
 	if (CardTarget != ECardTarget::Ally && CardTarget != ECardTarget::Enemy && CardTarget != ECardTarget::Tile)
+	{
+		return true;
+	}
+
+	if (CardTarget != ECardTarget::Tile && UEgnisAbilityLibrary::HasRule(Caster, TAG_Rule_Targeting_Seeding))
 	{
 		return true;
 	}

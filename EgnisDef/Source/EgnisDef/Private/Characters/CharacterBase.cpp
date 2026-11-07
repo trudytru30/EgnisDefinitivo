@@ -5,6 +5,8 @@
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/Board.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -91,6 +93,10 @@ void ACharacterBase::HandleDeath()
 	}
 	bDeathHandled = true;
 
+	AActor* Killer = LastDamageInstigator.Get();
+	UEgnisAbilityLibrary::SendEvent(Killer, TAG_Event_Unit_Killed, Killer, this, 0.f, nullptr, FGameplayTagContainer());
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Unit_Died, Killer, this, 0.f, this);
+
 	if (Board)
 	{
 		Board->UnregisterOccupant(CurrentTile, this);
@@ -123,8 +129,12 @@ bool ACharacterBase::SetCurrentTile(const FTileCoord& NewTile)
 	}
 
 	const FTileCoord LeftTile = CurrentTile;
+	PreviousTile = LeftTile;
 	CurrentTile = NewTile;
-	
+
+	const int32 Distance = FMath::Max(FMath::Abs(NewTile.X - LeftTile.X), FMath::Abs(NewTile.Y - LeftTile.Y));
+	UEgnisAbilityLibrary::SendEvent(this, TAG_Event_Unit_Moved, this, nullptr, Distance, nullptr, FGameplayTagContainer());
+
 	// Rastro de la Quemadura: si esta quemado, deja en llamas la casilla que acaba de dejar
 	if (StatusComp && StatusComp->HasStatus(EStatusType::Status_Burn))
 	{

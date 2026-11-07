@@ -230,7 +230,7 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 	
-	if (Character->GetCurrentEnergy() < Card->GetCost())
+	if (!Character->CanPayCardCost(Card))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
@@ -241,7 +241,7 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
-	Character->LossPoints(Card->GetCost());
+	Character->PayCardCost(Card);
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);
@@ -328,10 +328,9 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
-// Pedir movimiento
-bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 {
-	if (!Unit)
+	if (!IsValid(Unit))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit is null"));
 		return false;
@@ -364,6 +363,17 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 		return false;
 	}
 
+	return true;
+}
+
+// Pedir movimiento
+bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+{
+	if (!CanUnitMove(Unit))
+	{
+		return false;
+	}
+
 	UGridMovementComponent* MoveComp = Unit->FindComponentByClass<UGridMovementComponent>();
 	if (!MoveComp)
 	{
@@ -385,8 +395,12 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 		return false;
 	}
 
-	Unit->SnapToCurrentTile(false);
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+	if (!IsValid(Unit))
+	{
+		return false;
+	}
+
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
 		AM->PlayTrigger(EEgnisAudioTrigger::AllyMove, nullptr, Unit);
 	Unit->bHasMoved = true;
 

@@ -13,19 +13,19 @@ struct FHeroClassData : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float Vitality; // Vida máxima base
+	float Vitality = 0.f; // Vida máxima base
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float Power;     // Multiplicador de cartas/efectos
+	float Power = 0.f;     // Multiplicador de cartas/efectos
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float Piety ;     // Recurso o estadística especial
+	float Piety = 0.f;     // Recurso o estadística especial
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	int32 Speed;        // Casillas de movimiento
+	int32 Speed = 0;        // Casillas de movimiento
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	int32 Range;        // Modificador de rango
+	int32 Range = 0;        // Modificador de rango
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Class & Cults")
 	FName CharacterClassName; // Nombre o ID de la clase (ej. "Warrior")
@@ -34,5 +34,5 @@ struct FHeroClassData : public FTableRowBase
 	FGameplayTagContainer AllowedCults; // Tags de cultos
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
-	TSubclassOf<UGameplayAbility> ClassAbility;
+	TSoftClassPtr<UGameplayAbility> ClassAbility;
 };

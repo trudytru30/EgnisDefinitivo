@@ -18,6 +18,7 @@ class UBattleManager;
 class UDeckManager;
 class UBattleSceneManager;
 class UDeployManager;
+struct FTileCoord;
 
 #pragma region Enums
 UENUM(BlueprintType)
@@ -78,6 +79,12 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Battle|Turn")
     void RequestEndTurn();
+
+    UFUNCTION(BlueprintPure, Category="Battle|Move")
+    bool CanUnitMoveThisTurn(ACharacterBase* Unit) const;
+
+    UFUNCTION(BlueprintCallable, Category="Battle|Move")
+    bool RequestUnitMove(ACharacterBase* Unit, const FTileCoord& TargetTile);
 
     UFUNCTION(BlueprintCallable, Category="Battle|Cards")
     void BeginPlayCard(UBaseCard* Card);

@@ -21,6 +21,8 @@
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Environment/ObstacleBase.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -456,7 +458,9 @@ void ABoardPlayerController::BeginPlayCard(UBaseCard* Card)
     PendingCardTarget = Card->GetTarget();
     CurrentIntent = EInputIntent::Action;
 
-    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
+    const bool bSeeding = (PendingCardTarget == ECardTarget::Ally || PendingCardTarget == ECardTarget::Enemy)
+        && UEgnisAbilityLibrary::HasRule(Caster, TAG_Rule_Targeting_Seeding);
+    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self || bSeeding)
     {
         ExecuteCardPlay(nullptr, FVector::ZeroVector);
         return;
@@ -495,7 +499,9 @@ void ABoardPlayerController::TryPlayCardAtCursor(UBaseCard* Card)
     PendingSource = Caster;
     PendingCardTarget = Card->GetTarget();
 
-    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
+    const bool bSeeding = (PendingCardTarget == ECardTarget::Ally || PendingCardTarget == ECardTarget::Enemy)
+        && UEgnisAbilityLibrary::HasRule(Caster, TAG_Rule_Targeting_Seeding);
+    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self || bSeeding)
     {
         FHitResult Hit;
         if (TraceUnderCursor(BoardTraceChannel, Hit) || TraceUnderCursor(UnitTraceChannel, Hit))
@@ -533,6 +539,16 @@ void ABoardPlayerController::BeginCardDrag(UBaseCard* Card)
     PendingSource = Caster;
     PendingCardTarget = Card->GetTarget();
     SelectionState = ECardSelectionState::None;
+}
+
+bool ABoardPlayerController::CanUnitMoveThisTurn(ACharacterBase* Unit) const
+{
+    return BM && BM->CanUnitMove(Unit);
+}
+
+bool ABoardPlayerController::RequestUnitMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+{
+    return BM && BM->RequestMove(Unit, TargetTile);
 }
 
 void ABoardPlayerController::RequestEndTurn()
