@@ -64,6 +64,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
 	float CurseMaxChance = 1.0f;
 	
+	// Enraizado: porcentaje de la vida maxima que cura en el primer turno que cura (0.2 = 20%)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
+	float RootedInitialHealPercent = 0.2f;
+
+	// Enraizado: cuanto baja ese porcentaje en cada turno que cura (0.05 = 5 puntos menos por turno)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
+	float RootedHealReductionPerTurn = 0.05f;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr);

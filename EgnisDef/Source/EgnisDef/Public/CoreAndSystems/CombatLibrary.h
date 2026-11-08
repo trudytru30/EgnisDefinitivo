@@ -33,6 +33,9 @@ public:
 	// Daño que ignora escudo, Debilidad y Expuesto (quemadura...).
     static void ApplyPureDamage(ACharacterBase* Target, float Amount);
 	
+	// Curacion directa que no pasa por el GameplayEffect de curacion de las cartas.
+	static void ApplyPureHeal(ACharacterBase* Target, float Amount);
+	
 	// False si el personaje esta Aturdido (no puede jugar cartas ni actuar)
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static bool CanAct(const ACharacterBase* Character);

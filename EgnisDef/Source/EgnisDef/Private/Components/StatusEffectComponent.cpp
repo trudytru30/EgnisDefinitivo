@@ -20,6 +20,7 @@ namespace
 		case EStatusType::Status_Fatigued:   return TAG_Status_Fatigued;
 		case EStatusType::Status_Thorns:     return TAG_Status_Thorns;
 		case EStatusType::Status_FieryCurse: return TAG_Status_FieryCurse;
+		case EStatusType::Status_Rooted:     return TAG_Status_Rooted;
 		default:                            return FGameplayTag();
 		}
 	}
@@ -222,6 +223,24 @@ void UStatusEffectComponent::OnOwnerTurnStart()
 			UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, BleedDamage);
 		}
 		if (!IsValid(GetOwner())) return; // murió por el sangrado
+	}
+	
+	// Enraizado: regenera un % de la vida maxima al principio del turno; el % baja un valor fijo por cada turno que ya ha curado
+	if (FActiveStatus* Rooted = FindStatus(EStatusType::Status_Rooted))
+	{
+		if (ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner()))
+		{
+			const float Percent = FMath::Max(0.f, RootedInitialHealPercent - Rooted->TurnsHealed * RootedHealReductionPerTurn);
+			const float HealAmount = Percent > 0.f
+				? FMath::Max(1.f, FMath::RoundToFloat(OwnerChar->GetMaxHealth() * Percent))
+				: 0.f;
+
+			UE_LOG(LogTemp, Log, TEXT("[%s] Enraizado: cura %.0f (%.0f%% de %.0f), turno curado %d"),
+				*OwnerChar->GetName(), HealAmount, Percent * 100.f, OwnerChar->GetMaxHealth(), Rooted->TurnsHealed + 1);
+
+			UEgnisCombatLibrary::ApplyPureHeal(OwnerChar, HealAmount);
+			Rooted->TurnsHealed++;
+		}
 	}
 	
 	// Aqui iran los efectos periodicos, antes de descontar el turno

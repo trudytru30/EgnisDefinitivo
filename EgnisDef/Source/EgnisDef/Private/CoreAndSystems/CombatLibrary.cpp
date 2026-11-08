@@ -94,6 +94,19 @@ void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)
 	}
 }
 
+void UEgnisCombatLibrary::ApplyPureHeal(ACharacterBase* Target, float Amount)
+{
+	if (!IsValid(Target) || Amount <= 0.f) return;
+
+	UAbilitySystemComponent* ASC = Target->GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	const float NewHealth = FMath::Min(Target->GetMaxHealth(), Target->GetCurrentHealth() + Amount);
+	UE_LOG(LogTemp, Log, TEXT("[%s] Curacion pura: %.0f -> %.0f (max %.0f)"),
+	*Target->GetName(), Target->GetCurrentHealth(), NewHealth, Target->GetMaxHealth());
+	ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHealth);
+}
+
 bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 {
 	if (const AAlly* Ally = Cast<AAlly>(Character); Ally && Ally->IsSummoningSick())
