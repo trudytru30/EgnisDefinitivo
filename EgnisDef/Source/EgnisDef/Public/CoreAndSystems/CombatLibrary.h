@@ -36,6 +36,10 @@ public:
 	// Curacion directa que no pasa por el GameplayEffect de curacion de las cartas.
 	static void ApplyPureHeal(ACharacterBase* Target, float Amount);
 	
+	// Riposte: Si defender tiene el estado y sigue vivo, responde al golpe de Attacker.
+	// Un Riposte no provoca otro.
+	static void TryRiposte(ACharacterBase* Defender, ACharacterBase* Attacker);
+	
 	// False si el personaje esta Aturdido (no puede jugar cartas ni actuar)
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static bool CanAct(const ACharacterBase* Character);

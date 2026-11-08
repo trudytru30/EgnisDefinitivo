@@ -21,6 +21,7 @@ namespace
 		case EStatusType::Status_Thorns:     return TAG_Status_Thorns;
 		case EStatusType::Status_FieryCurse: return TAG_Status_FieryCurse;
 		case EStatusType::Status_Rooted:     return TAG_Status_Rooted;
+		case EStatusType::Status_Riposte:    return TAG_Status_Riposte;
 		default:                            return FGameplayTag();
 		}
 	}

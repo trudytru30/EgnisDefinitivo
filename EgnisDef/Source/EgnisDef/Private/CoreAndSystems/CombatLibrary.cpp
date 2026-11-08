@@ -107,6 +107,41 @@ void UEgnisCombatLibrary::ApplyPureHeal(ACharacterBase* Target, float Amount)
 	ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHealth);
 }
 
+void UEgnisCombatLibrary::TryRiposte(ACharacterBase* Defender, ACharacterBase* Attacker)
+{
+	// Un Riposte no provoca otro: mientras se resuelve una respuesta, los golpes no responden
+	static bool bResolvingRiposte = false;
+	if (bResolvingRiposte)
+	{
+		return;
+	}
+
+	if (!IsValid(Defender) || !IsValid(Attacker) || Defender == Attacker || Defender->GetTeam() == Attacker->GetTeam())
+	{
+		return;
+	}
+
+	if (Defender->GetCurrentHealth() <= 0.f || Attacker->GetCurrentHealth() <= 0.f)
+	{
+		return;
+	}
+
+	if (!Defender->StatusComp || !Defender->StatusComp->HasStatus(EStatusType::Status_Riposte))
+	{
+		return;
+	}
+
+	AAlly* Ally = Cast<AAlly>(Defender);
+	if (!Ally)
+	{
+		return;
+	}
+
+	bResolvingRiposte = true;
+	Ally->CounterAttack(Attacker);
+	bResolvingRiposte = false;
+}
+
 bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 {
 	if (const AAlly* Ally = Cast<AAlly>(Character); Ally && Ally->IsSummoningSick())

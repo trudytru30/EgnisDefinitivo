@@ -27,9 +27,10 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 			FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
 			if (Spec.IsValid())
 			{
-				// Negativo porque el Modifier del GE es "Add" — pasamos ya el signo de resta
+				const float BaseDamage = UEgnisCombatLibrary::GetAttackPower(Self) * DamageMultiplier;
+				
 				Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
-					-UEgnisCombatLibrary::CalculateDamage(Self, Enemy, DamageMultiplier));
+				   -UEgnisCombatLibrary::CalculateDamage(Self, Enemy, BaseDamage));
 				TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 			}
 		}
@@ -48,7 +49,7 @@ void UCard_AttackEffect::Execute_Obstacle(ACharacterBase* Self, AObstacleBase* O
 	if (!Self || !Obstacle || DamageMultiplier < 0) return;
 
 	// TODO: de momento el daño es el base de la carta, sin CalculateDamage (Debilidad, etc.), como ya pasaba con ApplyDamage
-	Obstacle->ApplyDamage(DamageMultiplier);
+	Obstacle->ApplyDamage(UEgnisCombatLibrary::GetAttackPower(Self) * DamageMultiplier);
 
 	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>())
 		AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);

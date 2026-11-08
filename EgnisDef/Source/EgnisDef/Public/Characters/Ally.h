@@ -124,6 +124,11 @@ public:
 	UFUNCTION(BlueprintPure, Category="Stats|Speed")
 	int32 GetCharacterSpeed() const;
 	
+	// Respuesta de Riposte: juega la carta RiposteCard contra Target si esta dentro de su alcance.
+	// No gasta energia, no toca la mano y no comprueba CanAct (un aturdido tambien responde).
+	// Devuelve true si golpeo.
+	bool CounterAttack(ACharacterBase* Target);
+	
 protected:
 	virtual void BeginPlay() override;
 	

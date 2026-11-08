@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "EgnisCardSettings.generated.h"
 
+class UBaseCard;
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Cartas"))
 class EGNISDEF_API UEgnisCardSettings : public UDeveloperSettings
 {
@@ -28,6 +29,10 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Mazo", meta = (ClampMin = "1"))
 	int32 InitialDeckSize = 20;
+	
+	// Carta que juega como respuesta un aliado con Riposte (el ataque basico gris). No se roba ni gasta energia
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Estados")
+	TSoftObjectPtr<UBaseCard> RiposteCard;
 
 	UFUNCTION(BlueprintPure, Category = "Card")
 	static FLinearColor GetCultColor(FGameplayTag Cult);

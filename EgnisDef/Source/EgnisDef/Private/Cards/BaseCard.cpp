@@ -99,6 +99,22 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 	}
 }
 
+void UBaseCard::ExecuteAgainst(ACharacterBase* Self, ACharacterBase* Target)
+{
+	if (!Self || !Target)
+	{
+		return;
+	}
+
+	for (UCardEffect* Effect : Effects)
+	{
+		if (Effect && Effect->Target == ECardTarget::Enemy)
+		{
+			Effect->Execute_Enemy(Self, Target);
+		}
+	}
+}
+
 //hooks de mano, delegan en cada efecto igual que Execute()
 void UBaseCard::NotifyHandEnter(ACharacterBase* Owner)
 {
