@@ -52,9 +52,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
 	bool bThornsRoundUp = true;
 	
+	// Maldicion Ignea: cargas que hacen falta para matar al objetivo
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "1"))
+	int32 CurseChargesToKill = 4;
+
+	// Maldicion Ignea: probabilidad de que cada carga se aplique = CurseMinChance + % de vida
+	// que le falta al objetivo (hasta CurseMaxChance). Con la vida llena es CurseMinChance.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
+	float CurseMinChance = 0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
+	float CurseMaxChance = 1.0f;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr);
+	
+	// Maldicion Ignea: intenta aplicar 'Charges' cargas, cada una con su propia tirada de probabilidad.
+	// Devuelve cuantas se aplicaron. Al llegar a CurseChargesToKill el personaje muere.
+	UFUNCTION(BlueprintCallable, Category = "Status")
+	int32 ApplyFieryCurse(int32 Charges, ACharacterBase* Source = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	void RemoveStatus(EStatusType Type);
@@ -64,6 +81,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Status")
 	int32 GetTurnsLeft(EStatusType Type) const;
+	
+	// Cargas acumuladas de un estado (0 si no esta activo)
+	UFUNCTION(BlueprintPure, Category = "Status")
+	int32 GetStacks(EStatusType Type) const;
 
 	UFUNCTION(BlueprintPure, Category = "Status")
 	ACharacterBase* GetStatusSource(EStatusType Type) const;
