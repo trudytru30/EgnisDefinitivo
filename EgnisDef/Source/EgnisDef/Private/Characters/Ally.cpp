@@ -2,7 +2,7 @@
 #include "Characters/HeroDataAsset.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "Components/GridMovementComponent.h"
-#include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
+#include "AbilitySystemComponent.h"
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "Components/CapsuleComponent.h"
@@ -11,6 +11,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Cards/EgnisCardSettings.h"
 
 AAlly::AAlly()
 {
@@ -331,4 +332,31 @@ float AAlly::GetCharacterPower() const
 int32 AAlly::GetCharacterSpeed() const
 {
 	return StatsAttributeSet ? FMath::Max(0, FMath::RoundToInt(StatsAttributeSet->GetSpeed())) : 0;
+}
+
+bool AAlly::CounterAttack(ACharacterBase* Target)
+{
+	if (!IsValid(Target) || Target->GetTeam() == GetTeam())
+	{
+		return false;
+	}
+
+	UBaseCard* RiposteCard = GetDefault<UEgnisCardSettings>()->RiposteCard.LoadSynchronous();
+	if (!RiposteCard)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Riposte: no hay RiposteCard en Project Settings > Egnis > Cartas."), *GetName());
+		return false;
+	}
+
+	const int32 Distance = FMath::Abs(Target->CurrentTile.X - CurrentTile.X) + FMath::Abs(Target->CurrentTile.Y - CurrentTile.Y);
+	if (Distance > GetEffectiveRange(RiposteCard))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Riposte: %s esta fuera de su alcance (%d), no responde."),
+			*GetName(), *Target->GetName(), GetEffectiveRange(RiposteCard));
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[%s] Riposte -> %s con %s"), *GetName(), *Target->GetName(), *RiposteCard->GetName());
+	RiposteCard->ExecuteAgainst(this, Target);
+	return true;
 }

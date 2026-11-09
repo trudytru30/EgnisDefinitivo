@@ -103,6 +103,16 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		return;
 	}
 
+	// Ira irrefrenable: un golpe absorbido por el escudo tambien cuenta como "hacer daño"
+	if (IncomingDamage > 0.f)
+	{
+		AActor* Hitter = Data.EffectSpec.GetContext().GetOriginalInstigator();
+		if (Hitter && Hitter != OwnerCharacter)
+		{
+			OwnerCharacter->LastDamageInstigator = Hitter;
+		}
+	}
+	
 	if (Data.EvaluatedData.Magnitude < 0.f)
 	{
 		AActor* DamageInstigator = Data.EffectSpec.GetContext().GetOriginalInstigator();
@@ -127,6 +137,8 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	{
 		ThornsDamage = UEgnisCombatLibrary::GetThornsDamage(OwnerCharacter, IncomingDamage);
 	}
+	// Riposte: se guarda ya si esto fue un golpe (aunque el escudo lo absorba)
+	const bool bWasHit = IncomingDamage > 0.f;
 	IncomingDamage = 0.f;
 
 	// Equivalente exacto a la comprobación "HealthComp->GetCurrentHealth() <= 0" que había
@@ -141,4 +153,10 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	// Espinas: lo ultimo, para que tambien refleje si el golpe mata al objetivo.
 	// ApplyPureDamage ignora atacantes no validos y cantidades 0, y al no pasar por un GE no vuelve a reflejar.
 	UEgnisCombatLibrary::ApplyPureDamage(ThornsAttacker, ThornsDamage);
+	
+	// Riposte: lo ultimo, para que Espinas se resuelva antes (si Espinas mata al atacante, no hay respuesta)
+	if (bWasHit)
+	{
+		UEgnisCombatLibrary::TryRiposte(OwnerCharacter, ThornsAttacker);
+	}
 }

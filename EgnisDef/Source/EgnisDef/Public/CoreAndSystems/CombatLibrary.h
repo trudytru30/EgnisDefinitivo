@@ -36,6 +36,17 @@ public:
 	// Curacion directa que no pasa por el GameplayEffect de curacion de las cartas.
 	static void ApplyPureHeal(ACharacterBase* Target, float Amount);
 	
+	// Riposte: Si defender tiene el estado y sigue vivo, responde al golpe de Attacker.
+	// Un Riposte no provoca otro.
+	static void TryRiposte(ACharacterBase* Defender, ACharacterBase* Attacker);
+	
+	// Ira irrefrenable: Devuelve a la unica criatura a la que puede atacar el personaje
+	// o nullptr si no hay restriccion
+	static ACharacterBase* GetRageTarget(const ACharacterBase* Character);
+	// Con la restriccion activa solo se pueden jugar cartas con un efecto de ataque
+	// o de ataque en area
+	static bool CanPlayCardUnderRage(const UBaseCard* Card, const ACharacterBase* Caster);
+	
 	// False si el personaje esta Aturdido (no puede jugar cartas ni actuar)
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static bool CanAct(const ACharacterBase* Character);

@@ -8,6 +8,8 @@
 #include "Components/StatusEffectComponent.h"
 #include "Characters/Enemy.h"
 #include "Abilities/EgnisAbilityLibrary.h"
+#include "Cards/Card_AttackEffect.h"
+#include "Cards/Card_AreaDamageEffect.h"
 
 namespace
 {
@@ -107,6 +109,71 @@ void UEgnisCombatLibrary::ApplyPureHeal(ACharacterBase* Target, float Amount)
 	ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHealth);
 }
 
+void UEgnisCombatLibrary::TryRiposte(ACharacterBase* Defender, ACharacterBase* Attacker)
+{
+	// Un Riposte no provoca otro: mientras se resuelve una respuesta, los golpes no responden
+	static bool bResolvingRiposte = false;
+	if (bResolvingRiposte)
+	{
+		return;
+	}
+
+	if (!IsValid(Defender) || !IsValid(Attacker) || Defender == Attacker || Defender->GetTeam() == Attacker->GetTeam())
+	{
+		return;
+	}
+
+	if (Defender->GetCurrentHealth() <= 0.f || Attacker->GetCurrentHealth() <= 0.f)
+	{
+		return;
+	}
+
+	if (!Defender->StatusComp || !Defender->StatusComp->HasStatus(EStatusType::Status_Riposte))
+	{
+		return;
+	}
+
+	AAlly* Ally = Cast<AAlly>(Defender);
+	if (!Ally)
+	{
+		return;
+	}
+
+	bResolvingRiposte = true;
+	Ally->CounterAttack(Attacker);
+	bResolvingRiposte = false;
+}
+
+ACharacterBase* UEgnisCombatLibrary::GetRageTarget(const ACharacterBase* Character)
+{
+	if (!IsValid(Character) || !Character->StatusComp
+		|| !Character->StatusComp->HasStatus(EStatusType::Status_UnrestrainedRage))
+	{
+		return nullptr;
+	}
+
+	AActor* LastActor = Character->LastDamageInstigator.Get();
+	UE_LOG(LogTemp, Log, TEXT("[Ira] %s tiene el estado; ultimo atacante guardado = %s"),
+		*Character->GetName(), *GetNameSafe(LastActor));
+
+	// Cast a ACharacterBase: si el que le pego fue un obstaculo u otro actor, no hay objetivo valido
+	ACharacterBase* Last = Cast<ACharacterBase>(LastActor);
+	if (!IsValid(Last) || Last->GetCurrentHealth() <= 0.f)
+	{
+		return nullptr;
+	}
+	return Last;
+}
+
+bool UEgnisCombatLibrary::CanPlayCardUnderRage(const UBaseCard* Card, const ACharacterBase* Caster)
+{
+	if (!Card || !GetRageTarget(Caster))
+	{
+		return true;
+	}
+	return Card->HasDirectDamageEffect();
+}
+
 bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 {
 	if (const AAlly* Ally = Cast<AAlly>(Character); Ally && Ally->IsSummoningSick())
@@ -176,6 +243,18 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 	if (!Caster->Board)
 	{
 		return false;
+	}
+	
+	// Ira irrefrenable: solo puede apuntar a la ultima criatura que le hizo daño.
+	if (CardTarget == ECardTarget::Enemy)
+	{
+		const ACharacterBase* RageTarget = GetRageTarget(Caster);
+		if (RageTarget && TargetCharacter != RageTarget)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Ira] %s esta en Ira irrefrenable: solo puede apuntarle a %s."),
+				*Caster->GetName(), *RageTarget->GetName());
+			return false;
+		}
 	}
 
 	FTileCoord TargetTile;

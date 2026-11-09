@@ -7,6 +7,8 @@
 #include "CoreAndSystems/Board.h"
 #include "Cards/DeckManager.h"
 #include "Abilities/EgnisAbilityLibrary.h"
+#include "Cards/Card_AttackEffect.h"
+#include "Cards/Card_AreaDamageEffect.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
@@ -97,6 +99,34 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 	{
 		Deck->SetCardInPlay(nullptr);
 	}
+}
+
+void UBaseCard::ExecuteAgainst(ACharacterBase* Self, ACharacterBase* Target)
+{
+	if (!Self || !Target)
+	{
+		return;
+	}
+
+	for (UCardEffect* Effect : Effects)
+	{
+		if (Effect && Effect->Target == ECardTarget::Enemy)
+		{
+			Effect->Execute_Enemy(Self, Target);
+		}
+	}
+}
+
+bool UBaseCard::HasDirectDamageEffect() const
+{
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Cast<UCard_AttackEffect>(Effect) || Cast<UCard_AreaDamageEffect>(Effect))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 //hooks de mano, delegan en cada efecto igual que Execute()

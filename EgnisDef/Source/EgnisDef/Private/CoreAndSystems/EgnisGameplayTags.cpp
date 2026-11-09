@@ -13,6 +13,8 @@ UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Fatigued, "Status.Fatigued");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Thorns, "Status.Thorns");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_FieryCurse, "Status.FieryCurse");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Rooted, "Status.Rooted");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Riposte, "Status.Riposte");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Status_UnrestrainedRage, "Status.UnrestrainedRage");
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult, "Cult");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult_Doru, "Cult.Doru");

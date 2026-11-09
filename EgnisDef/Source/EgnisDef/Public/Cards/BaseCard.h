@@ -63,6 +63,11 @@ public:
 	// Acciones de las cartas
 	void Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location);
 
+	// Respuesta de Riposte: ejecuta solo los efectos contra enemigos de la carta, sobre Target.
+	void ExecuteAgainst(ACharacterBase* Self, ACharacterBase* Target);
+
+	bool HasDirectDamageEffect() const;
+	
 	//nuevo reunion: notificar a los efectos de esta carta que ha entrado/salido
 	// de la mano sin haberse jugado. DeckManager llama a esto en DrawCard/DiscardCardFromHand.
 	void NotifyHandEnter(ACharacterBase* Owner);
