@@ -89,6 +89,9 @@ public:
     UFUNCTION(BlueprintCallable, Category="Battle|Move")
     bool RequestUnitMove(ACharacterBase* Unit, const FTileCoord& TargetTile);
 
+    UFUNCTION(BlueprintCallable, Category="Selection")
+    void SelectDraggedAlly(ACharacterBase* Unit);
+
     UFUNCTION(BlueprintCallable, Category="Battle|Cards")
     void BeginPlayCard(UBaseCard* Card);
 
@@ -207,6 +210,7 @@ private:
     TObjectPtr<UDeployManager> DPM = nullptr;
 
     bool bIsInMenu = false;
+    bool bCombatSelectionStarted = false;
 
     UPROPERTY()
     TObjectPtr<class UUserWidget> PauseMenuWidget = nullptr;
@@ -228,6 +232,8 @@ private:
 #pragma region Functions
     void OpenMenu();
     void HandleMenu();
+    void AutoSelectAlly(ACharacterBase* Ally);
+    void EnsureAllySelected();
     
     // Funciones principales de Input
     void HandleLeftClick();

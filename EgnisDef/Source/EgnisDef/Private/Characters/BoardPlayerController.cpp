@@ -33,6 +33,7 @@ void ABoardPlayerController::PlayerTick(float DeltaTime)
 {
     Super::PlayerTick(DeltaTime);
     if (IsLocalController()) UpdateHoveredInteractable();
+    EnsureAllySelected();
 }
 
 void ABoardPlayerController::UpdateHoveredInteractable()
@@ -364,6 +365,30 @@ void ABoardPlayerController::SelectAlly(ACharacterBase* Ally)
     UE_LOG(LogTemp, Log, TEXT("Selected Ally: %s"), *SelectedAlly->GetName());
 }
 
+void ABoardPlayerController::AutoSelectAlly(ACharacterBase* Ally)
+{
+    SelectedAlly = Ally;
+    BP_OnKeyboardAllySelected(Ally);
+}
+
+void ABoardPlayerController::EnsureAllySelected()
+{
+    if (!BSM || BSM->CurrentPhase != EScenePhase::Combat || !DPM) return;
+
+    if (bCombatSelectionStarted && IsValid(SelectedAlly) && SelectedAlly->GetCurrentHealth() > 0.f) return;
+
+    for (const TPair<TWeakObjectPtr<AAlly>, FName>& Hero : DPM->GetDeployedHeroes())
+    {
+        AAlly* Ally = Hero.Key.Get();
+        if (IsValid(Ally) && Ally->GetCurrentHealth() > 0.f)
+        {
+            bCombatSelectionStarted = true;
+            AutoSelectAlly(Ally);
+            return;
+        }
+    }
+}
+
 bool ABoardPlayerController::CanSelectAllyFromInput() const
 {
     return IsValid(DPM) && !bIsInMenu && !PendingCard
@@ -653,6 +678,14 @@ bool ABoardPlayerController::CanUnitMoveThisTurn(ACharacterBase* Unit) const
 bool ABoardPlayerController::RequestUnitMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
 {
     return BM && BM->RequestMove(Unit, TargetTile);
+}
+
+void ABoardPlayerController::SelectDraggedAlly(ACharacterBase* Unit)
+{
+    if (IsValid(Unit) && Unit != SelectedAlly && CanSelectAllyFromInput())
+    {
+        AutoSelectAlly(Unit);
+    }
 }
 
 void ABoardPlayerController::RequestEndTurn()
