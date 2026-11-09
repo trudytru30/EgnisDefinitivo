@@ -21,12 +21,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static float CalculateDamage(const ACharacterBase* Source, const ACharacterBase* Target, float BaseDamage);
 	
+	// Daño que un objetivo con Espinas devolveria al atacante por recibir DamageDealt (0 si no tiene Espinas).
+	// Llamar ANTES de que el golpe pueda matar al objetivo: despues ya no se puede consultar.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static float GetThornsDamage(const ACharacterBase* Target, float DamageDealt);
+	
 	// Poder de un personaje: GAS en aliados, propio en enemigos.
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static float GetAttackPower(const ACharacterBase* Character);
 	
 	// Daño que ignora escudo, Debilidad y Expuesto (quemadura...).
     static void ApplyPureDamage(ACharacterBase* Target, float Amount);
+	
+	// Curacion directa que no pasa por el GameplayEffect de curacion de las cartas.
+	static void ApplyPureHeal(ACharacterBase* Target, float Amount);
 	
 	// False si el personaje esta Aturdido (no puede jugar cartas ni actuar)
 	UFUNCTION(BlueprintPure, Category = "Combat")
@@ -42,4 +50,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static bool IsCardTargetInRange(const UBaseCard* Card, const AAlly* Caster,
 		const ACharacterBase* TargetCharacter, const FVector& Location);
+	
+	// Coste real de una carta para este lanzador: el de la carta, multiplicado si esta Fatigado.
+	// La UI debe usar esta funcion en vez de GetCost de la carta para pintar el coste.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static int32 GetEffectiveCost(const UBaseCard* Card, const ACharacterBase* Caster);
 };

@@ -49,6 +49,26 @@ float UEgnisCombatLibrary::CalculateDamage(const ACharacterBase* Source, const A
 	return Damage;
 }
 
+float UEgnisCombatLibrary::GetThornsDamage(const ACharacterBase* Target, float DamageDealt)
+{
+	if (DamageDealt <= 0.f || !HasStatusTag(Target, TAG_Status_Thorns))
+	{
+		return 0.f;
+	}
+
+	const UStatusEffectComponent* Status = Target->StatusComp;
+	const float Fraction = Status ? Status->ThornsReflectFraction : 0.5f;
+	const bool bRoundUp = Status ? Status->bThornsRoundUp : true;
+
+	// El margen pequeño evita que un error de decimales (p. ej. 3.0000001) suba o baje un punto de más
+	const float Raw = DamageDealt * Fraction;
+	const float Reflected = bRoundUp ? FMath::CeilToFloat(Raw - UE_KINDA_SMALL_NUMBER)
+									 : FMath::FloorToFloat(Raw + UE_KINDA_SMALL_NUMBER);
+
+	UE_LOG(LogTemp, Log, TEXT("[Thorns] %s recibe %.0f y refleja %.0f"), *Target->GetName(), DamageDealt, Reflected);
+	return Reflected;
+}
+
 float UEgnisCombatLibrary::GetAttackPower(const ACharacterBase* Character)
 {
 	if (const AAlly* Ally = Cast<AAlly>(Character)) return Ally->GetCharacterPower();
@@ -74,6 +94,19 @@ void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)
 	}
 }
 
+void UEgnisCombatLibrary::ApplyPureHeal(ACharacterBase* Target, float Amount)
+{
+	if (!IsValid(Target) || Amount <= 0.f) return;
+
+	UAbilitySystemComponent* ASC = Target->GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	const float NewHealth = FMath::Min(Target->GetMaxHealth(), Target->GetCurrentHealth() + Amount);
+	UE_LOG(LogTemp, Log, TEXT("[%s] Curacion pura: %.0f -> %.0f (max %.0f)"),
+	*Target->GetName(), Target->GetCurrentHealth(), NewHealth, Target->GetMaxHealth());
+	ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), NewHealth);
+}
+
 bool UEgnisCombatLibrary::CanAct(const ACharacterBase* Character)
 {
 	if (const AAlly* Ally = Cast<AAlly>(Character); Ally && Ally->IsSummoningSick())
@@ -90,6 +123,24 @@ bool UEgnisCombatLibrary::CanMove(const ACharacterBase* Character)
 		return false;
 	}
 	return !HasStatusTag(Character, TAG_Status_Paralyzed);
+}
+
+int32 UEgnisCombatLibrary::GetEffectiveCost(const UBaseCard* Card, const ACharacterBase* Caster)
+{
+	if (!Card)
+	{
+		return 0;
+	}
+
+	int32 Cost = Card->GetCost();
+
+	// Fatigado: las cartas cuestan mas para este personaje
+	if (HasStatusTag(Caster, TAG_Status_Fatigued))
+	{
+		const int32 Multiplier = (Caster && Caster->StatusComp) ? Caster->StatusComp->FatigueCostMultiplier : 2;
+		Cost *= Multiplier;
+	}
+	return Cost;
 }
 
 bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly* Caster, const ACharacterBase* TargetCharacter, const FVector& Location)

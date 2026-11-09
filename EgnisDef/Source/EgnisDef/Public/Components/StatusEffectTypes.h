@@ -15,7 +15,11 @@ enum class EStatusType : uint8
 	Status_Paralyzed,
 	Status_Stunned,
 	Status_Bleed,
-	Status_Taunt
+	Status_Taunt,
+	Status_Fatigued,
+	Status_Thorns,
+	Status_FieryCurse,
+	Status_Rooted
 };
 
 // Estado activo en un personaje (lo que guarda UStatusEffectComponent y lee la UI).
@@ -30,6 +34,10 @@ struct FActiveStatus
 	// Turnos propios del personaje que le quedan al estado
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	int32 TurnsLeft = 0;
+	
+	// Cargas acumuladas (Maldicion Ignea). Vale 1 en los estados que no acumulan
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
+	int32 Stacks = 1;
 
 	// Quien lo aplico (puede ser nulo)
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
@@ -39,4 +47,9 @@ struct FActiveStatus
 	// no cuenta como turno consumido.
 	UPROPERTY()
 	bool bSkipNextDecrement = false;
+	
+	// Turnos en los que el estado ya ha curado (Enraizado). Sube en 1 cada vez que cura
+	// y sirve para calcular cuanto baja la curacion.
+	UPROPERTY()
+	int32 TurnsHealed = 0;
 };
