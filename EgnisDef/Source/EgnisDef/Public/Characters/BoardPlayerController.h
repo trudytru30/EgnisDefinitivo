@@ -143,6 +143,28 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     TObjectPtr<UInputAction> InteractAction;
+
+    UPROPERTY(EditDefaultsOnly, Category="Input|Ally Selection")
+    TObjectPtr<UInputAction> SelectAlly1Action;
+
+    UPROPERTY(EditDefaultsOnly, Category="Input|Ally Selection")
+    TObjectPtr<UInputAction> SelectAlly2Action;
+
+    UPROPERTY(EditDefaultsOnly, Category="Input|Ally Selection")
+    TObjectPtr<UInputAction> SelectAlly3Action;
+
+    UPROPERTY(EditDefaultsOnly, Category="Input|Ally Selection")
+    TObjectPtr<UInputAction> SelectAlly4Action;
+
+    UPROPERTY(EditDefaultsOnly, Category="Input|Ally Selection")
+    TObjectPtr<UInputAction> PreviousAllyAction;
+
+    UPROPERTY(EditDefaultsOnly, Category="Input|Ally Selection")
+    TObjectPtr<UInputAction> NextAllyAction;
+
+    // Actualiza el marcado del Blueprint sin ejecutar su trace de clic bajo el cursor.
+    UFUNCTION(BlueprintImplementableEvent, Category="Selection")
+    void BP_OnKeyboardAllySelected(ACharacterBase* Ally);
 #pragma endregion
 
     UPROPERTY(EditDefaultsOnly, Category="Click|Trace")
@@ -203,6 +225,13 @@ private:
     void ProcessDefaultStateInput();
     void TrySelectCardTarget();
     bool TrySelectAlly();
+    void SelectAlly(ACharacterBase* Ally);
+    bool CanSelectAllyFromInput() const;
+    // Indice base 0: las teclas 1-4 usaran los indices 0-3 de DeployedHeroes.
+    bool SelectAllyByIndex(int32 Index);
+    void HandleSelectAllyByIndex(int32 Index);
+    // Direction: -1 anterior, +1 siguiente. No vuelve al otro extremo del array.
+    void SelectAdjacentAlly(int32 Direction);
     void ExecuteCardPlay(ACharacterBase* TargetUnit, FVector TargetLocation);
     // -------------------------------------------
 #pragma endregion
