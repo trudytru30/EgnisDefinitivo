@@ -489,12 +489,31 @@ void ABoardPlayerController::OpenMenu()
     Mode.SetHideCursorDuringCapture(false);
     Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
     SetInputMode(Mode);
+
+    if (PauseMenuClass)
+    {
+        PauseMenuWidget = CreateWidget<UUserWidget>(this, PauseMenuClass);
+        if (PauseMenuWidget)
+        {
+            PauseMenuWidget->AddToViewport(100);
+            UGameplayStatics::SetGamePaused(this, true);
+        }
+    }
 }
 
 void ABoardPlayerController::CloseMenu()
 {
+    if (!bIsInMenu) return;
+
     UE_LOG(LogTemp, Warning, TEXT("CloseMenu"));
     bIsInMenu = false;
+
+    if (PauseMenuWidget)
+    {
+        PauseMenuWidget->RemoveFromParent();
+        PauseMenuWidget = nullptr;
+        UGameplayStatics::SetGamePaused(this, false);
+    }
 
     if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
     {

@@ -16,3 +16,30 @@ void UCombatTimerSubsystem::ReportTimeRemaining(float TimeRemaining, float Total
 {
 	OnTimeRemainingChanged.Broadcast(TimeRemaining, TotalTime);
 }
+
+void UCombatTimerSubsystem::PauseTimer(FName Reason)
+{
+	const bool bWasPaused = IsTimerPaused();
+	PauseReasons.Add(Reason);
+	if (!bWasPaused)
+	{
+		OnTimerPaused.Broadcast();
+	}
+}
+
+void UCombatTimerSubsystem::ResumeTimer(FName Reason)
+{
+	if (PauseReasons.Remove(Reason) > 0 && !IsTimerPaused())
+	{
+		OnTimerResumed.Broadcast();
+	}
+}
+
+void UCombatTimerSubsystem::ClearTimerPauses()
+{
+	if (IsTimerPaused())
+	{
+		PauseReasons.Empty();
+		OnTimerResumed.Broadcast();
+	}
+}

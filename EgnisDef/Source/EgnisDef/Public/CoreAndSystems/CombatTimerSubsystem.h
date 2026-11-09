@@ -12,6 +12,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCombatTimeModified, float, Second
 // TimeRemaining / TotalTime puede pasar de 1 si se ha sumado tiempo extra.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCombatTimeRemainingChanged, float, TimeRemaining, float, TotalTime);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCombatTimerPauseChanged);
+
 // Puente entre el codigo de C++ y el temporizador, que esta hecho en Blueprint y no
 // depende del BattleManager. Vive en el GameInstance, asi que existe en cualquier escena.
 UCLASS(BlueprintType)
@@ -35,4 +37,25 @@ public:
 	// Lo escuchan los efectos de camara (y servira igual para la capa de musica de tiempo restante).
 	UPROPERTY(BlueprintAssignable, Category = "CombatTimer")
 	FOnCombatTimeRemainingChanged OnTimeRemainingChanged;
+
+	UFUNCTION(BlueprintCallable, Category = "CombatTimer")
+	void PauseTimer(FName Reason);
+
+	UFUNCTION(BlueprintCallable, Category = "CombatTimer")
+	void ResumeTimer(FName Reason);
+
+	UFUNCTION(BlueprintCallable, Category = "CombatTimer")
+	void ClearTimerPauses();
+
+	UFUNCTION(BlueprintPure, Category = "CombatTimer")
+	bool IsTimerPaused() const { return !PauseReasons.IsEmpty(); }
+
+	UPROPERTY(BlueprintAssignable, Category = "CombatTimer")
+	FOnCombatTimerPauseChanged OnTimerPaused;
+
+	UPROPERTY(BlueprintAssignable, Category = "CombatTimer")
+	FOnCombatTimerPauseChanged OnTimerResumed;
+
+private:
+	TSet<FName> PauseReasons;
 };

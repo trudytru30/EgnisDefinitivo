@@ -5,6 +5,7 @@
 #include "BattleManager.generated.h"
 
 class UAudioManager;
+class UCombatTimerSubsystem;
 class AAlly;
 struct FTileCoord;
 class UDeckManager;
@@ -77,6 +78,11 @@ private:
 	float GetTeamHealthRatio() const;
 
 	void OnEnemyPhaseFinished();
+
+	UFUNCTION()
+	void HandleCombatTimeRemaining(float TimeRemaining, float TotalTime);
+
+	UCombatTimerSubsystem* GetCombatTimer() const;
 	
 #pragma region Private Variables
 	// ===== Managers =====

@@ -12,6 +12,7 @@
 #include "CoreAndSystems/Board.h"
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/CombatCameraSubsystem.h"
+#include "CoreAndSystems/CombatTimerSubsystem.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 
 class AAlly;
@@ -60,6 +61,12 @@ void UBattleManager::StartBattle()
 		AM->SetTeamHealthRatio(GetTeamHealthRatio());
 	}
 
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ClearTimerPauses();
+		Timer->OnTimeRemainingChanged.AddUniqueDynamic(this, &UBattleManager::HandleCombatTimeRemaining);
+	}
+
 	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Battle_Start);
 
 	// Efectos de camara: reinicia y empieza a escuchar el daño de los aliados que ya estan en el campo
@@ -79,6 +86,11 @@ void UBattleManager::StartBattle()
 void UBattleManager::StartPlayerTurn()
 {
 	if (bBattleIsOver) return;
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ResumeTimer(TEXT("EnemyTurn"));
+	}
 	
 	// Gasta un turno a las casillas en llamas
 	if (Board) Board->AdvanceFireTiles();
@@ -133,6 +145,11 @@ void UBattleManager::StartPlayerTurn()
 void UBattleManager::StartEnemyTurn()
 {
 	if (bBattleIsOver) return;
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->PauseTimer(TEXT("EnemyTurn"));
+	}
 
 	// Gasta un turno a las casillas en llamas
 	if (Board) Board->AdvanceFireTiles();
@@ -336,10 +353,31 @@ void UBattleManager::UpdateUnitsAlive()
 		EndBattle(true);
 }
 
+UCombatTimerSubsystem* UBattleManager::GetCombatTimer() const
+{
+	const UWorld* World = GetWorld();
+	const UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<UCombatTimerSubsystem>() : nullptr;
+}
+
+void UBattleManager::HandleCombatTimeRemaining(float TimeRemaining, float TotalTime)
+{
+	if (TimeRemaining <= 0.f && !bBattleIsOver)
+	{
+		EndBattle(false);
+	}
+}
+
 // Fin del combate
 void UBattleManager::EndBattle(bool bPlayerWon)
 {
 	bBattleIsOver = true;
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ClearTimerPauses();
+		Timer->OnTimeRemainingChanged.RemoveDynamic(this, &UBattleManager::HandleCombatTimeRemaining);
+	}
 	
 	// Efectos de camara: para el balanceo y deja de escuchar el daño
 	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
@@ -378,7 +416,7 @@ bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit is null"));
 		return false;
 	}
-	if (!IsPlayerTurn())
+	if (bBattleIsOver || !IsPlayerTurn())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Not player turn"));
 		return false;

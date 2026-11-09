@@ -80,6 +80,9 @@ public:
     UFUNCTION(BlueprintCallable, Category="Battle|Turn")
     void RequestEndTurn();
 
+    UFUNCTION(BlueprintCallable, Category="UI")
+    void CloseMenu();
+
     UFUNCTION(BlueprintPure, Category="Battle|Move")
     bool CanUnitMoveThisTurn(ACharacterBase* Unit) const;
 
@@ -174,6 +177,9 @@ protected:
     void BP_OnKeyboardAllySelected(ACharacterBase* Ally);
 #pragma endregion
 
+    UPROPERTY(EditDefaultsOnly, Category="UI")
+    TSubclassOf<class UUserWidget> PauseMenuClass;
+
     UPROPERTY(EditDefaultsOnly, Category="Click|Trace")
     TEnumAsByte<ECollisionChannel> UnitTraceChannel = ECC_GameTraceChannel1;
 
@@ -202,6 +208,9 @@ private:
 
     bool bIsInMenu = false;
 
+    UPROPERTY()
+    TObjectPtr<class UUserWidget> PauseMenuWidget = nullptr;
+
     TWeakObjectPtr<UInteractableComponent> HoveredInteractable;
     void UpdateHoveredInteractable();
 
@@ -218,7 +227,6 @@ private:
 
 #pragma region Functions
     void OpenMenu();
-    void CloseMenu();
     void HandleMenu();
     
     // Funciones principales de Input
