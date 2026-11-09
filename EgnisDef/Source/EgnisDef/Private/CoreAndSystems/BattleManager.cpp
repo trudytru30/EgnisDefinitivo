@@ -233,6 +233,18 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 		return false;
 	}
 	
+	UE_LOG(LogTemp, Log, TEXT("[Ira] PlayCard %s por %s: objetivo obligado = %s"),
+	*Card->GetName(), *Character->GetName(),
+	*GetNameSafe(UEgnisCombatLibrary::GetRageTarget(Character)));
+	
+	// Ira irrefrenable: solo puede jugar cartas de ataque
+	if (!UEgnisCombatLibrary::CanPlayCardUnderRage(Card, Character))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: %s esta en Ira irrefrenable y %s no tiene efecto de ataque, no se puede jugar"),
+			*Character->GetName(), *Card->GetName());
+		return false;
+	}
+	
 	if (!UEgnisCombatLibrary::IsCardTargetInRange(Card, Character, TargetCharacter, Location))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Target out of range for card %s (caster %s)"),

@@ -103,6 +103,16 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		return;
 	}
 
+	// Ira irrefrenable: un golpe absorbido por el escudo tambien cuenta como "hacer daño"
+	if (IncomingDamage > 0.f)
+	{
+		AActor* Hitter = Data.EffectSpec.GetContext().GetOriginalInstigator();
+		if (Hitter && Hitter != OwnerCharacter)
+		{
+			OwnerCharacter->LastDamageInstigator = Hitter;
+		}
+	}
+	
 	if (Data.EvaluatedData.Magnitude < 0.f)
 	{
 		AActor* DamageInstigator = Data.EffectSpec.GetContext().GetOriginalInstigator();

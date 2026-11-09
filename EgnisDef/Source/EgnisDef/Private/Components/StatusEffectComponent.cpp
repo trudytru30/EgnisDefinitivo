@@ -22,6 +22,7 @@ namespace
 		case EStatusType::Status_FieryCurse: return TAG_Status_FieryCurse;
 		case EStatusType::Status_Rooted:     return TAG_Status_Rooted;
 		case EStatusType::Status_Riposte:    return TAG_Status_Riposte;
+		case EStatusType::Status_UnrestrainedRage: return TAG_Status_UnrestrainedRage;
 		default:                            return FGameplayTag();
 		}
 	}
