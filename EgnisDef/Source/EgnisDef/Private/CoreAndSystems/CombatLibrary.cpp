@@ -153,9 +153,7 @@ ACharacterBase* UEgnisCombatLibrary::GetRageTarget(const ACharacterBase* Charact
 	}
 
 	AActor* LastActor = Character->LastDamageInstigator.Get();
-	UE_LOG(LogTemp, Log, TEXT("[Ira] %s tiene el estado; ultimo atacante guardado = %s"),
-		*Character->GetName(), *GetNameSafe(LastActor));
-
+	
 	// Cast a ACharacterBase: si el que le pego fue un obstaculo u otro actor, no hay objetivo valido
 	ACharacterBase* Last = Cast<ACharacterBase>(LastActor);
 	if (!IsValid(Last) || Last->GetCurrentHealth() <= 0.f)
@@ -251,8 +249,6 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 		const ACharacterBase* RageTarget = GetRageTarget(Caster);
 		if (RageTarget && TargetCharacter != RageTarget)
 		{
-			UE_LOG(LogTemp, Log, TEXT("[Ira] %s esta en Ira irrefrenable: solo puede apuntarle a %s."),
-				*Caster->GetName(), *RageTarget->GetName());
 			return false;
 		}
 	}

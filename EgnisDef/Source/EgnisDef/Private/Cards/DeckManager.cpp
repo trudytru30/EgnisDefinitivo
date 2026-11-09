@@ -244,15 +244,24 @@ void UDeckManager::ResetDeck()
 
 void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay)
 {
-	for (UBaseCard* Card : Deck)
+	// Referencia para poder cambiar la carta de su sitio en el mazo
+	for (UBaseCard*& Card : Deck)
 	{
-		// IsCardArchetypeAvailable ya da por disponible el color Grey, asi que esas cartas no se tocan
 		if (Card && !IsCardArchetypeAvailable(Card, CharactersInPlay))
 		{
+			const UBaseCard* Converted = Card->GetConvertedCard();
+			if (!Converted)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: %s (culto %s) sin personaje de su culto"
+								 " y sin ConvertedCard, se queda como esta"),
+					*Card->GetName(), *Card->GetCult().ToString());
+				continue;
+			}
+
 			UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %s (culto %s) sin personaje de su culto,"
-							 " pasa a carta comun en este combate"),
-				*Card->GetName(), *Card->GetCult().ToString());
-			Card->SetCult(FGameplayTag());
+							 " se convierte en %s en este combate"),
+				*Card->GetName(), *Card->GetCult().ToString(), *Converted->GetName());
+			Card = DuplicateObject<UBaseCard>(Converted, this);
 		}
 	}
 }

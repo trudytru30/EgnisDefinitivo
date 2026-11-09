@@ -254,10 +254,6 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 		return false;
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("[Ira] PlayCard %s por %s: objetivo obligado = %s"),
-	*Card->GetName(), *Character->GetName(),
-	*GetNameSafe(UEgnisCombatLibrary::GetRageTarget(Character)));
-	
 	// Ira irrefrenable: solo puede jugar cartas de ataque
 	if (!UEgnisCombatLibrary::CanPlayCardUnderRage(Card, Character))
 	{
