@@ -102,6 +102,35 @@ void ABoardPlayerController::SetupInputComponent()
     UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent);
     if (!EnhancedInput) return;
 
+    // Started selecciona una sola vez por pulsacion, sin repetir mientras se mantiene la tecla.
+    UInputAction* SelectionActions[] = { SelectAlly1Action, SelectAlly2Action, SelectAlly3Action, SelectAlly4Action };
+    for (int32 Index = 0; Index < UE_ARRAY_COUNT(SelectionActions); ++Index)
+    {
+        if (SelectionActions[Index])
+        {
+            EnhancedInput->BindAction(SelectionActions[Index], ETriggerEvent::Started, this,
+                &ABoardPlayerController::HandleSelectAllyByIndex, Index);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("SelectAlly%dAction not assigned"), Index + 1);
+        }
+    }
+    if (PreviousAllyAction)
+    {
+        EnhancedInput->BindAction(PreviousAllyAction, ETriggerEvent::Started, this,
+            &ABoardPlayerController::SelectAdjacentAlly, -1);
+    }
+    if (NextAllyAction)
+    {
+        EnhancedInput->BindAction(NextAllyAction, ETriggerEvent::Started, this,
+            &ABoardPlayerController::SelectAdjacentAlly, 1);
+    }
+    if (!PreviousAllyAction || !NextAllyAction)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("PreviousAllyAction or NextAllyAction not assigned"));
+    }
+
     if (InteractAction)
     {
         EnhancedInput->BindAction(InteractAction, ETriggerEvent::Started, this, &ABoardPlayerController::HandleInteract);
@@ -325,6 +354,67 @@ void ABoardPlayerController::ExecuteCardPlay(ACharacterBase* TargetUnit, FVector
     CurrentIntent = EInputIntent::Move;
 }
 
+void ABoardPlayerController::SelectAlly(ACharacterBase* Ally)
+{
+    SelectedAlly = Ally;
+    if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>())
+        AM->PlayTrigger(EEgnisAudioTrigger::AllySelected, nullptr, SelectedAlly);
+
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Green, FString::Printf(TEXT("Selected: %s"), *SelectedAlly->GetName()));
+    UE_LOG(LogTemp, Log, TEXT("Selected Ally: %s"), *SelectedAlly->GetName());
+}
+
+bool ABoardPlayerController::CanSelectAllyFromInput() const
+{
+    return IsValid(DPM) && !bIsInMenu && !PendingCard
+        && SelectionState == ECardSelectionState::None
+        && (!DeckManager || !DeckManager->IsSelectingFromHand());
+}
+
+void ABoardPlayerController::HandleSelectAllyByIndex(int32 Index)
+{
+    SelectAllyByIndex(Index);
+}
+
+bool ABoardPlayerController::SelectAllyByIndex(int32 Index)
+{
+    if (!CanSelectAllyFromInput()) return false;
+
+    const auto& Heroes = DPM->GetDeployedHeroes();
+    if (!Heroes.IsValidIndex(Index)) return false;
+
+    AAlly* Ally = Heroes[Index].Key.Get();
+    if (!IsValid(Ally) || Ally->GetTeam() != 0 || Ally->GetCurrentHealth() <= 0.f) return false;
+
+    SelectAlly(Ally);
+    BP_OnKeyboardAllySelected(Ally);
+    return true;
+}
+
+void ABoardPlayerController::SelectAdjacentAlly(int32 Direction)
+{
+    if (!CanSelectAllyFromInput() || (Direction != -1 && Direction != 1)) return;
+
+    const auto& Heroes = DPM->GetDeployedHeroes();
+    int32 CurrentIndex = INDEX_NONE;
+    if (IsValid(SelectedAlly))
+    {
+        CurrentIndex = Heroes.IndexOfByPredicate([this](const TPair<TWeakObjectPtr<AAlly>, FName>& Hero)
+        {
+            return Hero.Key.Get() == SelectedAlly.Get();
+        });
+    }
+
+    // Sin seleccion en este array, ambas direcciones eligen el primer aliado disponible.
+    const int32 Step = CurrentIndex == INDEX_NONE ? 1 : Direction;
+    const int32 StartIndex = CurrentIndex == INDEX_NONE ? 0 : CurrentIndex + Step;
+    for (int32 Index = StartIndex; Heroes.IsValidIndex(Index); Index += Step)
+    {
+        // Saltamos bajas sin compactar el array: se conserva la relacion numero/heroe.
+        if (SelectAllyByIndex(Index)) return;
+    }
+}
+
 bool ABoardPlayerController::TrySelectAlly()
 {
     FHitResult Hit;
@@ -334,12 +424,7 @@ bool ABoardPlayerController::TrySelectAlly()
         {
             if (ClickedCharacter->GetTeam() == 0) // Es Aliado
             {
-                SelectedAlly = ClickedCharacter;
-                if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
-                    AM->PlayTrigger(EEgnisAudioTrigger::AllySelected, nullptr, SelectedAlly);
-
-                if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Green, FString::Printf(TEXT("Selected: %s"), *SelectedAlly->GetName()));
-                UE_LOG(LogTemp, Log, TEXT("Selected Ally: %s"), *SelectedAlly->GetName());
+                SelectAlly(ClickedCharacter);
                 return true;
             }
         }
