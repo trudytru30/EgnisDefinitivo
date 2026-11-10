@@ -15,7 +15,7 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 	}
 
 	// Comprueba que la carta hace daño y que el objetivo es tipo characterBase
-	if (DamageAmount >= 0 && Enemy->GetTeam() != Self->GetTeam())
+	if (DamageMultiplier >= 0 && Enemy->GetTeam() != Self->GetTeam())
 	{
 		// El daño se aplica al ASC del objetivo, no al de quien ataca — un GameplayEffect
 		// siempre modifica atributos de "a quién se le aplica", que aquí es Enemy.
@@ -23,12 +23,14 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 		if (TargetASC && DamageEffect)
 		{
 			FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+			Context.AddInstigator(Self, Self);
 			FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
 			if (Spec.IsValid())
 			{
-				// Negativo porque el Modifier del GE es "Add" — pasamos ya el signo de resta
+				const float BaseDamage = UEgnisCombatLibrary::GetAttackPower(Self) * DamageMultiplier;
+				
 				Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
-					-UEgnisCombatLibrary::CalculateDamage(Self, Enemy, DamageAmount));
+				   -UEgnisCombatLibrary::CalculateDamage(Self, Enemy, BaseDamage));
 				TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 			}
 		}
@@ -44,10 +46,10 @@ void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Ene
 
 void UCard_AttackEffect::Execute_Obstacle(ACharacterBase* Self, AObstacleBase* Obstacle)
 {
-	if (!Self || !Obstacle || DamageAmount < 0) return;
+	if (!Self || !Obstacle || DamageMultiplier < 0) return;
 
 	// TODO: de momento el daño es el base de la carta, sin CalculateDamage (Debilidad, etc.), como ya pasaba con ApplyDamage
-	Obstacle->ApplyDamage(DamageAmount);
+	Obstacle->ApplyDamage(UEgnisCombatLibrary::GetAttackPower(Self) * DamageMultiplier);
 
 	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>())
 		AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);

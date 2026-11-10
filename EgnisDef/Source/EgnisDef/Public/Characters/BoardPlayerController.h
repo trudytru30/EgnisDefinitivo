@@ -18,6 +18,7 @@ class UBattleManager;
 class UDeckManager;
 class UBattleSceneManager;
 class UDeployManager;
+struct FTileCoord;
 
 #pragma region Enums
 UENUM(BlueprintType)
@@ -78,6 +79,18 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Battle|Turn")
     void RequestEndTurn();
+
+    UFUNCTION(BlueprintCallable, Category="UI")
+    void CloseMenu();
+
+    UFUNCTION(BlueprintPure, Category="Battle|Move")
+    bool CanUnitMoveThisTurn(ACharacterBase* Unit) const;
+
+    UFUNCTION(BlueprintCallable, Category="Battle|Move")
+    bool RequestUnitMove(ACharacterBase* Unit, const FTileCoord& TargetTile);
+
+    UFUNCTION(BlueprintCallable, Category="Selection")
+    void SelectDraggedAlly(ACharacterBase* Unit);
 
     UFUNCTION(BlueprintCallable, Category="Battle|Cards")
     void BeginPlayCard(UBaseCard* Card);
@@ -167,6 +180,9 @@ protected:
     void BP_OnKeyboardAllySelected(ACharacterBase* Ally);
 #pragma endregion
 
+    UPROPERTY(EditDefaultsOnly, Category="UI")
+    TSubclassOf<class UUserWidget> PauseMenuClass;
+
     UPROPERTY(EditDefaultsOnly, Category="Click|Trace")
     TEnumAsByte<ECollisionChannel> UnitTraceChannel = ECC_GameTraceChannel1;
 
@@ -194,6 +210,10 @@ private:
     TObjectPtr<UDeployManager> DPM = nullptr;
 
     bool bIsInMenu = false;
+    bool bCombatSelectionStarted = false;
+
+    UPROPERTY()
+    TObjectPtr<class UUserWidget> PauseMenuWidget = nullptr;
 
     TWeakObjectPtr<UInteractableComponent> HoveredInteractable;
     void UpdateHoveredInteractable();
@@ -211,8 +231,9 @@ private:
 
 #pragma region Functions
     void OpenMenu();
-    void CloseMenu();
     void HandleMenu();
+    void AutoSelectAlly(ACharacterBase* Ally);
+    void EnsureAllySelected();
     
     // Funciones principales de Input
     void HandleLeftClick();

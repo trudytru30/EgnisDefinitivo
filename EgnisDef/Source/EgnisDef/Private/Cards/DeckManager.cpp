@@ -45,7 +45,9 @@ void UDeckManager::InitializeDeck()
 	DiscardedPile.Empty();
 	Hand.Empty();
 	ConsumedPile.Empty();
+	KeptCards.Empty();
 	ClearSelectionState();
+	
 
 	ShuffleDeck();
 }
@@ -102,6 +104,36 @@ void UDeckManager::DrawCardAmount(int32 Amount)
 }
 
 // Descartar cartas de la mano a la pila de descarte
+void UDeckManager::AddCardToHand(UBaseCard* Card)
+{
+	if (!Card)
+	{
+		return;
+	}
+
+	if (Hand.Num() >= GetMaxHandSize())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: Mano llena, %s va al descarte"), *Card->GetName());
+		DiscardedPile.Add(Card);
+		return;
+	}
+
+	Hand.Add(Card);
+	Card->NotifyHandEnter(nullptr);
+	OnHandChanged.Broadcast();
+}
+
+bool UDeckManager::ReturnCardFromDiscardToHand(UBaseCard* Card)
+{
+	if (!Card || DiscardedPile.RemoveSingle(Card) == 0)
+	{
+		return false;
+	}
+
+	AddCardToHand(Card);
+	return true;
+}
+
 void UDeckManager::DiscardCardFromHand(UBaseCard* Card)
 {
 	if (Hand.Contains(Card))
@@ -113,6 +145,7 @@ void UDeckManager::DiscardCardFromHand(UBaseCard* Card)
 		}
 
 		Hand.Remove(Card);
+		KeptCards.RemoveSingle(Card);
 		DiscardedPile.Add(Card);
 		OnHandChanged.Broadcast();
 	}
@@ -163,9 +196,37 @@ void UDeckManager::ConsumeCard(UBaseCard* Card)
 	}
 	DrawPile.RemoveSingle(Card);
 	DiscardedPile.RemoveSingle(Card);
+	KeptCards.RemoveSingle(Card);
 
 	ConsumedPile.Add(Card);
 	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta consumida: %s (consumidas: %d)"), *Card->GetName(), ConsumedPile.Num());
+	OnHandChanged.Broadcast();
+}
+
+// Guardar: la carta se marca como guardada. Sigue en la mano (visible y jugable este turno), pero al terminar
+// el turno no se descarta y pasa a la mano del siguiente
+void UDeckManager::KeepCard(UBaseCard* Card)
+{
+	if (!Card || KeptCards.Contains(Card) || !Hand.Contains(Card))
+	{
+		return;
+	}
+
+	KeptCards.Add(Card);
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta guardada: %s (guardadas: %d)"), *Card->GetName(), KeptCards.Num());
+	OnHandChanged.Broadcast(); // para que la UI refresque la marca
+}
+
+// Las guardadas ya han pasado el descarte de fin de turno: vuelven a ser cartas normales
+void UDeckManager::ClearKeptCards()
+{
+	if (KeptCards.Num() == 0)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %d cartas guardadas pasan a ser normales"), KeptCards.Num());
+	KeptCards.Empty();
 	OnHandChanged.Broadcast();
 }
 
@@ -177,20 +238,30 @@ void UDeckManager::ResetDeck()
 	DiscardedPile.Empty();
 	Hand.Empty();
 	ConsumedPile.Empty();
+	KeptCards.Empty();
 	ClearSelectionState();
 }
 
 void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay)
 {
-	for (UBaseCard* Card : Deck)
+	// Referencia para poder cambiar la carta de su sitio en el mazo
+	for (UBaseCard*& Card : Deck)
 	{
-		// IsCardArchetypeAvailable ya da por disponible el color Grey, asi que esas cartas no se tocan
 		if (Card && !IsCardArchetypeAvailable(Card, CharactersInPlay))
 		{
+			const UBaseCard* Converted = Card->GetConvertedCard();
+			if (!Converted)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: %s (culto %s) sin personaje de su culto"
+								 " y sin ConvertedCard, se queda como esta"),
+					*Card->GetName(), *Card->GetCult().ToString());
+				continue;
+			}
+
 			UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %s (culto %s) sin personaje de su culto,"
-							 " pasa a carta comun en este combate"),
-				*Card->GetName(), *Card->GetCult().ToString());
-			Card->SetCult(FGameplayTag());
+							 " se convierte en %s en este combate"),
+				*Card->GetName(), *Card->GetCult().ToString(), *Converted->GetName());
+			Card = DuplicateObject<UBaseCard>(Converted, this);
 		}
 	}
 }

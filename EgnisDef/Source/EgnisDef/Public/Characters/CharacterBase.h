@@ -67,6 +67,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid")
 	FTileCoord CurrentTile;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Grid")
+	FTileCoord PreviousTile;
+
+	TWeakObjectPtr<AActor> LastDamageInstigator;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid")
 	bool bSnapToTileOnBeginPlay = true;
 

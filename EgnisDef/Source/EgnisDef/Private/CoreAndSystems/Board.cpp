@@ -7,6 +7,10 @@
 #include "Engine/CollisionProfile.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
+#include "CoreAndSystems/CombatLibrary.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "TimerManager.h"
 
 void ABoard::GenerateBoard()
 {
@@ -218,6 +222,7 @@ void ABoard::ClearGeneratedBoard()
 	SpawnedEnemies.Empty();
 
 	TileTypes.Empty();
+	FireTiles.Empty();
 }
 
 void ABoard::SyncSizeFromLevelData()
@@ -372,6 +377,7 @@ bool ABoard::RegisterOccupant(const FTileCoord& Tile, AActor* Occupant)
 		return false;
 	}
 	OccupiedBy.Add(Tile, Occupant);
+	QueueBoardChanged();
 	return true;
 }
 
@@ -387,8 +393,27 @@ void ABoard::UnregisterOccupant(const FTileCoord& Tile, AActor* Occupant)
 		if (Found->Get() == Occupant)
 		{
 			OccupiedBy.Remove(Tile);
+			QueueBoardChanged();
 		}
 	}
+}
+
+void ABoard::QueueBoardChanged()
+{
+	UWorld* World = GetWorld();
+	if (bBoardChangedQueued || !World || !World->IsGameWorld())
+	{
+		return;
+	}
+
+	bBoardChangedQueued = true;
+	World->GetTimerManager().SetTimerForNextTick(this, &ABoard::BroadcastBoardChanged);
+}
+
+void ABoard::BroadcastBoardChanged()
+{
+	bBoardChangedQueued = false;
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Board_Changed);
 }
 
 void ABoard::GetNeighbors4_Free(const FTileCoord& From, TArray<FTileCoord>& OutNeighbors) const
@@ -430,6 +455,7 @@ void ABoard::SetTileOccupant(const FTileCoord& Tile, AActor* Occupant)
 	{
 		OccupiedBy.Remove(Tile);
 	}
+	QueueBoardChanged();
 }
 
 void ABoard::GetTilesInRange(const FTileCoord& From, int32 Range, TArray<FTileCoord>& OutTiles) const
@@ -478,4 +504,70 @@ void ABoard::BeginPlay()
 void ABoard::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void ABoard::AddFireTile(const FTileCoord& Tile, int32 Turns, float Damage)
+{
+	if (!IsInside(Tile) || Turns <= 0) return;
+
+	FFireTile Fire;
+	Fire.Tile = Tile;
+	Fire.TurnsLeft = Turns + 1; // el turno en el que se crea no cuenta
+	Fire.Damage = Damage;
+	FireTiles.Add(Tile, Fire);
+
+	UE_LOG(LogTemp, Log, TEXT("[Board]: casilla (%d,%d) en llamas (%d turnos, daño %.0f)"), Tile.X, Tile.Y, Turns, Damage);
+	OnFireTilesChanged.Broadcast();
+
+	// Si ya hay alguien encima cuando aparece el fuego, también se quema
+	if (ACharacterBase* Occupant = Cast<ACharacterBase>(GetTileOccupant(Tile)))
+	{
+		const FString Name = Occupant->GetName();
+		const float HealthBefore = Occupant->GetCurrentHealth();
+		UEgnisCombatLibrary::ApplyPureDamage(Occupant, Damage);
+		// Si murió, el actor ya está destruido: solo uso el nombre guardado
+		UE_LOG(LogTemp, Log, TEXT("[Fire] %s estaba en (%d,%d) cuando apareció el fuego: daño puro %.0f, vida %.0f -> %.0f%s"),
+			*Name, Tile.X, Tile.Y, Damage, HealthBefore,
+			IsValid(Occupant) ? Occupant->GetCurrentHealth() : 0.f,
+			IsValid(Occupant) ? TEXT("") : TEXT(" (MUERTO)"));
+	}
+}
+
+bool ABoard::IsTileOnFire(const FTileCoord& Tile) const
+{
+	return FireTiles.Contains(Tile);
+}
+
+bool ABoard::GetFireTile(const FTileCoord& Tile, FFireTile& OutFire) const
+{
+	if (const FFireTile* Found = FireTiles.Find(Tile))
+	{
+		OutFire = *Found;
+		return true;
+	}
+	return false;
+}
+
+TArray<FFireTile> ABoard::GetFireTiles() const
+{
+	TArray<FFireTile> Result;
+	FireTiles.GenerateValueArray(Result);
+	return Result;
+}
+
+void ABoard::AdvanceFireTiles()
+{
+	if (FireTiles.Num() == 0) return;
+
+	for (auto It = FireTiles.CreateIterator(); It; ++It)
+	{
+		It.Value().TurnsLeft--;
+		if (It.Value().TurnsLeft <= 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Board]: se apaga la casilla (%d,%d)"), It.Key().X, It.Key().Y);
+			It.RemoveCurrent();
+		}
+	}
+
+	OnFireTilesChanged.Broadcast();
 }

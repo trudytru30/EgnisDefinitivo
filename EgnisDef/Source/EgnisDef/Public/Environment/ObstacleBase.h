@@ -47,7 +47,11 @@ public:
 	float GetMaxHealth() const;
 
 	// TODO: movido de private a public (lo llama HealthAttributeSet cuando un efecto de GAS deja al obstaculo sin vida)
+	UFUNCTION(BlueprintCallable, Category="Obstacle")
 	void HandleDestroyed();
+
+	UPROPERTY(BlueprintReadOnly, Category="Obstacle")
+	TWeakObjectPtr<AActor> Creator;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid")
 	FTileCoord CurrentTile;

@@ -5,12 +5,14 @@
 #include "BattleManager.generated.h"
 
 class UAudioManager;
+class UCombatTimerSubsystem;
 class AAlly;
 struct FTileCoord;
 class UDeckManager;
 class UBaseCard;
 class ACharacterBase;
 class AEnemy;
+class ABoard;
 
 // Enumerador de los posibles turnos
 UENUM()
@@ -37,6 +39,9 @@ public:
 
 #pragma region Functions
 	void SetDeckManager(UDeckManager* InDeckManager);
+	// Tablero del combate. Se usa para apagar las casillas en llamas al empezar cada turno.
+	UPROPERTY()
+	TObjectPtr<ABoard> Board = nullptr;
 	void StartBattle();
 	void StartPlayerTurn();
 	void StartEnemyTurn();
@@ -46,6 +51,8 @@ public:
 	void EndBattle(bool bPlayerWon);
 	UFUNCTION(BlueprintCallable, Category="Battle|Player")
 	bool RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile);
+	UFUNCTION(BlueprintPure, Category="Battle|Player")
+	bool CanUnitMove(ACharacterBase* Unit) const;
 	// Getters
 	int32 GetTurnCount() const;
 	TArray<ACharacterBase*> GetCharactersOnField() const;
@@ -71,6 +78,11 @@ private:
 	float GetTeamHealthRatio() const;
 
 	void OnEnemyPhaseFinished();
+
+	UFUNCTION()
+	void HandleCombatTimeRemaining(float TimeRemaining, float TotalTime);
+
+	UCombatTimerSubsystem* GetCombatTimer() const;
 	
 #pragma region Private Variables
 	// ===== Managers =====

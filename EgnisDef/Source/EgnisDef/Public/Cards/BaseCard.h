@@ -27,10 +27,11 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Card")
 	FGameplayTag GetCult() const { return Cult; }
-
-	// Solo se usa sobre las copias del mazo de un combate (DeckManager::ConvertUnownedCardsToGrey), nunca sobre el asset.
-	void SetCult(const FGameplayTag& NewCult);
-
+	
+	// Carta en la que se convierte si ningun personaje en juego puede usarla.
+	UFUNCTION(BlueprintPure, Category="Card")
+	UBaseCard* GetConvertedCard() const { return ConvertedCard; }
+	
 	UFUNCTION(BlueprintPure, Category="Card")
 	bool CanBePlayedBy(const AAlly* Ally) const;
 
@@ -63,6 +64,11 @@ public:
 	// Acciones de las cartas
 	void Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location);
 
+	// Respuesta de Riposte: ejecuta solo los efectos contra enemigos de la carta, sobre Target.
+	void ExecuteAgainst(ACharacterBase* Self, ACharacterBase* Target);
+
+	bool HasDirectDamageEffect() const;
+	
 	//nuevo reunion: notificar a los efectos de esta carta que ha entrado/salido
 	// de la mano sin haberse jugado. DeckManager llama a esto en DrawCard/DiscardCardFromHand.
 	void NotifyHandEnter(ACharacterBase* Owner);
@@ -86,6 +92,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card", meta=(Categories="Cult"))
 	FGameplayTag Cult;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
+	TObjectPtr<UBaseCard> ConvertedCard;
 
 	UPROPERTY()
 	EColorType Color_DEPRECATED = EColorType::Grey;

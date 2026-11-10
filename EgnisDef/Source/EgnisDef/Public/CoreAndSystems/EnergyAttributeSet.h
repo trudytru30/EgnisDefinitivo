@@ -26,6 +26,10 @@ public:
 	FGameplayAttributeData MaxEnergy;
 	ATTRIBUTE_ACCESSORS(UEnergyAttributeSet, MaxEnergy)
 
+	UPROPERTY(BlueprintReadOnly, Category = "Energy")
+	FGameplayAttributeData SecondWindEnergy;
+	ATTRIBUTE_ACCESSORS(UEnergyAttributeSet, SecondWindEnergy)
+
 protected:
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 };

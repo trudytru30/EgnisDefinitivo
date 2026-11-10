@@ -3,6 +3,8 @@
 #include "CoreAndSystems/Board.h"
 #include "Environment/ObstacleBase.h"
 #include "Engine/World.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 UCard_CreateEffect::UCard_CreateEffect()
 {
@@ -59,7 +61,9 @@ void UCard_CreateEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 	Obstacle->CurrentTile = Tile;
 	Obstacle->bDestructible = true; // si no, ApplyDamage lo ignoraria
 	Obstacle->InitialHealth = Health;
+	Obstacle->Creator = Self;
 	Obstacle->FinishSpawning(SpawnTransform);
+	UEgnisAbilityLibrary::SendEvent(Self, TAG_Event_Obstacle_Created, Self, Obstacle, 0.f, nullptr, FGameplayTagContainer());
 
 	UE_LOG(LogTemp, Log, TEXT("CreateEffect: %s (piedad %.1f x %.1f) crea %s en (%d, %d) con %.1f de vida."),
 		*Ally->GetName(), Ally->GetCharacterPiety(), PietyMultiplier, *ObstacleClass->GetName(), Tile.X, Tile.Y,

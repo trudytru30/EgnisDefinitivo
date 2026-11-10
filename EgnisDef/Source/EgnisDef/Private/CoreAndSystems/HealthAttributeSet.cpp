@@ -2,6 +2,9 @@
 #include "GameplayEffectExtension.h" // Trae la definición completa de FGameplayEffectModCallbackData
 #include "Characters/CharacterBase.h" // Para poder llamar a HandleDeath()
 #include "Environment/ObstacleBase.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/CombatLibrary.h"
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -36,6 +39,15 @@ bool UHealthAttributeSet::PreGameplayEffectExecute(FGameplayEffectModCallbackDat
 	if (!Super::PreGameplayEffectExecute(Data))
 	{
 		return false;
+	}
+	
+	// Espinas: se guarda el daño tal como llega, antes de que el escudo se coma parte
+	IncomingDamage = 0.f;
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute()
+		&& Data.EvaluatedData.ModifierOp == EGameplayModOp::Additive
+		&& Data.EvaluatedData.Magnitude < 0.f)
+	{
+		IncomingDamage = -Data.EvaluatedData.Magnitude;
 	}
 
 	// Solo el daño: un GE "Add" sobre Health con magnitud negativa (es como lo aplica
@@ -91,6 +103,44 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		return;
 	}
 
+	// Ira irrefrenable: un golpe absorbido por el escudo tambien cuenta como "hacer daño"
+	if (IncomingDamage > 0.f)
+	{
+		AActor* Hitter = Data.EffectSpec.GetContext().GetOriginalInstigator();
+		if (Hitter && Hitter != OwnerCharacter)
+		{
+			OwnerCharacter->LastDamageInstigator = Hitter;
+		}
+	}
+	
+	if (Data.EvaluatedData.Magnitude < 0.f)
+	{
+		AActor* DamageInstigator = Data.EffectSpec.GetContext().GetOriginalInstigator();
+		if (DamageInstigator == OwnerCharacter)
+		{
+			DamageInstigator = nullptr;
+		}
+
+		const float DamageAmount = -Data.EvaluatedData.Magnitude;
+		if (DamageInstigator)
+		{
+			OwnerCharacter->LastDamageInstigator = DamageInstigator;
+		}
+		UEgnisAbilityLibrary::SendEvent(OwnerCharacter, TAG_Event_Damage_Taken, DamageInstigator, OwnerCharacter, DamageAmount, nullptr, FGameplayTagContainer());
+		UEgnisAbilityLibrary::SendEvent(DamageInstigator, TAG_Event_Damage_Dealt, DamageInstigator, OwnerCharacter, DamageAmount, nullptr, FGameplayTagContainer());
+	}
+	
+	// Espinas: cuanto reflejaria el objetivo. Se calcula ya, con el objetivo todavia vivo, y se aplica al final
+	ACharacterBase* ThornsAttacker = Cast<ACharacterBase>(Data.EffectSpec.GetContext().GetOriginalInstigator());
+	float ThornsDamage = 0.f;
+	if (ThornsAttacker && ThornsAttacker != OwnerCharacter)
+	{
+		ThornsDamage = UEgnisCombatLibrary::GetThornsDamage(OwnerCharacter, IncomingDamage);
+	}
+	// Riposte: se guarda ya si esto fue un golpe (aunque el escudo lo absorba)
+	const bool bWasHit = IncomingDamage > 0.f;
+	IncomingDamage = 0.f;
+
 	// Equivalente exacto a la comprobación "HealthComp->GetCurrentHealth() <= 0" que había
 	// en LossHealth(). GetHealth() ya lee el CurrentValue post-clamp gracias a PreAttributeChange.
 	if (GetHealth() <= 0.f)
@@ -98,5 +148,15 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		// Reutiliza HandleDeath() tal cual — la guarda bDeathHandled ya evita que se ejecute
 		// dos veces si el camino viejo (LossHealth) también llegó a dispararla.
 		OwnerCharacter->HandleDeath();
+	}
+	
+	// Espinas: lo ultimo, para que tambien refleje si el golpe mata al objetivo.
+	// ApplyPureDamage ignora atacantes no validos y cantidades 0, y al no pasar por un GE no vuelve a reflejar.
+	UEgnisCombatLibrary::ApplyPureDamage(ThornsAttacker, ThornsDamage);
+	
+	// Riposte: lo ultimo, para que Espinas se resuelva antes (si Espinas mata al atacante, no hay respuesta)
+	if (bWasHit)
+	{
+		UEgnisCombatLibrary::TryRiposte(OwnerCharacter, ThornsAttacker);
 	}
 }

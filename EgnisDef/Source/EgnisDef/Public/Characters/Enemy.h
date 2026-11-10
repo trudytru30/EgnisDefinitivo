@@ -25,7 +25,10 @@ enum class EEnemyActionType : uint8
 	HalveHealth,
 	Bleed,
 	Taunt,
-	LoseShield
+	LoseShield,
+	Summon,//Daewa invoca (target = el invocado, Amount = vida que le cuesta)
+	LineAttackWarning,//Daewa avisa del ataque (Amount = nº de casilla)
+	LineAttack//Daewa lanza el ataque (Amount = daño total)
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnEnemyActionDone, AEnemy*, Enemy, EEnemyActionType, Action, ACharacterBase*, Target, float, Amount);
@@ -114,7 +117,7 @@ public:
 	void AddDamageBuff(float Percent, int32 Turns, bool bAppliedDuringOwnTurn);
 
 	//Lo llama el AIController al terminar el turno de este enemigo
-	void OnOwnTurnFinished();	
+	virtual void OnOwnTurnFinished();	
 
 
 	//Orden en el turno enemigo: los numeros mas bajos actuan antes (empate = orden de aparicion)
@@ -153,10 +156,10 @@ public:
 
 	
 	UFUNCTION(BlueprintCallable, Category ="Enemy|AI")
-	void MoveTowardClosesPlayer();
+	virtual void MoveTowardClosesPlayer();
 
 	UFUNCTION(BlueprintCallable, Category ="Enemy|AI")
-	void MakeAction();
+	virtual void MakeAction();
 
 	UFUNCTION(BlueprintCallable,Category = "Enemy|Actions")
 	const UActionDataAsset* GetActionById(EActionId ActionId) const;

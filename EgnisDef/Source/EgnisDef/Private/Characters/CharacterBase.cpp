@@ -3,6 +3,10 @@
 #include "Kismet/GameplayStatics.h" // Para localizar el Board en el nivel
 #include "AbilitySystemComponent.h" // Necesario para CreateDefaultSubobject<UAbilitySystemComponent>
 #include "Components/StatusEffectComponent.h"
+#include "CoreAndSystems/Board.h"
+#include "CoreAndSystems/CombatLibrary.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -89,6 +93,10 @@ void ACharacterBase::HandleDeath()
 	}
 	bDeathHandled = true;
 
+	AActor* Killer = LastDamageInstigator.Get();
+	UEgnisAbilityLibrary::SendEvent(Killer, TAG_Event_Unit_Killed, Killer, this, 0.f, nullptr, FGameplayTagContainer());
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Unit_Died, Killer, this, 0.f, this);
+
 	if (Board)
 	{
 		Board->UnregisterOccupant(CurrentTile, this);
@@ -120,7 +128,35 @@ bool ACharacterBase::SetCurrentTile(const FTileCoord& NewTile)
 		return false;
 	}
 
+	const FTileCoord LeftTile = CurrentTile;
+	PreviousTile = LeftTile;
 	CurrentTile = NewTile;
+
+	const int32 Distance = FMath::Max(FMath::Abs(NewTile.X - LeftTile.X), FMath::Abs(NewTile.Y - LeftTile.Y));
+	UEgnisAbilityLibrary::SendEvent(this, TAG_Event_Unit_Moved, this, nullptr, Distance, nullptr, FGameplayTagContainer());
+
+	// Rastro de la Quemadura: si esta quemado, deja en llamas la casilla que acaba de dejar
+	if (StatusComp && StatusComp->HasStatus(EStatusType::Status_Burn))
+	{
+		Board->AddFireTile(LeftTile, StatusComp->BurnTrailTurns, StatusComp->BurnTrailDamage);
+		UE_LOG(LogTemp, Log, TEXT("[Fire] %s (quemado) deja rastro en (%d,%d): %d turnos, %.0f de daño"),
+			*GetName(), LeftTile.X, LeftTile.Y, StatusComp->BurnTrailTurns, StatusComp->BurnTrailDamage);
+	}
+
+	// Pisar una casilla en llamas: daño puro. Puede matar y destruir a este personaje,
+	// por eso va lo ultimo y quien llame a SetCurrentTile debe comprobar IsValid despues.
+	FFireTile Fire;
+	if (Board->GetFireTile(NewTile, Fire))
+	{
+		const float HealthBefore = GetCurrentHealth();
+		UEgnisCombatLibrary::ApplyPureDamage(this, Fire.Damage);
+		// Ojo: si murió, 'this' ya está destruido (HandleDeath → Destroy). Por eso solo uso el nombre guardado antes.
+		UE_LOG(LogTemp, Log, TEXT("[Fire] %s pisa casilla en llamas (%d,%d): daño puro %.0f, vida %.0f -> %.0f%s"),
+			*GetName(), NewTile.X, NewTile.Y, Fire.Damage, HealthBefore,
+			IsValid(this) ? GetCurrentHealth() : 0.f,
+			IsValid(this) ? TEXT("") : TEXT(" (MUERTO)"));
+	}
+	
 	return true;
 }
 void ACharacterBase::SnapToCurrentTile(bool bKeepCurrentZ)

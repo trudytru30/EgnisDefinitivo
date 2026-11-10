@@ -30,6 +30,8 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 
 	int32 HitCount = 0;
 	
+	const float BaseDamage = UEgnisCombatLibrary::GetAttackPower(Self) * DamageMultiplier;
+	
 	for (const FTileCoord& Tile : AreaTiles)
 	{
 		AActor* Occupant = Self->Board->GetTileOccupant(Tile);
@@ -46,11 +48,12 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 				if (TargetASC && DamageEffect)
 				{
 					FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+					Context.AddInstigator(Self, Self);
 					FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
 					if (Spec.IsValid())
 					{
 						Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
-							-UEgnisCombatLibrary::CalculateDamage(Self, Character, DamageAmount));
+							-UEgnisCombatLibrary::CalculateDamage(Self, Character, BaseDamage));
 						TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 					}
 				}
@@ -61,7 +64,7 @@ void UCard_AreaDamageEffect::Execute_Tile(ACharacterBase* Self, FVector Location
 
 		if (AObstacleBase* Obstacle = Cast<AObstacleBase>(Occupant))
 		{
-			Obstacle->ApplyDamage(DamageAmount);
+			Obstacle->ApplyDamage(BaseDamage);
 			HitCount++;
 		}
 	}

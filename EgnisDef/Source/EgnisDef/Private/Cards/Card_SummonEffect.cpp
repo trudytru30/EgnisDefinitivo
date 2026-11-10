@@ -1,21 +1,25 @@
 #include "Cards/Card_SummonEffect.h"
-#include "Characters/SummonUnit.h"
+#include "Characters/Ally.h"
 #include "Characters/HeroDataAsset.h"
 #include "CoreAndSystems/Board.h"
 #include "CoreAndSystems/BattleManager.h"
 #include "CoreAndSystems/BattleSceneManager.h"
 #include "CoreAndSystems/GameManager.h"
 #include "Engine/World.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 UCard_SummonEffect::UCard_SummonEffect()
 {
+	// Necesita que el jugador elija la casilla
 	Target = ECardTarget::Tile;
 }
 
 void UCard_SummonEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 {
 	Super::Execute_Tile(Self, Location);
-	
+
+	// La piedad solo la tienen los aliados
 	const AAlly* Caster = Cast<AAlly>(Self);
 	if (!Caster || !Self->Board)
 	{
@@ -47,7 +51,7 @@ void UCard_SummonEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 	// Spawn diferido, igual que DeployManager: tablero, casilla, datos y vida se ponen ANTES del BeginPlay,
 	// que es donde se inicializa desde el DataAsset y se registra en el tablero
 	const FTransform SpawnTransform(FRotator::ZeroRotator, Board->TileToWorldCenter(Tile));
-	ASummonUnit* Summon = Self->GetWorld()->SpawnActorDeferred<ASummonUnit>(SummonClass, SpawnTransform, nullptr, nullptr,
+	AAlly* Summon = Self->GetWorld()->SpawnActorDeferred<AAlly>(SummonClass, SpawnTransform, nullptr, nullptr,
 		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 	if (!Summon)
 	{
@@ -59,6 +63,8 @@ void UCard_SummonEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 	Summon->Board = Board;
 	Summon->CurrentTile = Tile;
 	Summon->HeroAsset = SummonData;
+	Summon->bIsSummon = true;
+	Summon->SummonOwner = Self;
 	Summon->HealthOverride = Health;
 	Summon->SetSummoningSick(bSummonCooldown);
 	Summon->FinishSpawning(FTransform(FRotator::ZeroRotator, Summon->GetStandLocationForTile(Tile)));
@@ -81,6 +87,8 @@ void UCard_SummonEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
 		UE_LOG(LogTemp, Warning, TEXT("SummonEffect: no se encontro el BattleManager, la invocacion no cuenta en el combate."));
 	}
 
+	UEgnisAbilityLibrary::SendEvent(Self, TAG_Event_Summon_Created, Self, Summon, 0.f, nullptr, FGameplayTagContainer());
+
 	UE_LOG(LogTemp, Log, TEXT("SummonEffect: %s (piedad %.1f x %.1f) invoca %s en (%d, %d) con %.1f de vida, mareo de invocacion: %s"),
 		*Caster->GetName(), Caster->GetCharacterPiety(), PietyMultiplier, *Summon->GetName(), Tile.X, Tile.Y,
 		Summon->GetMaxHealth(), bSummonCooldown ? TEXT("si") : TEXT("no"));
@@ -92,7 +100,8 @@ bool UCard_SummonEffect::CanTargetTile(const ACharacterBase* Self, const FTileCo
 	{
 		return false;
 	}
-	
+
+	// IsTileOccupied tambien cuenta como ocupadas las casillas fuera del tablero y las Void
 	if (Self->Board->IsTileOccupied(Tile))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SummonEffect: la casilla (%d, %d) no esta libre, elige otra."), Tile.X, Tile.Y);

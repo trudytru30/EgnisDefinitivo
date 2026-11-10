@@ -127,7 +127,10 @@ void UEnemyTurnDirector::ProcessNextEnemy()
 	//enemigo sin bt
 	UE_LOG(LogTemp, Log, TEXT("[EnemyTurn] %s actua con el comportamiento antiguo."), *Enemy->GetName());
 	Enemy->MoveTowardClosesPlayer();
-	Enemy->MakeAction();
+	if (IsValid(Enemy))
+	{
+		Enemy->MakeAction();
+	}
 	OnEnemyDone();
 }
 

@@ -72,7 +72,7 @@ namespace
 
 	//Comprueba que el comando tiene las palabras que necesita
 	//si no, enseña cómo se usa
-	bool HasArgs(const TArray<FString>& Args, int32 Count, const TCHAR* Usage)
+	bool HasRunArgs(const TArray<FString>& Args, int32 Count, const TCHAR* Usage)
 	{
 		if (Args.Num() >= Count) return true;
 		UE_LOG(LogEgnisRunCmd, Warning, TEXT("[Run] Uso: %s"), Usage);
@@ -140,7 +140,7 @@ namespace
 		TEXT("Termina la run. Uso: Egnis.Run.End 1 (victoria) / Egnis.Run.End 0 (derrota)"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.End <1|0>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.End <1|0>"))) return;
 			Run.EndRun(FCString::Atoi(*Args[0]) != 0);
 		}));
 
@@ -151,7 +151,7 @@ namespace
 		TEXT("Anade un heroe a la caravana. Uso: Egnis.Run.AddHero DA_Tothum"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.AddHero <Heroe>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.AddHero <Heroe>"))) return;
 			if (UHeroDataAsset* Hero = FindRunAssetByName<UHeroDataAsset>(Args[0]))
 			{
 				Run.AddHeroToRun(Hero, true);
@@ -163,7 +163,7 @@ namespace
 		TEXT("Pone una herida aleatoria a un heroe. Uso: Egnis.Run.Wound DA_Tothum"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.Wound <Heroe>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.Wound <Heroe>"))) return;
 			Run.AddRandomWound(FName(*Args[0]));
 		}));
 
@@ -172,7 +172,7 @@ namespace
 		TEXT("Cura la herida mas antigua de un heroe. Uso: Egnis.Run.Heal DA_Tothum"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.Heal <Heroe>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.Heal <Heroe>"))) return;
 			Run.HealOneWound(FName(*Args[0]));
 		}));
 
@@ -183,7 +183,7 @@ namespace
 		TEXT("Suma huesos. Uso: Egnis.Run.AddBones 500"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.AddBones <N>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.AddBones <N>"))) return;
 			Run.AddBones(FCString::Atoi(*Args[0]));
 		}));
 
@@ -192,7 +192,7 @@ namespace
 		TEXT("Gasta huesos. Uso: Egnis.Run.SpendBones 750"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.SpendBones <N>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.SpendBones <N>"))) return;
 			Run.SpendBones(FCString::Atoi(*Args[0]));
 		}));
 
@@ -219,7 +219,7 @@ namespace
 		TEXT("Mete una reliquia en la bolsa. Uso: Egnis.Run.AddRelic Rel_Boomerang"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.AddRelic <Reliquia>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.AddRelic <Reliquia>"))) return;
 			Run.AddRelic(FName(*Args[0]));
 		}));
 
@@ -228,7 +228,7 @@ namespace
 		TEXT("Equipa una reliquia de la bolsa a un heroe. Uso: Egnis.Run.Equip DA_Tothum Rel_Boomerang"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 2, TEXT("Egnis.Run.Equip <Heroe> <Reliquia>"))) return;
+			if (!HasRunArgs(Args, 2, TEXT("Egnis.Run.Equip <Heroe> <Reliquia>"))) return;
 			Run.EquipRelic(FName(*Args[0]), FName(*Args[1]));
 		}));
 
@@ -237,7 +237,7 @@ namespace
 		TEXT("Devuelve una reliquia del heroe a la bolsa. Uso: Egnis.Run.Unequip DA_Tothum Rel_Boomerang"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 2, TEXT("Egnis.Run.Unequip <Heroe> <Reliquia>"))) return;
+			if (!HasRunArgs(Args, 2, TEXT("Egnis.Run.Unequip <Heroe> <Reliquia>"))) return;
 			Run.UnequipRelic(FName(*Args[0]), FName(*Args[1]));
 		}));
 
@@ -248,7 +248,7 @@ namespace
 		TEXT("Anade una carta al mazo. Uso: Egnis.Run.AddCard DA_HealCard"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.AddCard <Carta>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.AddCard <Carta>"))) return;
 			if (UBaseCard* Card = FindRunAssetByName<UBaseCard>(Args[0]))
 			{
 				Run.AddCardToDeck(Card);
@@ -260,7 +260,7 @@ namespace
 		TEXT("Quita la carta de esa posicion del mazo (empieza en 0). Uso: Egnis.Run.RemoveCard 3"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.RemoveCard <Posicion>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.RemoveCard <Posicion>"))) return;
 			if (!Run.RemoveCardFromDeck(FCString::Atoi(*Args[0])))
 			{
 				UE_LOG(LogEgnisRunCmd, Warning, TEXT("[Run] No hay ninguna carta en la posicion %s."), *Args[0]);
@@ -272,7 +272,7 @@ namespace
 		TEXT("Mejora la carta de esa posicion del mazo (empieza en 0). Uso: Egnis.Run.Upgrade 0"),
 		RunCommand([](URunProgressionSubsystem& Run, const TArray<FString>& Args)
 		{
-			if (!HasArgs(Args, 1, TEXT("Egnis.Run.Upgrade <Posicion>"))) return;
+			if (!HasRunArgs(Args, 1, TEXT("Egnis.Run.Upgrade <Posicion>"))) return;
 			if (!Run.UpgradeCard(FCString::Atoi(*Args[0])))
 			{
 				UE_LOG(LogEgnisRunCmd, Warning, TEXT("[Run] No hay ninguna carta en la posicion %s."), *Args[0]);

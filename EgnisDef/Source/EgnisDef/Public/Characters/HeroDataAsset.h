@@ -9,6 +9,7 @@
 class AAlly;
 class UBaseCard;
 class UStaticMesh;
+class UGameplayAbility;
 
 UCLASS(BlueprintType)
 class EGNISDEF_API UHeroDataAsset : public UDataAsset
@@ -24,8 +25,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	EMovePattern MovePattern = EMovePattern::Straight_WBlock;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> UniqueAbility;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
 	FText HeroName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Info")
+	FText Alias;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Info", meta = (MultiLine = "true"))
+	FText Description;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals")
 	UTexture2D* SplashArt;
@@ -37,5 +47,7 @@ public:
 	UStaticMesh* CharacterModel;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals", meta = (ClampMin = "0.01"))
-	float ModelScale = 2.5f;
+	float ModelScale = 4.f;
+
+	
 };

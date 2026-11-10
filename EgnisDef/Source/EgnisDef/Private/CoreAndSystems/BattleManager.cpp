@@ -7,10 +7,13 @@
 #include "Characters/Enemy.h"
 #include "EngineUtils.h"
 #include "Components/GridMovementComponent.h"
-#include "CoreAndSystems/GameManager.h"
 #include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/CombatLibrary.h"
-#include "Characters/SummonUnit.h"
+#include "CoreAndSystems/Board.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/CombatCameraSubsystem.h"
+#include "CoreAndSystems/CombatTimerSubsystem.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 class AAlly;
 
@@ -32,6 +35,14 @@ void UBattleManager::StartBattle()
 		CharactersOnField.Add(*It);
 	}
 	
+	// Tablero (para las casillas en llamas)
+	Board = nullptr;
+	for (TActorIterator<ABoard> It(GetWorld()); It; ++It)
+	{
+		Board = *It;
+		break;
+	}
+	
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
 	
 	// Referencia para la salud del equipo (musica): vida maxima de los aliados al empezar
@@ -49,6 +60,24 @@ void UBattleManager::StartBattle()
 		AM->PlayTrigger(EEgnisAudioTrigger::CombatStart);
 		AM->SetTeamHealthRatio(GetTeamHealthRatio());
 	}
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ClearTimerPauses();
+		Timer->OnTimeRemainingChanged.AddUniqueDynamic(this, &UBattleManager::HandleCombatTimeRemaining);
+	}
+
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Battle_Start);
+
+	// Efectos de camara: reinicia y empieza a escuchar el daño de los aliados que ya estan en el campo
+	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+	{
+		Cam->BeginCombat();
+		for (ACharacterBase* Character : CharactersOnField)
+		{
+			Cam->WatchAlly(Character);
+		}
+	}
 	
 	StartPlayerTurn();
 }
@@ -58,8 +87,15 @@ void UBattleManager::StartPlayerTurn()
 {
 	if (bBattleIsOver) return;
 
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ResumeTimer(TEXT("EnemyTurn"));
+	}
+	
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
 	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
-	if (bBattleIsOver) return;
 	
 	// Robar mano al inicio del turno y establecer energia
 	for (ACharacterBase* Character : CharactersOnField)
@@ -74,9 +110,9 @@ void UBattleManager::StartPlayerTurn()
 		if (Character && Character->GetTeam() == 0)
 		{
 			Character->bHasMoved = false;
-			if (ASummonUnit* Summon = Cast<ASummonUnit>(Character))
+			if (AAlly* Ally = Cast<AAlly>(Character))
 			{
-				Summon->SetSummoningSick(false);
+				Ally->SetSummoningSick(false);
 			}
 		}
 	}
@@ -84,6 +120,8 @@ void UBattleManager::StartPlayerTurn()
 	if (DeckManager)
 	{
 		int32 NumCardsToDraw = DeckManager->GetInitialHandSize() - DeckManager->GetHand().Num();
+		NumCardsToDraw += DeckManager->GetKeptCount();
+		
 		if (NumCardsToDraw <= 0){
 			UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Hand is already full. No cards drawn."));
 		}
@@ -92,6 +130,7 @@ void UBattleManager::StartPlayerTurn()
 			DeckManager->DrawCardAmount(NumCardsToDraw);
 			UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Drawn %d cards"), DeckManager->GetHand().Num());
 		}
+		DeckManager->ClearKeptCards();
 	}
 
 	OnPlayerTurnStarted.Broadcast();
@@ -107,9 +146,16 @@ void UBattleManager::StartEnemyTurn()
 {
 	if (bBattleIsOver) return;
 
-	NotifyTeamTurnStart(1);
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->PauseTimer(TEXT("EnemyTurn"));
+	}
 
-	if (bBattleIsOver) return;
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
+	NotifyTeamTurnStart(1);
+	
 	
 	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
 		AM->PlayTrigger(EEgnisAudioTrigger::EnemyTurnStart);
@@ -161,6 +207,7 @@ void UBattleManager::EndTurn()
 				const TArray<UBaseCard*> HandCopy = DeckManager->GetHand();
 				for (UBaseCard* Card : HandCopy)
 				{
+					if (DeckManager->IsCardKept(Card)) continue;
 					DeckManager->DiscardCardFromHand(Card);
 				}
 			}
@@ -179,8 +226,7 @@ void UBattleManager::EndTurn()
 }
 
 // Comprobar si el player puede jugar una carta (es decir, que sea su turno y tenga energia)
-bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
-	ACharacterBase* TargetCharacter, FVector Location)
+bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location)
 {
 	if (!Character || !Character->EnergyAttributeSet)
 	{
@@ -208,6 +254,14 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 	
+	// Ira irrefrenable: solo puede jugar cartas de ataque
+	if (!UEgnisCombatLibrary::CanPlayCardUnderRage(Card, Character))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: %s esta en Ira irrefrenable y %s no tiene efecto de ataque, no se puede jugar"),
+			*Character->GetName(), *Card->GetName());
+		return false;
+	}
+	
 	if (!UEgnisCombatLibrary::IsCardTargetInRange(Card, Character, TargetCharacter, Location))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Target out of range for card %s (caster %s)"),
@@ -215,7 +269,9 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		return false;
 	}
 	
-	if (Character->GetCurrentEnergy() < Card->GetCost())
+	const int32 Cost = UEgnisCombatLibrary::GetEffectiveCost(Card, Character);
+	const bool bNormalCost = Cost == Card->GetCost();
+	if (bNormalCost ? !Character->CanPayCardCost(Card) : Character->GetCurrentEnergy() < Cost)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
@@ -226,10 +282,28 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character,
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
-	Character->LossPoints(Card->GetCost());
+	if (bNormalCost)
+	{
+		Character->PayCardCost(Card);
+	}
+	else
+	{
+		Character->LossPoints(Cost);
+	}
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
 	Card->Execute(DeckManager, Character, TargetCharacter, Location);
+
+	if (IsValid(Character))
+	{
+		FGameplayTagContainer CardTags;
+		if (Card->GetCult().IsValid())
+		{
+			CardTags.AddTag(Card->GetCult());
+		}
+		UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Card_Played, Character, TargetCharacter, Card->GetCost(), Card, CardTags);
+	}
+
 	UpdateUnitsAlive();
 
 	return true;
@@ -275,10 +349,37 @@ void UBattleManager::UpdateUnitsAlive()
 		EndBattle(true);
 }
 
+UCombatTimerSubsystem* UBattleManager::GetCombatTimer() const
+{
+	const UWorld* World = GetWorld();
+	const UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<UCombatTimerSubsystem>() : nullptr;
+}
+
+void UBattleManager::HandleCombatTimeRemaining(float TimeRemaining, float TotalTime)
+{
+	if (TimeRemaining <= 0.f && !bBattleIsOver)
+	{
+		EndBattle(false);
+	}
+}
+
 // Fin del combate
 void UBattleManager::EndBattle(bool bPlayerWon)
 {
 	bBattleIsOver = true;
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ClearTimerPauses();
+		Timer->OnTimeRemainingChanged.RemoveDynamic(this, &UBattleManager::HandleCombatTimeRemaining);
+	}
+	
+	// Efectos de camara: para el balanceo y deja de escuchar el daño
+	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+	{
+		Cam->EndCombat();
+	}
 
 	if (EnemyTurnDirector)
 	{
@@ -302,15 +403,16 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
-// Pedir movimiento
-bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+// TODO: estas comprobaciones estaban dentro de RequestMove y se han movido aqui (como en la version de tu compañero),
+// para que BoardPlayerController::CanUnitMoveThisTurn las pueda consultar sin mover la unidad
+bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 {
-	if (!Unit)
+	if (!IsValid(Unit))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit is null"));
 		return false;
 	}
-	if (!IsPlayerTurn())
+	if (bBattleIsOver || !IsPlayerTurn())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Not player turn"));
 		return false;
@@ -338,6 +440,17 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 		return false;
 	}
 
+	return true;
+}
+
+// Pedir movimiento
+bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+{
+	if (!CanUnitMove(Unit))
+	{
+		return false;
+	}
+
 	UGridMovementComponent* MoveComp = Unit->FindComponentByClass<UGridMovementComponent>();
 	if (!MoveComp)
 	{
@@ -359,7 +472,11 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 		return false;
 	}
 
-	Unit->SnapToCurrentTile(false);
+	if (!IsValid(Unit))
+	{
+		return false;
+	}
+
 	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
 		AM->PlayTrigger(EEgnisAudioTrigger::AllyMove, nullptr, Unit);
 	Unit->bHasMoved = true;
@@ -420,6 +537,11 @@ void UBattleManager::NotifyTeamTurnStart(int32 Team)
 		{
 			Character->StatusComp->OnOwnerTurnStart();
 		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_Start, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
+		}
 	}
 	
 	UpdateUnitsAlive();
@@ -434,6 +556,11 @@ void UBattleManager::NotifyTeamTurnEnd(int32 Team)
 		{
 			Character->StatusComp->OnOwnerTurnEnd();
 		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_End, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
+		}
 	}
 }
 
@@ -442,5 +569,11 @@ void UBattleManager::RegisterUnit(ACharacterBase* Unit)
 	if (IsValid(Unit))
 	{
 		CharactersOnField.AddUnique(Unit);
+
+		// Efectos de camara: las unidades nuevas (invocaciones) tambien sacuden la camara al recibir daño
+		if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+		{
+			Cam->WatchAlly(Unit);
+		}
 	}
 }

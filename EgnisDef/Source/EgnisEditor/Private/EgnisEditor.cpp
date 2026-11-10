@@ -3,6 +3,7 @@
 #include "PropertyEditorModule.h"
 #include "LevelDataAssetCustomization.h"
 #include "CoreAndSystems/LevelDataAsset.h"
+#include "HeroClassesImporter.h"
 
 #define LOCTEXT_NAMESPACE "FEgnisEditorModule"
 class UEditorUtilitySubsystem;
@@ -83,6 +84,13 @@ void FEgnisEditorModule::FillMenu(FMenuBuilder& MenuBuilder)
                 UE_LOG(HeadCrackEditor, Error, TEXT("No se pudo cargar la clase del Blueprint. Revisa la ruta."));
             }
         }))
+    );
+
+    MenuBuilder.AddMenuEntry(
+        FText::FromString("Import Hero Classes"),
+        FText::FromString("Imports class stats from Google Sheets into DT_HeroClasses"),
+        FSlateIcon(),
+        FUIAction(FExecuteAction::CreateStatic(&UHeroClassesImporter::SyncFromGoogleSheets))
     );
 }
 

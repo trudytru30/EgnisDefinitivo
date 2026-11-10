@@ -44,6 +44,27 @@ FORCEINLINE uint32 GetTypeHash(const FTileCoord& T)
 	return HashCombine(::GetTypeHash(T.X), ::GetTypeHash(T.Y));
 }
 
+// Casilla en llamas (rastro de la Quemadura)
+USTRUCT(BlueprintType)
+struct FFireTile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category="Fire")
+	FTileCoord Tile;
+
+	// Se apaga al llegar a 0 y baja 1 al empezar cada turno (de cualquier bando).
+	// Al crearla vale Turns + 1, porque el turno en el que se crea no cuenta.
+	UPROPERTY(BlueprintReadOnly, Category="Fire")
+	int32 TurnsLeft = 0;
+
+	// Daño puro al pisarla. Se copia de quien la creo, asi sigue editable por diseño.
+	UPROPERTY(BlueprintReadOnly, Category="Fire")
+	float Damage = 0.f;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFireTilesChanged);
+
 class ULevelDataAsset;
 class UTileSetDataAsset;
 class UInstancedStaticMeshComponent;
@@ -104,6 +125,27 @@ public:
 	void GetTilesInRange(const FTileCoord& From, int32 Range, TArray<FTileCoord>& OutTiles) const;
 	
 	bool IsInside(const FTileCoord& Tile) const;
+	
+	// ===== Casillas en llamas (rastro de la Quemadura) =====
+	// Salta al encender o apagar casillas. La UI y los efectos se refrescan con esto.
+	UPROPERTY(BlueprintAssignable, Category="Board|Fire")
+	FOnFireTilesChanged OnFireTilesChanged;
+
+	// Enciende la casilla durante Turns turnos (sin contar el actual). Si ya estaba en llamas, se renueva.
+	void AddFireTile(const FTileCoord& Tile, int32 Turns, float Damage);
+
+	UFUNCTION(BlueprintPure, Category="Board|Fire")
+	bool IsTileOnFire(const FTileCoord& Tile) const;
+
+	// Devuelve false si la casilla no esta en llamas
+	bool GetFireTile(const FTileCoord& Tile, FFireTile& OutFire) const;
+
+	UFUNCTION(BlueprintPure, Category="Board|Fire")
+	TArray<FFireTile> GetFireTiles() const;
+
+	// Gasta un turno a todas las casillas en llamas y apaga las que llegan a 0.
+	// Se llama una vez al empezar cada turno, de cualquier bando.
+	void AdvanceFireTiles();
 
 	UFUNCTION(BlueprintPure, Category="Board|Grid")
 	ETileType GetTileType(const FTileCoord& Tile) const;
@@ -146,16 +188,17 @@ protected:
 private:
 	
 	void SyncSizeFromLevelData();
-	
 	void ClearGeneratedBoard();
-
-
+	void SpawnActorOnTile(const FTileCoord& Tile, TSubclassOf<AActor> ActorClass);
+	void SpawnEnemy(const FEnemySpawnInfo& EnemyInfo);
+	
 	int32 BuildFloor();
 
-	void SpawnActorOnTile(const FTileCoord& Tile, TSubclassOf<AActor> ActorClass);
-
-	void SpawnEnemy(const FEnemySpawnInfo& EnemyInfo);
-
 	TMap<FTileCoord, TWeakObjectPtr<AActor>> OccupiedBy;
+	TMap<FTileCoord, FFireTile> FireTiles;
+
+	void QueueBoardChanged();
+	void BroadcastBoardChanged();
+	bool bBoardChangedQueued = false;
 };
 

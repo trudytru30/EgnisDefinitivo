@@ -6,6 +6,9 @@
 #include "Environment/ObstacleBase.h"
 #include "CoreAndSystems/Board.h"
 #include "Cards/DeckManager.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "Cards/Card_AttackEffect.h"
+#include "Cards/Card_AreaDamageEffect.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
@@ -25,6 +28,17 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 			break;
 			
 		case ECardTarget::Ally:
+			if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
+			{
+				for (ACharacterBase* Ally : UEgnisAbilityLibrary::GetSeedingTargets(Self, true))
+				{
+					if (IsValid(Ally))
+					{
+						Effect->Execute_Ally(Self, Ally);
+					}
+				}
+				break;
+			}
 			// Solo se aplica si el objetivo elegido es del mismo equipo que quien juega la carta
 			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() != Self->GetTeam())
 			{
@@ -36,6 +50,17 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 			break;
 			
 		case ECardTarget::Enemy:
+			if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
+			{
+				for (ACharacterBase* Enemy : UEgnisAbilityLibrary::GetSeedingTargets(Self, false))
+				{
+					if (IsValid(Enemy))
+					{
+						Effect->Execute_Enemy(Self, Enemy);
+					}
+				}
+				break;
+			}
 			// Objetivo sin personaje: puede ser un obstaculo destructible, se busca por la casilla de Location
 			if (!TargetCharacter && Self && Self->Board)
 			{
@@ -76,6 +101,34 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 	}
 }
 
+void UBaseCard::ExecuteAgainst(ACharacterBase* Self, ACharacterBase* Target)
+{
+	if (!Self || !Target)
+	{
+		return;
+	}
+
+	for (UCardEffect* Effect : Effects)
+	{
+		if (Effect && Effect->Target == ECardTarget::Enemy)
+		{
+			Effect->Execute_Enemy(Self, Target);
+		}
+	}
+}
+
+bool UBaseCard::HasDirectDamageEffect() const
+{
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Cast<UCard_AttackEffect>(Effect) || Cast<UCard_AreaDamageEffect>(Effect))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 //hooks de mano, delegan en cada efecto igual que Execute()
 void UBaseCard::NotifyHandEnter(ACharacterBase* Owner)
 {
@@ -108,11 +161,6 @@ FText UBaseCard::GetCardName() const
 FText UBaseCard::GetDescription() const
 {
 	return Description;
-}
-
-void UBaseCard::SetCult(const FGameplayTag& NewCult)
-{
-	Cult = NewCult;
 }
 
 bool UBaseCard::CanBePlayedBy(const AAlly* Ally) const

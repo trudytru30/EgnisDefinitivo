@@ -24,6 +24,8 @@ public class EgnisEditor : ModuleRules
                 "UnrealEd",
                 "LevelEditor",
                 "PropertyEditor",
+                "HTTP",
+                "DeveloperSettings",
                 "EgnisDef"
             }
         );

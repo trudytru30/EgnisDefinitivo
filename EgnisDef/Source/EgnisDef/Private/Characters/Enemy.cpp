@@ -130,6 +130,8 @@ void AEnemy::MoveTowardClosesPlayer()
 		UE_LOG(LogTemp, Log, TEXT("[%s] Failed to move to Step1."), *GetName());
 		return;
 	}
+	
+	if (!IsValid(this)) return; // murio al pisar fuego
 
 	SnapToCurrentTile();
 
@@ -159,6 +161,8 @@ void AEnemy::MoveTowardClosesPlayer()
 		return;
 	}
 
+	if (!IsValid(this)) return; // murio al pisar fuego
+	
 	SnapToCurrentTile();
 
 	UE_LOG(LogTemp, Log, TEXT("[%s] Moved 2 tiles straight to (%d,%d) towards player (%d,%d)."),
@@ -233,6 +237,7 @@ void AEnemy::MakeAction()
 			if (AttackEffect)
 			{
 				FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+				Context.AddInstigator(this, this);
 				FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(AttackEffect, 1.f, Context);
 				if (Spec.IsValid())
 				{

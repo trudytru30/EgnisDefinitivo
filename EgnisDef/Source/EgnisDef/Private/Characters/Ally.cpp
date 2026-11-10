@@ -2,12 +2,16 @@
 #include "Characters/HeroDataAsset.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "Components/GridMovementComponent.h"
-#include "AbilitySystemComponent.h" // Necesario para ApplyModToAttribute
+#include "AbilitySystemComponent.h"
 #include "Cards/BaseCard.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "CoreAndSystems/CharacterStatsAttributesSet.h"
+#include "Abilities/GameplayAbility.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/CombatLibrary.h"
+#include "Cards/EgnisCardSettings.h"
 
 AAlly::AAlly()
 {
@@ -136,7 +140,53 @@ void AAlly::InitializeFromData(UHeroDataAsset* HeroData)
 								" las stats se quedan a 0."), *GetName());
 	}
 	
+	// Invocaciones: la vida que fija el efecto (piedad x multiplicador) manda sobre la Vitality de la tabla
+	if (HealthOverride > 0.f)
+	{
+		MaxHealth = HealthOverride;
+		Health = HealthOverride;
+		if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+		{
+			ASC->SetNumericAttributeBase(UHealthAttributeSet::GetMaxHealthAttribute(), HealthOverride);
+			ASC->SetNumericAttributeBase(UHealthAttributeSet::GetHealthAttribute(), HealthOverride);
+		}
+		UE_LOG(LogTemp, Log, TEXT("Invocacion %s: vida fijada a %.1f"), *GetName(), HealthOverride);
+	}
+
+	GrantHeroAbilities(HeroData);
+
     UE_LOG(LogTemp, Log, TEXT("Aliado %s inicializado desde DataAsset."), *GetName());
+}
+
+void AAlly::GrantHeroAbilities(const UHeroDataAsset* HeroData)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC || !HeroData)
+	{
+		return;
+	}
+
+	for (const FGameplayAbilitySpecHandle& Handle : GrantedHeroAbilities)
+	{
+		ASC->ClearAbility(Handle);
+	}
+	GrantedHeroAbilities.Reset();
+
+	TArray<TSubclassOf<UGameplayAbility>> Abilities;
+	if (const FHeroClassData* Stats = HeroData->HeroStatsRow.GetRow<FHeroClassData>(TEXT("AAlly::GrantHeroAbilities")))
+	{
+		Abilities.Add(Stats->ClassAbility.LoadSynchronous());
+	}
+	Abilities.Add(HeroData->UniqueAbility);
+
+	for (const TSubclassOf<UGameplayAbility>& AbilityClass : Abilities)
+	{
+		if (AbilityClass)
+		{
+			GrantedHeroAbilities.Add(ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, this)));
+			UE_LOG(LogTemp, Log, TEXT("Aliado %s: habilidad %s concedida"), *GetName(), *AbilityClass->GetName());
+		}
+	}
 }
 
 void AAlly::LossPoints(int32 Cost)
@@ -206,6 +256,69 @@ int32 AAlly::GetMaxEnergy() const
 	return EnergyAttributeSet ? FMath::RoundToInt(EnergyAttributeSet->GetMaxEnergy()) : 0;
 }
 
+int32 AAlly::GetSecondWindEnergy() const
+{
+	return EnergyAttributeSet ? FMath::RoundToInt(EnergyAttributeSet->GetSecondWindEnergy()) : 0;
+}
+
+void AAlly::AddSecondWindEnergy(int32 Amount, int32 MaxAmount)
+{
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		const int32 NewValue = FMath::Clamp(GetSecondWindEnergy() + Amount, 0, MaxAmount);
+		ASC->SetNumericAttributeBase(UEnergyAttributeSet::GetSecondWindEnergyAttribute(), NewValue);
+		UE_LOG(LogTemp, Log, TEXT("Aliado %s: segunda reserva de mana = %d"), *GetName(), NewValue);
+	}
+}
+
+bool AAlly::CanPayCardCost(const UBaseCard* Card) const
+{
+	if (!Card)
+	{
+		return false;
+	}
+
+	const int32 Missing = Card->GetCost() - GetCurrentEnergy();
+	if (Missing <= 0)
+	{
+		return true;
+	}
+
+	if (UEgnisAbilityLibrary::HasRule(this, TAG_Rule_Cost_SecondWind) && GetSecondWindEnergy() >= Missing)
+	{
+		return true;
+	}
+
+	return UEgnisAbilityLibrary::HasRule(this, TAG_Rule_Cost_VitalDebt) && GetCurrentEnergy() > 0 && GetCurrentHealth() > Missing;
+}
+
+void AAlly::PayCardCost(const UBaseCard* Card)
+{
+	if (!Card)
+	{
+		return;
+	}
+
+	const int32 Cost = Card->GetCost();
+	const int32 EnergyPaid = FMath::Min(Cost, GetCurrentEnergy());
+	LossPoints(EnergyPaid);
+
+	const int32 Missing = Cost - EnergyPaid;
+	if (Missing <= 0)
+	{
+		return;
+	}
+
+	if (UEgnisAbilityLibrary::HasRule(this, TAG_Rule_Cost_SecondWind) && GetSecondWindEnergy() >= Missing)
+	{
+		AddSecondWindEnergy(-Missing, GetSecondWindEnergy());
+		return;
+	}
+
+	UEgnisCombatLibrary::ApplyPureDamage(this, Missing);
+	UE_LOG(LogTemp, Log, TEXT("Aliado %s: paga %d de vida por %s"), *GetName(), Missing, *Card->GetName());
+}
+
 float AAlly::GetCharacterPiety() const
 {
 	return StatsAttributeSet ? FMath::Max(0.f, StatsAttributeSet->GetPiety()) : 0.f;
@@ -219,4 +332,31 @@ float AAlly::GetCharacterPower() const
 int32 AAlly::GetCharacterSpeed() const
 {
 	return StatsAttributeSet ? FMath::Max(0, FMath::RoundToInt(StatsAttributeSet->GetSpeed())) : 0;
+}
+
+bool AAlly::CounterAttack(ACharacterBase* Target)
+{
+	if (!IsValid(Target) || Target->GetTeam() == GetTeam())
+	{
+		return false;
+	}
+
+	UBaseCard* RiposteCard = GetDefault<UEgnisCardSettings>()->RiposteCard.LoadSynchronous();
+	if (!RiposteCard)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Riposte: no hay RiposteCard en Project Settings > Egnis > Cartas."), *GetName());
+		return false;
+	}
+
+	const int32 Distance = FMath::Abs(Target->CurrentTile.X - CurrentTile.X) + FMath::Abs(Target->CurrentTile.Y - CurrentTile.Y);
+	if (Distance > GetEffectiveRange(RiposteCard))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Riposte: %s esta fuera de su alcance (%d), no responde."),
+			*GetName(), *Target->GetName(), GetEffectiveRange(RiposteCard));
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[%s] Riposte -> %s con %s"), *GetName(), *Target->GetName(), *RiposteCard->GetName());
+	RiposteCard->ExecuteAgainst(this, Target);
+	return true;
 }

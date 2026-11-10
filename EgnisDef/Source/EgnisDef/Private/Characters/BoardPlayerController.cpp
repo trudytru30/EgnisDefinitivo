@@ -21,6 +21,8 @@
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Environment/ObstacleBase.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 ABoardPlayerController::ABoardPlayerController()
 {
@@ -31,6 +33,7 @@ void ABoardPlayerController::PlayerTick(float DeltaTime)
 {
     Super::PlayerTick(DeltaTime);
     if (IsLocalController()) UpdateHoveredInteractable();
+    EnsureAllySelected();
 }
 
 void ABoardPlayerController::UpdateHoveredInteractable()
@@ -362,6 +365,30 @@ void ABoardPlayerController::SelectAlly(ACharacterBase* Ally)
     UE_LOG(LogTemp, Log, TEXT("Selected Ally: %s"), *SelectedAlly->GetName());
 }
 
+void ABoardPlayerController::AutoSelectAlly(ACharacterBase* Ally)
+{
+    SelectedAlly = Ally;
+    BP_OnKeyboardAllySelected(Ally);
+}
+
+void ABoardPlayerController::EnsureAllySelected()
+{
+    if (!BSM || BSM->CurrentPhase != EScenePhase::Combat || !DPM) return;
+
+    if (bCombatSelectionStarted && IsValid(SelectedAlly) && SelectedAlly->GetCurrentHealth() > 0.f) return;
+
+    for (const TPair<TWeakObjectPtr<AAlly>, FName>& Hero : DPM->GetDeployedHeroes())
+    {
+        AAlly* Ally = Hero.Key.Get();
+        if (IsValid(Ally) && Ally->GetCurrentHealth() > 0.f)
+        {
+            bCombatSelectionStarted = true;
+            AutoSelectAlly(Ally);
+            return;
+        }
+    }
+}
+
 bool ABoardPlayerController::CanSelectAllyFromInput() const
 {
     return IsValid(DPM) && !bIsInMenu && !PendingCard
@@ -487,12 +514,31 @@ void ABoardPlayerController::OpenMenu()
     Mode.SetHideCursorDuringCapture(false);
     Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
     SetInputMode(Mode);
+
+    if (PauseMenuClass)
+    {
+        PauseMenuWidget = CreateWidget<UUserWidget>(this, PauseMenuClass);
+        if (PauseMenuWidget)
+        {
+            PauseMenuWidget->AddToViewport(100);
+            UGameplayStatics::SetGamePaused(this, true);
+        }
+    }
 }
 
 void ABoardPlayerController::CloseMenu()
 {
+    if (!bIsInMenu) return;
+
     UE_LOG(LogTemp, Warning, TEXT("CloseMenu"));
     bIsInMenu = false;
+
+    if (PauseMenuWidget)
+    {
+        PauseMenuWidget->RemoveFromParent();
+        PauseMenuWidget = nullptr;
+        UGameplayStatics::SetGamePaused(this, false);
+    }
 
     if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
     {
@@ -541,7 +587,9 @@ void ABoardPlayerController::BeginPlayCard(UBaseCard* Card)
     PendingCardTarget = Card->GetTarget();
     CurrentIntent = EInputIntent::Action;
 
-    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
+    const bool bSeeding = (PendingCardTarget == ECardTarget::Ally || PendingCardTarget == ECardTarget::Enemy)
+        && UEgnisAbilityLibrary::HasRule(Caster, TAG_Rule_Targeting_Seeding);
+    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self || bSeeding)
     {
         ExecuteCardPlay(nullptr, FVector::ZeroVector);
         return;
@@ -580,7 +628,9 @@ void ABoardPlayerController::TryPlayCardAtCursor(UBaseCard* Card)
     PendingSource = Caster;
     PendingCardTarget = Card->GetTarget();
 
-    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self)
+    const bool bSeeding = (PendingCardTarget == ECardTarget::Ally || PendingCardTarget == ECardTarget::Enemy)
+        && UEgnisAbilityLibrary::HasRule(Caster, TAG_Rule_Targeting_Seeding);
+    if (PendingCardTarget == ECardTarget::None || PendingCardTarget == ECardTarget::Self || bSeeding)
     {
         FHitResult Hit;
         if (TraceUnderCursor(BoardTraceChannel, Hit) || TraceUnderCursor(UnitTraceChannel, Hit))
@@ -618,6 +668,24 @@ void ABoardPlayerController::BeginCardDrag(UBaseCard* Card)
     PendingSource = Caster;
     PendingCardTarget = Card->GetTarget();
     SelectionState = ECardSelectionState::None;
+}
+
+bool ABoardPlayerController::CanUnitMoveThisTurn(ACharacterBase* Unit) const
+{
+    return BM && BM->CanUnitMove(Unit);
+}
+
+bool ABoardPlayerController::RequestUnitMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+{
+    return BM && BM->RequestMove(Unit, TargetTile);
+}
+
+void ABoardPlayerController::SelectDraggedAlly(ACharacterBase* Unit)
+{
+    if (IsValid(Unit) && Unit != SelectedAlly && CanSelectAllyFromInput())
+    {
+        AutoSelectAlly(Unit);
+    }
 }
 
 void ABoardPlayerController::RequestEndTurn()
