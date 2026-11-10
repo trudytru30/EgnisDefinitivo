@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{86cb90b3-e3eb-4622-8502-854d39f3ce1f}">
+		<property name="assetPath">
+			<value>SFX/HoverOverCard/HoverOverCard_04.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>2.4955328798185943</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{f7ef5fa1-db4d-49c5-9f6b-dab4f65cbded}</destination>
+		</relationship>
+	</object>
+</objects>

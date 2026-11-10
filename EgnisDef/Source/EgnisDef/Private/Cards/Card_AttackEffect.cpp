@@ -1,0 +1,56 @@
+#include "Cards/Card_AttackEffect.h"
+#include "CoreAndSystems/AudioManager.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+#include "CoreAndSystems/CombatLibrary.h"
+#include "Environment/ObstacleBase.h"
+
+void UCard_AttackEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy)
+{
+	Super::Execute_Enemy(Self, Enemy);
+
+	if (!Self ||!Enemy)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AttackEffect: Self or Enemy is null"));
+		return;
+	}
+
+	// Comprueba que la carta hace daño y que el objetivo es tipo characterBase
+	if (DamageMultiplier >= 0 && Enemy->GetTeam() != Self->GetTeam())
+	{
+		// El daño se aplica al ASC del objetivo, no al de quien ataca — un GameplayEffect
+		// siempre modifica atributos de "a quién se le aplica", que aquí es Enemy.
+		UAbilitySystemComponent* TargetASC = Enemy->GetAbilitySystemComponent();
+		if (TargetASC && DamageEffect)
+		{
+			FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+			Context.AddInstigator(Self, Self);
+			FGameplayEffectSpecHandle Spec = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, Context);
+			if (Spec.IsValid())
+			{
+				const float BaseDamage = UEgnisCombatLibrary::GetAttackPower(Self) * DamageMultiplier;
+				
+				Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, 
+				   -UEgnisCombatLibrary::CalculateDamage(Self, Enemy, BaseDamage));
+				TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] AttackEffect: falta ASC o DamageEffect, no se aplica daño."), *Enemy->GetName());
+		}
+
+		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+			AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);
+	}
+}
+
+void UCard_AttackEffect::Execute_Obstacle(ACharacterBase* Self, AObstacleBase* Obstacle)
+{
+	if (!Self || !Obstacle || DamageMultiplier < 0) return;
+
+	// TODO: de momento el daño es el base de la carta, sin CalculateDamage (Debilidad, etc.), como ya pasaba con ApplyDamage
+	Obstacle->ApplyDamage(UEgnisCombatLibrary::GetAttackPower(Self) * DamageMultiplier);
+
+	if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(EEgnisAudioTrigger::CardAttack, SoundOverride, Self);
+}

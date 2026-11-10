@@ -1,0 +1,69 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "CombatLibrary.generated.h"
+
+class ACharacterBase;
+class AAlly;
+class UBaseCard;
+
+// Reglas de combate compartidas. Los efectos de carta y las acciones de enemigos consultan aqui
+// en vez de repetir la logica de estados cada uno por su lado.
+UCLASS()
+class EGNISDEF_API UEgnisCombatLibrary : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+
+public:
+	// Daño final de un golpe una vez aplicados los estados de atacante y objetivo.
+	// Source puede ser nulo. Un golpe con daño base > 0 nunca baja de 1.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static float CalculateDamage(const ACharacterBase* Source, const ACharacterBase* Target, float BaseDamage);
+	
+	// Daño que un objetivo con Espinas devolveria al atacante por recibir DamageDealt (0 si no tiene Espinas).
+	// Llamar ANTES de que el golpe pueda matar al objetivo: despues ya no se puede consultar.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static float GetThornsDamage(const ACharacterBase* Target, float DamageDealt);
+	
+	// Poder de un personaje: GAS en aliados, propio en enemigos.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static float GetAttackPower(const ACharacterBase* Character);
+	
+	// Daño que ignora escudo, Debilidad y Expuesto (quemadura...).
+    static void ApplyPureDamage(ACharacterBase* Target, float Amount);
+	
+	// Curacion directa que no pasa por el GameplayEffect de curacion de las cartas.
+	static void ApplyPureHeal(ACharacterBase* Target, float Amount);
+	
+	// Riposte: Si defender tiene el estado y sigue vivo, responde al golpe de Attacker.
+	// Un Riposte no provoca otro.
+	static void TryRiposte(ACharacterBase* Defender, ACharacterBase* Attacker);
+	
+	// Ira irrefrenable: Devuelve a la unica criatura a la que puede atacar el personaje
+	// o nullptr si no hay restriccion
+	static ACharacterBase* GetRageTarget(const ACharacterBase* Character);
+	// Con la restriccion activa solo se pueden jugar cartas con un efecto de ataque
+	// o de ataque en area
+	static bool CanPlayCardUnderRage(const UBaseCard* Card, const ACharacterBase* Caster);
+	
+	// False si el personaje esta Aturdido (no puede jugar cartas ni actuar)
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static bool CanAct(const ACharacterBase* Character);
+	
+	// Paralizado: no puede moverse por su cuenta
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static bool CanMove(const ACharacterBase* Character);
+	
+	// True si el objetivo de la carta esta dentro del rango efectivo del lanzador
+	// (rango de la carta + rango del personaje). Las cartas sin objetivo de unidad o casilla siempre devuelven true.
+	// Misma distancia Manhattan que Board::GetTilesInRange, para que resaltado y validacion coincidan.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static bool IsCardTargetInRange(const UBaseCard* Card, const AAlly* Caster,
+		const ACharacterBase* TargetCharacter, const FVector& Location);
+	
+	// Coste real de una carta para este lanzador: el de la carta, multiplicado si esta Fatigado.
+	// La UI debe usar esta funcion en vez de GetCost de la carta para pintar el coste.
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static int32 GetEffectiveCost(const UBaseCard* Card, const ACharacterBase* Caster);
+};

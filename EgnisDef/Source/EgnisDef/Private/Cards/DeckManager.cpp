@@ -1,0 +1,424 @@
+#include "Cards/DeckManager.h"
+#include "CoreAndSystems/AudioManager.h"
+#include "Characters/Ally.h"
+#include "Algo/RandomShuffle.h"
+#include "Cards/EgnisCardSettings.h"
+
+// Aniadir cartas al mazo
+//Construye el mazo desde cero
+void UDeckManager::GenerateDeck(const TArray<TSubclassOf<UBaseCard>>& SelectedCarts)
+{
+	if (SelectedCarts.Num() < GetDefault<UEgnisCardSettings>()->InitialDeckSize)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[DeckManager]: No hay suficientes cartas seleccionadas para generar el mazo"));
+		return;
+	}
+
+	// Limpia mazo y aniadir las cartas
+	ResetDeck();
+	for (TSubclassOf<UBaseCard> Card : SelectedCarts)
+	{
+		if (!Card) continue;
+		AddCardToDeck(NewObject<UBaseCard>(this, Card));
+	}
+}
+
+void UDeckManager::SetDeck(const TArray<UBaseCard*>& InDeck)
+{
+	ResetDeck();
+
+	for (UBaseCard* CardTemplate : InDeck)
+	{
+		if (CardTemplate)
+		{
+			UBaseCard* NewCardInstance = DuplicateObject<UBaseCard>(CardTemplate, this);
+			Deck.Add(NewCardInstance);
+		}
+	}
+}
+
+// Inicializar mazo al principio de la batalla
+//Se llama al empezar cada combate(coge todo el deck y lo convierte en drawPile
+void UDeckManager::InitializeDeck()
+{
+	DrawPile = Deck;
+	DiscardedPile.Empty();
+	Hand.Empty();
+	ConsumedPile.Empty();
+	KeptCards.Empty();
+	ClearSelectionState();
+	
+
+	ShuffleDeck();
+}
+
+// Barajar cartas de forma aleatoria
+void UDeckManager::ShuffleDeck()
+{
+	if (DrawPile.Num() > 1)
+	{
+		Algo::RandomShuffle(DrawPile);
+	}
+}
+
+// Robar cartas mediante habilidades
+//Recorre drawPile e intercambia
+void UDeckManager::DrawCard()
+{
+	if (DrawPile.Num() <= 0)
+	{
+		if (DiscardedPile.Num() <= 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: Pila de descartes vacia"));
+			return;
+		}
+		DrawPile = DiscardedPile;
+		DiscardedPile.Empty();
+		ShuffleDeck();
+	}
+	Hand.Add(DrawPile.Last());
+	DrawPile.Pop();
+
+	// Avisa a la carta recien robada de que ha entrado en mano,
+	// por si alguno de sus efectos hace algo solo por estar disponible (sin jugarla). De momento
+	// se llama sin dueño concreto (nullptr) — DeckManager representa el mazo del equipo, no esta
+	// atado a una unidad. Revisar esta llamada si el primer efecto real que implemente el hook
+	// necesita saber de quien es la mano.
+	if (UBaseCard* DrawnCard = Hand.Last())
+	{
+		DrawnCard->NotifyHandEnter(nullptr);
+	}
+
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::CardDraw);
+	OnHandChanged.Broadcast();
+}
+
+// Robar cartas (con habilidades)
+void UDeckManager::DrawCardAmount(int32 Amount)
+{
+	for (int32 i = 0; i < Amount; i++)
+	{
+		DrawCard();
+	}
+}
+
+// Descartar cartas de la mano a la pila de descarte
+void UDeckManager::AddCardToHand(UBaseCard* Card)
+{
+	if (!Card)
+	{
+		return;
+	}
+
+	if (Hand.Num() >= GetMaxHandSize())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: Mano llena, %s va al descarte"), *Card->GetName());
+		DiscardedPile.Add(Card);
+		return;
+	}
+
+	Hand.Add(Card);
+	Card->NotifyHandEnter(nullptr);
+	OnHandChanged.Broadcast();
+}
+
+bool UDeckManager::ReturnCardFromDiscardToHand(UBaseCard* Card)
+{
+	if (!Card || DiscardedPile.RemoveSingle(Card) == 0)
+	{
+		return false;
+	}
+
+	AddCardToHand(Card);
+	return true;
+}
+
+void UDeckManager::DiscardCardFromHand(UBaseCard* Card)
+{
+	if (Hand.Contains(Card))
+	{
+		// avisar de que la carta sale de la mano, antes de moverla.
+		if (Card)
+		{
+			Card->NotifyHandLeave(nullptr);
+		}
+
+		Hand.Remove(Card);
+		KeptCards.RemoveSingle(Card);
+		DiscardedPile.Add(Card);
+		OnHandChanged.Broadcast();
+	}
+}
+
+// Descartar cartas del mazo a la pila de descarte
+void UDeckManager::DiscardCardFromDrawPile(UBaseCard* Card)
+{
+	if (DrawPile.Contains(Card))
+	{
+		DrawPile.RemoveSingle(Card);
+		DiscardedPile.Add(Card);
+	}
+}
+
+// Aniadir cartas al mazo permanentemente
+void UDeckManager::AddCardToDeck(UBaseCard* Card)
+{
+	Deck.Add(Card);
+}
+
+// Eliminar una carta del mazo permanentemente
+void UDeckManager::RemoveCardFromDeck(UBaseCard* Card)
+{
+	Deck.RemoveSingle(Card);
+}
+
+// Consumir: la carta desaparece del combate y se queda en ConsumedPile
+void UDeckManager::ConsumeCard(UBaseCard* Card)
+{
+	if (!Card || ConsumedPile.Contains(Card))
+	{
+		return;
+	}
+
+	const bool bInHand = Hand.Contains(Card);
+	if (!bInHand && !DrawPile.Contains(Card) && !DiscardedPile.Contains(Card))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeckManager]: Consumir: %s no esta ni en la mano ni en las pilas"), *Card->GetName());
+		return;
+	}
+
+	// Igual que en DiscardCardFromHand: avisar de que sale de la mano antes de moverla
+	if (bInHand)
+	{
+		Card->NotifyHandLeave(nullptr);
+		Hand.Remove(Card);
+	}
+	DrawPile.RemoveSingle(Card);
+	DiscardedPile.RemoveSingle(Card);
+	KeptCards.RemoveSingle(Card);
+
+	ConsumedPile.Add(Card);
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta consumida: %s (consumidas: %d)"), *Card->GetName(), ConsumedPile.Num());
+	OnHandChanged.Broadcast();
+}
+
+// Guardar: la carta se marca como guardada. Sigue en la mano (visible y jugable este turno), pero al terminar
+// el turno no se descarta y pasa a la mano del siguiente
+void UDeckManager::KeepCard(UBaseCard* Card)
+{
+	if (!Card || KeptCards.Contains(Card) || !Hand.Contains(Card))
+	{
+		return;
+	}
+
+	KeptCards.Add(Card);
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Carta guardada: %s (guardadas: %d)"), *Card->GetName(), KeptCards.Num());
+	OnHandChanged.Broadcast(); // para que la UI refresque la marca
+}
+
+// Las guardadas ya han pasado el descarte de fin de turno: vuelven a ser cartas normales
+void UDeckManager::ClearKeptCards()
+{
+	if (KeptCards.Num() == 0)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %d cartas guardadas pasan a ser normales"), KeptCards.Num());
+	KeptCards.Empty();
+	OnHandChanged.Broadcast();
+}
+
+// Reiniciar mazo (al terminar una partida, no una batalla)
+void UDeckManager::ResetDeck()
+{
+	Deck.Empty();
+	DrawPile.Empty();
+	DiscardedPile.Empty();
+	Hand.Empty();
+	ConsumedPile.Empty();
+	KeptCards.Empty();
+	ClearSelectionState();
+}
+
+void UDeckManager::ConvertUnownedCardsToGrey(const TArray<ACharacterBase*>& CharactersInPlay)
+{
+	for (UBaseCard* Card : Deck)
+	{
+		// IsCardArchetypeAvailable ya da por disponible el color Grey, asi que esas cartas no se tocan
+		if (Card && !IsCardArchetypeAvailable(Card, CharactersInPlay))
+		{
+			UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %s (culto %s) sin personaje de su culto,"
+							 " pasa a carta comun en este combate"),
+				*Card->GetName(), *Card->GetCult().ToString());
+			Card->SetCult(FGameplayTag());
+		}
+	}
+}
+
+//grey-out por arquetipo
+bool UDeckManager::IsCardArchetypeAvailable(const UBaseCard* Card, const TArray<ACharacterBase*>& CharactersInPlay) const
+{
+	if (!Card)
+	{
+		return false;
+	}
+
+	// Grey = arquetipo comun, siempre disponible, no depende de ningun personaje concreto.
+	if (!Card->GetCult().IsValid())
+	{
+		return true;
+	}
+
+	for (const ACharacterBase* Character : CharactersInPlay)
+	{
+		const AAlly* CharAsAlly = Cast<const AAlly>(Character);
+		if (CharAsAlly && Card->CanBePlayedBy(CharAsAlly))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UDeckManager::RequestHandSelection(int32 Count, TFunction<void(const TArray<UBaseCard*>&)> OnConfirmed)
+{
+	if (Count <= 0 || !OnConfirmed)
+	{
+		return;
+	}
+
+	FHandSelectionRequest Request;
+	Request.Count = Count;
+	Request.OnConfirmed = MoveTemp(OnConfirmed);
+	Request.Excluded = CardInPlay;
+	SelectionQueue.Add(MoveTemp(Request));
+
+	StartNextSelection();
+}
+
+// Activa la primera peticion de la cola. Las que se pueden resolver solas se resuelven aqui mismo.
+void UDeckManager::StartNextSelection()
+{
+	while (!bSelecting && SelectionQueue.Num() > 0)
+	{
+		const int32 Count = SelectionQueue[0].Count;
+		UBaseCard* Excluded = SelectionQueue[0].Excluded;
+
+		TArray<UBaseCard*> Eligible;
+		for (UBaseCard* Card : Hand)
+		{
+			if (Card && Card != Excluded)
+			{
+				Eligible.Add(Card);
+			}
+		}
+
+		// Pocas cartas: no hay nada que elegir, se resuelve con todas las elegibles
+		if (Eligible.Num() <= Count)
+		{
+			FHandSelectionRequest Done = MoveTemp(SelectionQueue[0]);
+			SelectionQueue.RemoveAt(0);
+			Done.OnConfirmed(Eligible);
+			continue;
+		}
+
+		EligibleForSelection = Eligible;
+		SelectedCards.Empty();
+		RequiredSelection = Count;
+		bSelecting = true;
+		UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Seleccion de cartas iniciada: hay que marcar %d de %d elegibles"), Count, Eligible.Num());
+		OnHandSelectionChanged.Broadcast();
+	}
+}
+
+bool UDeckManager::IsCardSelectable(const UBaseCard* Card) const
+{
+	return bSelecting && Card && EligibleForSelection.Contains(Card);
+}
+
+bool UDeckManager::IsCardSelected(const UBaseCard* Card) const
+{
+	return bSelecting && Card && SelectedCards.Contains(Card);
+}
+
+bool UDeckManager::ToggleCardSelection(UBaseCard* Card)
+{
+	if (!IsCardSelectable(Card))
+	{
+		return false;
+	}
+
+	if (SelectedCards.Contains(Card))
+	{
+		SelectedCards.Remove(Card);
+	}
+	else
+	{
+		// No se pueden marcar mas de las necesarias
+		if (SelectedCards.Num() >= RequiredSelection)
+		{
+			return false;
+		}
+		SelectedCards.Add(Card);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: Seleccion: %s %s (%d/%d)"), *Card->GetName(),
+	SelectedCards.Contains(Card) ? TEXT("marcada") : TEXT("desmarcada"), SelectedCards.Num(), RequiredSelection);
+	
+	OnHandSelectionChanged.Broadcast();
+	return true;
+}
+
+void UDeckManager::ConfirmHandSelection()
+{
+	if (!CanConfirmHandSelection())
+	{
+		return;
+	}
+
+	// Se cierra la seleccion ANTES de llamar al callback: el callback puede pedir otra seleccion
+	const TArray<UBaseCard*> Chosen = SelectedCards;
+	FHandSelectionRequest Request = MoveTemp(SelectionQueue[0]);
+	SelectionQueue.RemoveAt(0);
+	EligibleForSelection.Empty();
+	SelectedCards.Empty();
+	RequiredSelection = 0;
+	bSelecting = false;
+	OnHandSelectionChanged.Broadcast();
+
+	Request.OnConfirmed(Chosen);
+
+	StartNextSelection();
+}
+
+void UDeckManager::ClearSelectionState()
+{
+	SelectionQueue.Empty();
+	EligibleForSelection.Empty();
+	SelectedCards.Empty();
+	RequiredSelection = 0;
+	if (bSelecting)
+	{
+		bSelecting = false;
+		OnHandSelectionChanged.Broadcast();
+	}
+}
+
+// ===== Getters =====
+int32 UDeckManager::GetInitialHandSize()
+{
+	return GetDefault<UEgnisCardSettings>()->InitialHandSize;
+}
+
+int32 UDeckManager::GetMaxHandSize()
+{
+	return GetDefault<UEgnisCardSettings>()->MaxHandSize;
+}
+
+TArray<UBaseCard*> UDeckManager::GetHand()
+{
+	return Hand;
+}

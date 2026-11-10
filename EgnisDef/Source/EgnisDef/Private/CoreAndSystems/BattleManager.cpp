@@ -1,0 +1,583 @@
+#include "CoreAndSystems/BattleManager.h"
+#include "CoreAndSystems/AudioManager.h"
+#include "Characters/Ally.h"
+#include "Cards/DeckManager.h"
+#include "Cards/BaseCard.h"
+#include "Characters/CharacterBase.h"
+#include "Characters/Enemy.h"
+#include "EngineUtils.h"
+#include "Components/GridMovementComponent.h"
+#include "Components/StatusEffectComponent.h"
+#include "CoreAndSystems/CombatLibrary.h"
+#include "CoreAndSystems/Board.h"
+#include "Abilities/EgnisAbilityLibrary.h"
+#include "CoreAndSystems/CombatCameraSubsystem.h"
+#include "CoreAndSystems/CombatTimerSubsystem.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
+
+class AAlly;
+
+void UBattleManager::SetDeckManager(UDeckManager* InDeckManager)
+{
+	DeckManager = InDeckManager;
+}
+
+// Inicio del combate, se inicializa el mazo, la vida de los personajes y las posiciones
+void UBattleManager::StartBattle()
+{
+	bBattleIsOver = false;
+	TurnCount = 0;
+	CurrentTurn = ETurnEnum::PlayerTurn;
+
+	CharactersOnField.Empty();
+	for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It)
+	{
+		CharactersOnField.Add(*It);
+	}
+	
+	// Tablero (para las casillas en llamas)
+	Board = nullptr;
+	for (TActorIterator<ABoard> It(GetWorld()); It; ++It)
+	{
+		Board = *It;
+		break;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Battle Started! Characters on field: %d"), CharactersOnField.Num());
+	
+	// Referencia para la salud del equipo (musica): vida maxima de los aliados al empezar
+	InitialTeamMaxHealth = 0.0f;
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (Character && Character->GetTeam() == 0)
+		{
+			InitialTeamMaxHealth += Character->GetMaxHealth();
+		}
+	}
+
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+	{
+		AM->PlayTrigger(EEgnisAudioTrigger::CombatStart);
+		AM->SetTeamHealthRatio(GetTeamHealthRatio());
+	}
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ClearTimerPauses();
+		Timer->OnTimeRemainingChanged.AddUniqueDynamic(this, &UBattleManager::HandleCombatTimeRemaining);
+	}
+
+	UEgnisAbilityLibrary::SendEventToAllCharacters(this, TAG_Event_Battle_Start);
+
+	// Efectos de camara: reinicia y empieza a escuchar el daño de los aliados que ya estan en el campo
+	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+	{
+		Cam->BeginCombat();
+		for (ACharacterBase* Character : CharactersOnField)
+		{
+			Cam->WatchAlly(Character);
+		}
+	}
+	
+	StartPlayerTurn();
+}
+
+// Turno del player
+void UBattleManager::StartPlayerTurn()
+{
+	if (bBattleIsOver) return;
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ResumeTimer(TEXT("EnemyTurn"));
+	}
+	
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
+	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
+	
+	// Robar mano al inicio del turno y establecer energia
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (AAlly* Ally = Cast<AAlly>(Character))
+			Ally->ResetEnergyForTurn();	 
+	}
+
+	// Resetear bHasMoved para todos los aliados al inicio del turno
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (Character && Character->GetTeam() == 0)
+		{
+			Character->bHasMoved = false;
+			if (AAlly* Ally = Cast<AAlly>(Character))
+			{
+				Ally->SetSummoningSick(false);
+			}
+		}
+	}
+
+	if (DeckManager)
+	{
+		int32 NumCardsToDraw = DeckManager->GetInitialHandSize() - DeckManager->GetHand().Num();
+		NumCardsToDraw += DeckManager->GetKeptCount();
+		
+		if (NumCardsToDraw <= 0){
+			UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Hand is already full. No cards drawn."));
+		}
+		else
+		{
+			DeckManager->DrawCardAmount(NumCardsToDraw);
+			UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Drawn %d cards"), DeckManager->GetHand().Num());
+		}
+		DeckManager->ClearKeptCards();
+	}
+
+	OnPlayerTurnStarted.Broadcast();
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(EEgnisAudioTrigger::PlayerTurnStart);
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Player Turn %d"), TurnCount);
+}
+
+// Turno del enemigo
+void UBattleManager::StartEnemyTurn()
+{
+	if (bBattleIsOver) return;
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->PauseTimer(TEXT("EnemyTurn"));
+	}
+
+	// Gasta un turno a las casillas en llamas
+	if (Board) Board->AdvanceFireTiles();
+	
+	NotifyTeamTurnStart(1);
+	
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::EnemyTurnStart);
+	
+	//identifica enemigos
+	TArray<AEnemy*> Enemies;
+
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (!Character) continue;
+
+		if (Character->GetTeam() == 1)
+		{
+			if (AEnemy* Enemy = Cast<AEnemy>(Character))
+			{
+				Enemies.Add(Enemy);
+			}
+		}
+	}
+
+	if (!EnemyTurnDirector)
+	{
+		EnemyTurnDirector = NewObject<UEnemyTurnDirector>(this);
+	}
+	EnemyTurnDirector->Initialize(this, EnemyTurnSettings);
+	EnemyTurnDirector->StartEnemyPhase(Enemies,
+		FOnEnemyPhaseFinished::CreateUObject(this, &UBattleManager::OnEnemyPhaseFinished));
+}
+
+
+void UBattleManager::OnEnemyPhaseFinished()
+{
+	// Comprobar estado de unidades despues de cada turno enemigo y terminar el turno
+	UpdateUnitsAlive();
+	EndTurn();
+}
+
+// Fin del turno y cambio al otro bando
+void UBattleManager::EndTurn()
+{
+	if (bBattleIsOver) return;
+
+	switch ( CurrentTurn)
+	{
+		case ETurnEnum::PlayerTurn:
+			NotifyTeamTurnEnd(0);
+			if (DeckManager->GetHand().Num() > 0)
+			{
+				const TArray<UBaseCard*> HandCopy = DeckManager->GetHand();
+				for (UBaseCard* Card : HandCopy)
+				{
+					if (DeckManager->IsCardKept(Card)) continue;
+					DeckManager->DiscardCardFromHand(Card);
+				}
+			}
+
+			CurrentTurn = ETurnEnum::EnemyTurn;
+			StartEnemyTurn();
+			break;
+		case ETurnEnum::EnemyTurn:
+			NotifyTeamTurnEnd(1);
+			CurrentTurn = ETurnEnum::PlayerTurn;
+			TurnCount++;
+			StartPlayerTurn();
+			break;
+	default: UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Invalid turn"));
+	}
+}
+
+// Comprobar si el player puede jugar una carta (es decir, que sea su turno y tenga energia)
+bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location)
+{
+	if (!Character || !Character->EnergyAttributeSet)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
+		return false;
+	}
+
+	if (CurrentTurn != ETurnEnum::PlayerTurn || !Card || !DeckManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not player turn or card is null"));
+		return false;
+	}
+	
+	// Con una seleccion de cartas pendiente no se puede jugar otra carta
+	if (DeckManager->IsSelectingFromHand())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: hay una seleccion de cartas pendiente, no se puede jugar %s"), *Card->GetName());
+		return false;
+	}
+
+	// Aturdido: no puede jugar cartas
+	if (!UEgnisCombatLibrary::CanAct(Character))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: %s esta aturdido y no puede jugar cartas"), *Character->GetName());
+		return false;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("[Ira] PlayCard %s por %s: objetivo obligado = %s"),
+	*Card->GetName(), *Character->GetName(),
+	*GetNameSafe(UEgnisCombatLibrary::GetRageTarget(Character)));
+	
+	// Ira irrefrenable: solo puede jugar cartas de ataque
+	if (!UEgnisCombatLibrary::CanPlayCardUnderRage(Card, Character))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: %s esta en Ira irrefrenable y %s no tiene efecto de ataque, no se puede jugar"),
+			*Character->GetName(), *Card->GetName());
+		return false;
+	}
+	
+	if (!UEgnisCombatLibrary::IsCardTargetInRange(Card, Character, TargetCharacter, Location))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Target out of range for card %s (caster %s)"),
+			*Card->GetName(), *Character->GetName());
+		return false;
+	}
+	
+	const int32 Cost = UEgnisCombatLibrary::GetEffectiveCost(Card, Character);
+	const bool bNormalCost = Cost == Card->GetCost();
+	if (bNormalCost ? !Character->CanPayCardCost(Card) : Character->GetCurrentEnergy() < Cost)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
+		return false;
+	}
+
+	if (!Character || !Character->EnergyAttributeSet)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
+		return false;
+	}
+	if (bNormalCost)
+	{
+		Character->PayCardCost(Card);
+	}
+	else
+	{
+		Character->LossPoints(Cost);
+	}
+	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
+		Character->GetCurrentEnergy());
+	Card->Execute(DeckManager, Character, TargetCharacter, Location);
+
+	if (IsValid(Character))
+	{
+		FGameplayTagContainer CardTags;
+		if (Card->GetCult().IsValid())
+		{
+			CardTags.AddTag(Card->GetCult());
+		}
+		UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Card_Played, Character, TargetCharacter, Card->GetCost(), Card, CardTags);
+	}
+
+	UpdateUnitsAlive();
+
+	return true;
+}
+
+// Gestionar las unidades que hay en el campo de batalla (despues de cada carta/ accion enemiga lo suyo es llamar a esto)
+void UBattleManager::UpdateUnitsAlive()
+{
+	int32 AlliesAlive = 0;
+	int32 EnemiesAlive = 0;
+	
+	// Limpiar punteros invalidos
+	for (int32 i = CharactersOnField.Num()-1; i >= 0; i--)
+	{
+		if (!IsValid((CharactersOnField[i])))
+			CharactersOnField.RemoveAt(i);
+	}
+
+	// Comrpobar cuantos aliados y enemigos quedan en campo
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (Character->GetTeam() == 0)
+		{
+			const AAlly* Ally = Cast<AAlly>(Character);
+			if (!Ally || Ally->CountsForVictory())
+			{
+				AlliesAlive++;
+			}
+		}
+		else
+		{
+			EnemiesAlive++;
+		}
+	}
+	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Allies alive: %d, Enemies alive: %d"), AlliesAlive, EnemiesAlive);
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->SetTeamHealthRatio(GetTeamHealthRatio());
+
+	if (AlliesAlive == 0)
+		EndBattle(false);
+	else if (EnemiesAlive == 0)
+		EndBattle(true);
+}
+
+UCombatTimerSubsystem* UBattleManager::GetCombatTimer() const
+{
+	const UWorld* World = GetWorld();
+	const UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<UCombatTimerSubsystem>() : nullptr;
+}
+
+void UBattleManager::HandleCombatTimeRemaining(float TimeRemaining, float TotalTime)
+{
+	if (TimeRemaining <= 0.f && !bBattleIsOver)
+	{
+		EndBattle(false);
+	}
+}
+
+// Fin del combate
+void UBattleManager::EndBattle(bool bPlayerWon)
+{
+	bBattleIsOver = true;
+
+	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
+	{
+		Timer->ClearTimerPauses();
+		Timer->OnTimeRemainingChanged.RemoveDynamic(this, &UBattleManager::HandleCombatTimeRemaining);
+	}
+	
+	// Efectos de camara: para el balanceo y deja de escuchar el daño
+	if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+	{
+		Cam->EndCombat();
+	}
+
+	if (EnemyTurnDirector)
+	{
+		EnemyTurnDirector->Abort();
+	}
+	
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(bPlayerWon ? EEgnisAudioTrigger::CombatVictory : EEgnisAudioTrigger::CombatDefeat);
+	
+	if (bPlayerWon)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
+			TEXT("[BattleManager]: PLAYER WINS"));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red,
+			TEXT("[BattleManager]: PLAYER LOST"));
+	}
+
+	OnBattleEndedEvent.Broadcast(bPlayerWon);
+}
+
+// TODO: estas comprobaciones estaban dentro de RequestMove y se han movido aqui (como en la version de tu compañero),
+// para que BoardPlayerController::CanUnitMoveThisTurn las pueda consultar sin mover la unidad
+bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
+{
+	if (!IsValid(Unit))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit is null"));
+		return false;
+	}
+	if (bBattleIsOver || !IsPlayerTurn())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Not player turn"));
+		return false;
+	}
+	if (Unit->GetTeam() != 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit is not ally"));
+		return false;
+	}
+	if (!Unit->Board)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit has no Board"));
+		return false;
+	}
+
+	if (Unit->bHasMoved)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s already moved this turn"), *Unit->GetName());
+		return false;
+	}
+	
+	if (!UEgnisCombatLibrary::CanMove(Unit))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s esta paralizado"), *Unit->GetName());
+		return false;
+	}
+
+	return true;
+}
+
+// Pedir movimiento
+bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetTile)
+{
+	if (!CanUnitMove(Unit))
+	{
+		return false;
+	}
+
+	UGridMovementComponent* MoveComp = Unit->FindComponentByClass<UGridMovementComponent>();
+	if (!MoveComp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: %s has no GridMovementComponent"), *Unit->GetName());
+		return false;
+	}
+
+	if (!MoveComp->canMoveToTile(TargetTile))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: tile (%d,%d) not reachable by MoveComponent"),
+			TargetTile.X, TargetTile.Y);
+		return false;
+	}
+
+	if (!Unit->SetCurrentTile(TargetTile))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: SetCurrentTile rejected (%d,%d)"),
+			TargetTile.X, TargetTile.Y);
+		return false;
+	}
+
+	if (!IsValid(Unit))
+	{
+		return false;
+	}
+
+	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
+		AM->PlayTrigger(EEgnisAudioTrigger::AllyMove, nullptr, Unit);
+	Unit->bHasMoved = true;
+
+	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: RequestMove OK: %s -> (%d,%d)"),
+		*Unit->GetName(), Unit->CurrentTile.X, Unit->CurrentTile.Y);
+	return true;
+}
+
+float UBattleManager::GetTeamHealthRatio() const
+{
+	if (InitialTeamMaxHealth <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	// Los aliados muertos ya no estan en el campo, asi que no suman: su vida cuenta como 0 frente a la maxima inicial
+	float CurrentHealth = 0.0f;
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		if (IsValid(Character) && Character->GetTeam() == 0)
+		{
+			const AAlly* Ally = Cast<AAlly>(Character);
+			if (Ally && !Ally->CountsForVictory())
+			{
+				continue;
+			}
+			CurrentHealth += FMath::Max(0.0f, Character->GetCurrentHealth());
+		}
+	}
+
+	return FMath::Clamp(CurrentHealth / InitialTeamMaxHealth, 0.0f, 1.0f);
+}
+
+// ===== Getters =====
+int32 UBattleManager::GetTurnCount() const
+{
+	return TurnCount;
+}
+
+TArray<ACharacterBase*> UBattleManager::GetCharactersOnField() const
+{
+	return CharactersOnField;
+}
+
+bool UBattleManager::IsPlayerTurn() const
+{
+	return CurrentTurn == ETurnEnum::PlayerTurn;
+}
+
+void UBattleManager::NotifyTeamTurnStart(int32 Team)
+{
+	// Copia porque un efecto de inicio de turno puede acabar matando a una unidad y alterar CharactersOnField
+	const TArray<ACharacterBase*> Snapshot = CharactersOnField;
+	for (ACharacterBase* Character : Snapshot)
+	{
+		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
+		{
+			Character->StatusComp->OnOwnerTurnStart();
+		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_Start, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
+		}
+	}
+	
+	UpdateUnitsAlive();
+}
+
+void UBattleManager::NotifyTeamTurnEnd(int32 Team)
+{
+	const TArray<ACharacterBase*> Snapshot = CharactersOnField;
+	for (ACharacterBase* Character : Snapshot)
+	{
+		if (IsValid(Character) && Character->GetTeam() == Team && Character->StatusComp)
+		{
+			Character->StatusComp->OnOwnerTurnEnd();
+		}
+
+		if (IsValid(Character) && Character->GetTeam() == Team)
+		{
+			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_End, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
+		}
+	}
+}
+
+void UBattleManager::RegisterUnit(ACharacterBase* Unit)
+{
+	if (IsValid(Unit))
+	{
+		CharactersOnField.AddUnique(Unit);
+
+		// Efectos de camara: las unidades nuevas (invocaciones) tambien sacuden la camara al recibir daño
+		if (UCombatCameraSubsystem* Cam = GetWorld()->GetSubsystem<UCombatCameraSubsystem>())
+		{
+			Cam->WatchAlly(Unit);
+		}
+	}
+}

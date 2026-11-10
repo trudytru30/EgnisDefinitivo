@@ -78,3 +78,12 @@ DerivedDataCache/*
 **/DerivedDataCache/
 **/Intermediate/
 **/Saved/
+EgnisDef/.idea
+
+
+!EgnisDef/Plugins/FMODStudio/Binaries/
+EgnisDef/Plugins/FMODStudio/Binaries/*
+!EgnisDef/Plugins/FMODStudio/Binaries/Win64/
+EgnisDef/Plugins/FMODStudio/Binaries/Win64/*
+!EgnisDef/Plugins/FMODStudio/Binaries/Win64/fmod*.dll
+!EgnisDef/Plugins/FMODStudio/Binaries/Win64/fmod*.lib
