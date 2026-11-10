@@ -5,7 +5,7 @@
 //
 // Inputs:
 //   UV, TimeSec, Amount (FrostAmount 0..1), PatternScale, Opacity,
-//   EdgeThickness, InnerFade, AnimSpeed, IdleStrength, Seed, WidgetAspect, FrostTint (rgb),
+//   EdgeThickness, InnerFade, AnimSpeed, IdleStrength, Seed, WidgetAspect, SparkleStrength (FrostSparkleStrength 0..1), FrostTint (rgb),
 //   BaseRGB, BaseA (BaseTexture sample), BaseTint (rgb), BaseTintA
 //
 // Two ways to use it:
@@ -147,7 +147,7 @@ float g = F.Hash21(floor(gp));
 float twinkle = pow(0.5 + 0.5 * sin(t * 3.0 + g * 60.0), 4.0);
 float glint = pow(g, 14.0) * twinkle
             * (1.0 - smoothstep(0.0, 0.3, length(frac(gp) - 0.5)))
-            * mask * crystal;
+            * mask * crystal * saturate(SparkleStrength);  // SparkleStrength: 0 = off, 1 = full
 float shimmer = 0.9 + 0.1 * sin(t * 1.5 + n * 12.0);
 
 float3 tint = FrostTint.rgb;
