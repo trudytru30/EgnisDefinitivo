@@ -607,6 +607,12 @@ void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord
 
 	const ABoard* Board = Enemy->Board;
 	const int32 MaxSteps = UEgnisCombatLibrary::CanMove(Enemy) ? Enemy->GetMoveRange() : 0;
+	// TODO temporal: log de Ralentizado, quitar cuando se de por probado
+	if (MaxSteps > 0 && MaxSteps != Enemy->MoveRange)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Ralentizado] %s: alcance de movimiento %d -> %d"),
+			*Enemy->GetName(), Enemy->MoveRange, MaxSteps);
+	}
 	static const FTileCoord Dirs[4] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
 
 	//Busqueda por anchura: primero todas las casillas a 1 paso, luego a 2...

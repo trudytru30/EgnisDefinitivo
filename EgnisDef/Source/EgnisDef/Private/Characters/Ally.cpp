@@ -12,6 +12,7 @@
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Cards/EgnisCardSettings.h"
+#include "Components/StatusEffectComponent.h"
 
 AAlly::AAlly()
 {
@@ -43,9 +44,20 @@ void AAlly::BeginPlay()
 		ASC->GetGameplayAttributeValueChangeDelegate(UCharacterStatsAttributeSet::GetSpeedAttribute())
 			.AddUObject(this, &AAlly::OnSpeedChanged);
 	}
+	
+	// Ralentizado: al aplicarse o caducar un estado hay que recalcular el movimiento
+	if (StatusComp)
+	{
+		StatusComp->OnStatusChanged.AddUniqueDynamic(this, &AAlly::OnStatusesChanged);
+	}
 }
 
 void AAlly::OnSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	RefreshMoveRange();
+}
+
+void AAlly::OnStatusesChanged()
 {
 	RefreshMoveRange();
 }
@@ -57,7 +69,14 @@ void AAlly::RefreshMoveRange()
 		return;
 	}
 
-	MoveComp->moveRange = GetCharacterSpeed();
+	const int32 Speed = GetCharacterSpeed();
+	const int32 NewRange = UEgnisCombatLibrary::GetSlowedRange(this, Speed);
+	if (NewRange != Speed)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Ralentizado] %s: movimiento %d -> %d"), *GetName(), Speed, NewRange);
+	}
+
+	MoveComp->moveRange = NewRange;
 	if (MoveComp->moveRange <= 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Aliado %s: Speed 0, no podra moverse."), *GetName());

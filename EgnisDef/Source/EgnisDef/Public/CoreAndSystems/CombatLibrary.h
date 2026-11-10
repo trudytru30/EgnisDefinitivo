@@ -55,6 +55,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static bool CanMove(const ACharacterBase* Character);
 	
+	// Movimiento de un personaje con Ralentizado: Mitad redondeada hacia arriba, minimo 1.
+	static int32 GetSlowedRange(const ACharacterBase* Character, int32 BaseRange);
+	
 	// True si el objetivo de la carta esta dentro del rango efectivo del lanzador
 	// (rango de la carta + rango del personaje). Las cartas sin objetivo de unidad o casilla siempre devuelven true.
 	// Misma distancia Manhattan que Board::GetTilesInRange, para que resaltado y validacion coincidan.
