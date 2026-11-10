@@ -73,9 +73,21 @@ float UEgnisCombatLibrary::GetThornsDamage(const ACharacterBase* Target, float D
 
 float UEgnisCombatLibrary::GetAttackPower(const ACharacterBase* Character)
 {
-	if (const AAlly* Ally = Cast<AAlly>(Character)) return Ally->GetCharacterPower();
-	if (const AEnemy* Enemy = Cast<AEnemy>(Character)) return Enemy->GetPower();
-	return 0.f;
+	float Power = 0.f;
+    	if (const AAlly* Ally = Cast<AAlly>(Character)) Power = Ally->GetCharacterPower();
+    	else if (const AEnemy* Enemy = Cast<AEnemy>(Character)) Power = Enemy->GetPower();
+    
+    	// Extasiado: bonus plano al poder (la piedad de quien lo lanzo)
+    	if (IsValid(Character) && Character->StatusComp)
+    	{
+    		const float Bonus = Character->StatusComp->GetStatusMagnitude(EStatusType::Status_Ecstatic);
+    		if (Bonus > 0.f)
+    		{
+    			UE_LOG(LogTemp, Log, TEXT("[Extasiado] %s: poder %.1f + %.1f"), *Character->GetName(), Power, Bonus);
+    			Power += Bonus;
+    		}
+    	}
+    	return Power;
 }
 
 void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)
@@ -290,4 +302,16 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 		return false;
 	}
 	return true;
+}
+
+int32 UEgnisCombatLibrary::GetSlowedRange(const ACharacterBase* Character, int32 BaseRange)
+{
+	if (BaseRange <= 0 || !IsValid(Character) || !Character->StatusComp
+		|| !Character->StatusComp->HasStatus(EStatusType::Status_Slowed))
+	{
+		return BaseRange;
+	}
+
+	// El margen pequeño evita que un error de decimales suba o baje un punto de mas
+	return FMath::Max(1, FMath::CeilToInt(BaseRange * Character->StatusComp->SlowMovementFactor - KINDA_SMALL_NUMBER));
 }

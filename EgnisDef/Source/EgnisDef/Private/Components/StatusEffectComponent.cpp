@@ -3,6 +3,7 @@
 #include "Characters/CharacterBase.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Characters/Ally.h"
 
 namespace
 {
@@ -23,6 +24,9 @@ namespace
 		case EStatusType::Status_Rooted:     return TAG_Status_Rooted;
 		case EStatusType::Status_Riposte:    return TAG_Status_Riposte;
 		case EStatusType::Status_UnrestrainedRage: return TAG_Status_UnrestrainedRage;
+		case EStatusType::Status_Slowed: return TAG_Status_Slowed;
+		case EStatusType::Status_Ecstatic: return TAG_Status_Ecstatic;
+		case EStatusType::Status_Elusive: return TAG_Status_Elusive;
 		default:                            return FGameplayTag();
 		}
 	}
@@ -32,6 +36,24 @@ namespace
 	bool IsPermanentStatus(EStatusType Type)
 	{
 		return Type == EStatusType::Status_FieryCurse;
+	}
+	
+	// Estados que se van al final del turno en que se aplican: ese turno ya cuenta como uno de los suyos
+	bool CountsApplicationTurnByDefault(EStatusType Type)
+	{
+		return Type == EStatusType::Status_Ecstatic;
+	}
+
+	// Valor numerico que se fija al aplicar el estado
+	float GetMagnitudeFor(EStatusType Type, const ACharacterBase* Source)
+	{
+		if (Type == EStatusType::Status_Ecstatic)
+		{
+			// Bonus al poder = piedad de quien lo lanza, tal como esta al aplicarlo
+			const AAlly* AllySource = Cast<AAlly>(Source);
+			return AllySource ? AllySource->GetCharacterPiety() : 0.f;
+		}
+		return 0.f;
 	}
 }
 
@@ -79,7 +101,7 @@ ACharacterBase* UStatusEffectComponent::GetStatusSource(EStatusType Type) const
 	return Found ? Found->Source.Get() : nullptr;
 }
 
-bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source)
+bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source,	EStatusApplicationTurn ApplicationTurn)
 {
 	
 	// Maldicion Ignea: no usa turnos; cada llamada intenta aplicar una carga
@@ -93,14 +115,34 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 		return false;
 	}
 
+	// Si el turno de aplicacion cuenta, el final de ese mismo turno ya gasta uno de los Turns
+	const bool bCountsFirstTurn = ApplicationTurn == EStatusApplicationTurn::Counts
+		|| (ApplicationTurn == EStatusApplicationTurn::Default && CountsApplicationTurnByDefault(Type));
+	const bool bSkipDecrement = bOwnerTurnActive && !bCountsFirstTurn;
+	const float Magnitude = GetMagnitudeFor(Type, Source);
+
 	if (FActiveStatus* Existing = FindStatus(Type))
 	{
+		bool bChanged = false;
+
+		// Ya activo: se queda con el valor mayor
+		if (Magnitude > Existing->Magnitude)
+		{
+			Existing->Magnitude = Magnitude;
+			bChanged = true;
+		}
+
 		// Ya activo: solo se refresca si la nueva duracion es mayor
 		if (Turns > Existing->TurnsLeft)
 		{
 			Existing->TurnsLeft = Turns;
-			Existing->bSkipNextDecrement = bOwnerTurnActive;
+			Existing->bSkipNextDecrement = bSkipDecrement;
 			Existing->Source = Source;
+			bChanged = true;
+		}
+
+		if (bChanged)
+		{
 			OnStatusChanged.Broadcast();
 		}
 		return true;
@@ -110,7 +152,8 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 	NewStatus.Type = Type;
 	NewStatus.TurnsLeft = Turns;
 	NewStatus.Source = Source;
-	NewStatus.bSkipNextDecrement = bOwnerTurnActive;
+	NewStatus.Magnitude = Magnitude;
+	NewStatus.bSkipNextDecrement = bSkipDecrement;
 	ActiveStatuses.Add(NewStatus);
 
 	if (UAbilitySystemComponent* ASC = GetOwnerASC())
@@ -118,7 +161,7 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 		ASC->AddLooseGameplayTag(GetTagForStatus(Type));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[%s] Estado aplicado: %d (%d turnos)"), *GetOwner()->GetName(), (int32)Type, Turns);
+	UE_LOG(LogTemp, Log, TEXT("[%s] Estado aplicado: %d (%d turnos, valor %.1f)"), *GetOwner()->GetName(), (int32)Type, Turns, Magnitude);
 	OnStatusChanged.Broadcast();
 	return true;
 }
@@ -303,4 +346,10 @@ void UStatusEffectComponent::ApplyBurnDamage()
 
 	UE_LOG(LogTemp, Log, TEXT("[%s] Quemadura: %.0f de daño puro"), *OwnerChar->GetName(), BurnDamage);
 	UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, BurnDamage);
+}
+
+float UStatusEffectComponent::GetStatusMagnitude(EStatusType Type) const
+{
+	const FActiveStatus* Found = FindStatus(Type);
+	return Found ? Found->Magnitude : 0.f;
 }

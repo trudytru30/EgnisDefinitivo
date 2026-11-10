@@ -135,6 +135,9 @@ protected:
 	// Mantiene GridMovementComponent::moveRange igual que el atributo Speed
 	void RefreshMoveRange();
 	void OnSpeedChanged(const struct FOnAttributeChangeData& Data);
+	
+	UFUNCTION()
+	void OnStatusesChanged();
 
 	void GrantHeroAbilities(const UHeroDataAsset* HeroData);
 

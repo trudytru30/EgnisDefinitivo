@@ -21,7 +21,19 @@ enum class EStatusType : uint8
 	Status_FieryCurse,
 	Status_Rooted,
 	Status_Riposte,
-	Status_UnrestrainedRage
+	Status_UnrestrainedRage,
+	Status_Slowed,
+	Status_Ecstatic,
+	Status_Elusive
+};
+
+// Si el turno en que se aplica un estado cuenta como uno de sus turnos
+UENUM(BlueprintType)
+enum class EStatusApplicationTurn : uint8
+{
+	Default      UMETA(DisplayName = "Segun el estado"),
+	Counts       UMETA(DisplayName = "Cuenta"),
+	DoesNotCount UMETA(DisplayName = "No cuenta")
 };
 
 // Estado activo en un personaje (lo que guarda UStatusEffectComponent y lee la UI).
@@ -54,4 +66,8 @@ struct FActiveStatus
 	// y sirve para calcular cuanto baja la curacion.
 	UPROPERTY()
 	int32 TurnsHealed = 0;
+	
+	// Valor numerico del estado, fijado al aplicarlo.
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
+	float Magnitude = 0.f;
 };
