@@ -53,6 +53,11 @@ void AEnemy::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+int32 AEnemy::GetMoveRange() const
+{
+	// Ralentizado: mitad del movimiento (redondeo hacia arriba, minimo 1)
+	return UEgnisCombatLibrary::GetSlowedRange(this, MoveRange);
+}
 
 void AEnemy::MoveTowardClosesPlayer()
 {
@@ -90,25 +95,27 @@ void AEnemy::MoveTowardClosesPlayer()
 	int32 BestDist = ManhattanDistance(Start,Goal);
 
 	// 1) Elegir dirección óptima (según la casilla final tras 2 pasos)
-
+	
+	// Ralentizado: con la mitad del movimiento (minimo 1) solo da un paso
+	const bool bTwoSteps = UEgnisCombatLibrary::GetSlowedRange(this, 2) >= 2;
 	for (const FIntPoint& Dir : Dirs)
 	{
 		const FTileCoord Step1(Start.X + Dir.X, Start.Y + Dir.Y);
 		const FTileCoord Step2(Start.X + 2 * Dir.X, Start.Y + 2 * Dir.Y);
 
 		//Debe poder dar 2 pasos
-		if (!Board->IsInside(Step1) || !Board->IsInside(Step2))
+		if (!Board->IsInside(Step1) || (bTwoSteps && !Board->IsInside(Step2)))
 		{
 			continue;
 		}
 
 		//Deben de estar libres los 2 pasos
-		if (Board->IsTileOccupied(Step1) || Board->IsTileOccupied(Step2))
+		if (Board->IsTileOccupied(Step1) || (bTwoSteps && Board->IsTileOccupied(Step2)))
 		{
 			continue;
 		}
 
-		const int32 DistToGoal = ManhattanDistance(Step2, Goal);
+		const int32 DistToGoal = ManhattanDistance(bTwoSteps ? Step2 : Step1, Goal);
 		if (DistToGoal < BestDist)
 		{
 			BestDist = DistToGoal;
@@ -135,6 +142,15 @@ void AEnemy::MoveTowardClosesPlayer()
 
 	SnapToCurrentTile();
 
+	if (!bTwoSteps)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Ralentizado] %s: se mueve 1 casilla a (%d,%d)."),
+			*GetName(), CurrentTile.X, CurrentTile.Y);
+		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>())
+			AM->PlayTrigger(EEgnisAudioTrigger::EnemyMove, nullptr, this);
+		return;
+	}
+	
 	//Re-comprobar y ejecutar paso 2 (MISMA dirección del origen)
 	const FTileCoord SecondStep(Start.X + 2 * BestDir.X, Start.Y + 2 * BestDir.Y);
 

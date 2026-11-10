@@ -20,6 +20,11 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "StatusEffect", meta = (ClampMin = "1"))
 	int32 Turns = 1;
+	
+	// Si el turno en que se aplica cuenta como uno de los Turns. "Segun el estado": Extasiado cuenta, el resto no.
+	// Diseño puede forzarlo en cualquier carta.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "StatusEffect")
+	EStatusApplicationTurn ApplicationTurn = EStatusApplicationTurn::Default;
 
 	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) override;
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) override;
