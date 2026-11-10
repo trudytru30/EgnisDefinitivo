@@ -31,7 +31,6 @@ namespace
 		}
 	}
 	
-	
 	// Estados que duran todo el combate: no gastan turnos y no caducan
 	bool IsPermanentStatus(EStatusType Type)
 	{
@@ -54,6 +53,12 @@ namespace
 			return AllySource ? AllySource->GetCharacterPiety() : 0.f;
 		}
 		return 0.f;
+	}
+	
+	// Estados que se acumulan: Cada aplicacion es una entrada aparte con su propio valor y su propia duracion
+	bool IsStackableStatus(EStatusType Type)
+	{
+		return Type == EStatusType::Status_Ecstatic;
 	}
 }
 
@@ -119,40 +124,29 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 	const bool bCountsFirstTurn = ApplicationTurn == EStatusApplicationTurn::Counts
 		|| (ApplicationTurn == EStatusApplicationTurn::Default && CountsApplicationTurnByDefault(Type));
 	const bool bSkipDecrement = bOwnerTurnActive && !bCountsFirstTurn;
-	const float Magnitude = GetMagnitudeFor(Type, Source);
 
-	if (FActiveStatus* Existing = FindStatus(Type))
+	// Los estados apilables (Extasiado) no se fusionan: cada aplicacion es una entrada nueva
+	if (!IsStackableStatus(Type))
 	{
-		bool bChanged = false;
-
-		// Ya activo: se queda con el valor mayor
-		if (Magnitude > Existing->Magnitude)
+		if (FActiveStatus* Existing = FindStatus(Type))
 		{
-			Existing->Magnitude = Magnitude;
-			bChanged = true;
+			// Ya activo: solo se refresca si la nueva duracion es mayor
+			if (Turns > Existing->TurnsLeft)
+			{
+				Existing->TurnsLeft = Turns;
+				Existing->bSkipNextDecrement = bSkipDecrement;
+				Existing->Source = Source;
+				OnStatusChanged.Broadcast();
+			}
+			return true;
 		}
-
-		// Ya activo: solo se refresca si la nueva duracion es mayor
-		if (Turns > Existing->TurnsLeft)
-		{
-			Existing->TurnsLeft = Turns;
-			Existing->bSkipNextDecrement = bSkipDecrement;
-			Existing->Source = Source;
-			bChanged = true;
-		}
-
-		if (bChanged)
-		{
-			OnStatusChanged.Broadcast();
-		}
-		return true;
 	}
 
 	FActiveStatus NewStatus;
 	NewStatus.Type = Type;
 	NewStatus.TurnsLeft = Turns;
 	NewStatus.Source = Source;
-	NewStatus.Magnitude = Magnitude;
+	NewStatus.Magnitude = GetMagnitudeFor(Type, Source);
 	NewStatus.bSkipNextDecrement = bSkipDecrement;
 	ActiveStatuses.Add(NewStatus);
 
@@ -161,7 +155,7 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 		ASC->AddLooseGameplayTag(GetTagForStatus(Type));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[%s] Estado aplicado: %d (%d turnos, valor %.1f)"), *GetOwner()->GetName(), (int32)Type, Turns, Magnitude);
+	UE_LOG(LogTemp, Log, TEXT("[%s] Estado aplicado: %d (%d turnos, valor %.1f)"), *GetOwner()->GetName(), (int32)Type, Turns, NewStatus.Magnitude);
 	OnStatusChanged.Broadcast();
 	return true;
 }
@@ -233,20 +227,26 @@ int32 UStatusEffectComponent::ApplyFieryCurse(int32 Charges, ACharacterBase* Sou
 
 void UStatusEffectComponent::RemoveStatus(EStatusType Type)
 {
-	const int32 Index = ActiveStatuses.IndexOfByPredicate([Type](const FActiveStatus& S) { return S.Type == Type; });
-	if (Index == INDEX_NONE)
+	bool bRemoved = false;
+	for (int32 i = ActiveStatuses.Num() - 1; i >= 0; --i)
 	{
-		return;
+		if (ActiveStatuses[i].Type != Type)
+		{
+			continue;
+		}
+
+		ActiveStatuses.RemoveAt(i);
+		if (UAbilitySystemComponent* ASC = GetOwnerASC())
+		{
+			ASC->RemoveLooseGameplayTag(GetTagForStatus(Type));
+		}
+		bRemoved = true;
 	}
 
-	ActiveStatuses.RemoveAt(Index);
-
-	if (UAbilitySystemComponent* ASC = GetOwnerASC())
+	if (bRemoved)
 	{
-		ASC->RemoveLooseGameplayTag(GetTagForStatus(Type));
+		OnStatusChanged.Broadcast();
 	}
-
-	OnStatusChanged.Broadcast();
 }
 
 void UStatusEffectComponent::OnOwnerTurnStart()
@@ -350,6 +350,13 @@ void UStatusEffectComponent::ApplyBurnDamage()
 
 float UStatusEffectComponent::GetStatusMagnitude(EStatusType Type) const
 {
-	const FActiveStatus* Found = FindStatus(Type);
-	return Found ? Found->Magnitude : 0.f;
+	float Total = 0.f;
+	for (const FActiveStatus& Status : ActiveStatuses)
+	{
+		if (Status.Type == Type)
+		{
+			Total += Status.Magnitude;
+		}
+	}
+	return Total;
 }
