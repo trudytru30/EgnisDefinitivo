@@ -48,6 +48,6 @@ void UCard_StatusEffect::ApplyTo(ACharacterBase* Source, ACharacterBase* Receive
 
 	if (UStatusEffectComponent* StatusComp = Receiver->StatusComp)
 	{
-		StatusComp->ApplyStatus(Status, Turns, Source);
+		StatusComp->ApplyStatus(Status, Turns, Source, ApplicationTurn);
 	}
 }

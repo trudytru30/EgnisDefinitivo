@@ -63,7 +63,7 @@ public:
 	float GetPower() const { return Power; }
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Stats")
-	int32 GetMoveRange() const { return MoveRange; }
+	int32 GetMoveRange() const;
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Stats")
 	int32 GetAttackRange() const { return AttackRange; }
