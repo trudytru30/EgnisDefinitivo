@@ -163,11 +163,6 @@ FText UBaseCard::GetDescription() const
 	return Description;
 }
 
-void UBaseCard::SetCult(const FGameplayTag& NewCult)
-{
-	Cult = NewCult;
-}
-
 bool UBaseCard::CanBePlayedBy(const AAlly* Ally) const
 {
 	if (!Cult.IsValid())

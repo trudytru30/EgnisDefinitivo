@@ -72,9 +72,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
 	float RootedHealReductionPerTurn = 0.05f;
 	
+	// Ralentizado: Fraccion del movimiento que se conserva. Se redondea hacia arriba y nunca baja de 1
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
+	float SlowMovementFactor = 0.5f;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
-	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr);
+	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr,
+		EStatusApplicationTurn ApplicationTurn = EStatusApplicationTurn::Default);
 	
 	// Maldicion Ignea: intenta aplicar 'Charges' cargas, cada una con su propia tirada de probabilidad.
 	// Devuelve cuantas se aplicaron. Al llegar a CurseChargesToKill el personaje muere.
@@ -93,6 +98,10 @@ public:
 	// Cargas acumuladas de un estado (0 si no esta activo)
 	UFUNCTION(BlueprintPure, Category = "Status")
 	int32 GetStacks(EStatusType Type) const;
+	
+	// Valor numerico fijado al aplicar el estado. 0 si no esta activo
+	UFUNCTION(BlueprintPure, Category = "Status")
+	float GetStatusMagnitude(EStatusType Type) const;
 
 	UFUNCTION(BlueprintPure, Category = "Status")
 	ACharacterBase* GetStatusSource(EStatusType Type) const;
