@@ -26,6 +26,10 @@ public class EgnisEditor : ModuleRules
                 "PropertyEditor",
                 "HTTP",
                 "DeveloperSettings",
+                "Json",
+                "ApplicationCore",
+                "DesktopPlatform",
+                "AssetRegistry",
                 "EgnisDef"
             }
         );

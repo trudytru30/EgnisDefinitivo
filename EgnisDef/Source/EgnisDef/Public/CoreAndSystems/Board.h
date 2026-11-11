@@ -18,6 +18,7 @@ enum class ETileType : uint8
 	WaterPlatform         UMETA(DisplayName = "WaterPlatform"),
 	Ice                   UMETA(DisplayName = "Ice"),
 	Fog                   UMETA(DisplayName = "Fog"),
+	Limited               UMETA(DisplayName = "Limited"),
 };
 
 USTRUCT(BlueprintType)
