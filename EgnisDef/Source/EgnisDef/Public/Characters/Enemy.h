@@ -75,6 +75,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Combat")
 	bool bAttacksOverObstacles = false;	
 	
+	// Atraccion Espiritual: si es true, este enemigo prioriza atacar a quien tenga ese estado
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Spirits")
+	bool bPossessedBySpirits = false;
+	
 	virtual void Tick(float DeltaTime) override;
 	
 	//Selecionar Arquetipo

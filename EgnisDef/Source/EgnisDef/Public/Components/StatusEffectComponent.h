@@ -76,6 +76,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
 	float SlowMovementFactor = 0.5f;
 	
+	// Escurridizo: false = solo atraviesa obstaculos; true = tambien unidades (aliadas y enemigas)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
+	bool bElusiveAlsoPassesUnits = true;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr,

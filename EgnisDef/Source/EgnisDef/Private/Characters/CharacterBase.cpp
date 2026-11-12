@@ -7,6 +7,7 @@
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "EngineUtils.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -100,6 +101,17 @@ void ACharacterBase::HandleDeath()
 	if (Board)
 	{
 		Board->UnregisterOccupant(CurrentTile, this);
+	}
+	
+	// Atraccion Espiritual: quien estaba provocado por este personaje queda libre
+	for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It)
+	{
+		ACharacterBase* Other = *It;
+		if (IsValid(Other) && Other != this && Other->StatusComp
+			&& Other->StatusComp->GetStatusSource(EStatusType::Status_SpiritAttraction) == this)
+		{
+			Other->StatusComp->RemoveStatus(EStatusType::Status_SpiritAttraction);
+		}
 	}
 
 	Destroy();

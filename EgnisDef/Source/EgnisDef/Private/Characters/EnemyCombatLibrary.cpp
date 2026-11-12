@@ -183,6 +183,17 @@ TArray<ACharacterBase*> UEnemyCombatLibrary::GetHeroesInAttackRange(const AEnemy
 			Result.Add(Character);
 		}
 	}
+	
+	// Atraccion Espiritual: provocado, solo puede atacar a su provocador (si no le alcanza, la lista queda vacia)
+	if (ACharacterBase* Provoker = GetSpiritAttractionTarget(Attacker, false))
+	{
+		Result.Reset();
+		if (CanAttackTarget(Attacker, Provoker))
+		{
+			Result.Add(Provoker);
+		}
+	}
+	
 	return Result;
 }
 
@@ -386,6 +397,12 @@ ACharacterBase* UEnemyCombatLibrary::FindHeroByHealth(const AEnemy* Enemy, bool 
 	{
 		return nullptr;
 	}
+	
+	if (ACharacterBase* Provoker = GetSpiritAttractionTarget(Enemy, false))
+	{
+		// Provocado: solo puede ir a por su provocador
+		return (!bOnlyInAttackRange || CanAttackTarget(Enemy, Provoker)) ? Provoker : nullptr;
+	}
 
 	ACharacterBase* Best = nullptr;
 	for (TActorIterator<ACharacterBase> It(Enemy->GetWorld()); It; ++It)
@@ -407,6 +424,33 @@ ACharacterBase* UEnemyCombatLibrary::FindHeroByHealth(const AEnemy* Enemy, bool 
 		}
 	}
 	return Best;
+}
+
+ACharacterBase* UEnemyCombatLibrary::GetSpiritAttractionTarget(const AEnemy* Enemy, bool bOnlyInAttackRange)
+{
+	if (!IsValid(Enemy) || !Enemy->StatusComp)
+	{
+		return nullptr;
+	}
+
+	// Quien lo provoca. Si ha muerto, el puntero queda invalido y el enemigo queda libre
+	ACharacterBase* Provoker = Enemy->StatusComp->GetStatusSource(EStatusType::Status_SpiritAttraction);
+	if (!IsValid(Provoker) || Provoker->GetCurrentHealth() <= 0.f)
+	{
+		return nullptr;
+	}
+
+	// Solo le provoca alguien del bando de los heroes (un enemigo no se provoca a otro enemigo)
+	if (Provoker->GetTeam() != 0)
+	{
+		return nullptr;
+	}
+
+	if (bOnlyInAttackRange && !CanAttackTarget(Enemy, Provoker))
+	{
+		return nullptr;
+	}
+	return Provoker;
 }
 
 int32 UEnemyCombatLibrary::FindBestAreaCenter(const AEnemy* Attacker, int32 Radius, FTileCoord& OutCenter)
@@ -607,12 +651,6 @@ void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord
 
 	const ABoard* Board = Enemy->Board;
 	const int32 MaxSteps = UEgnisCombatLibrary::CanMove(Enemy) ? Enemy->GetMoveRange() : 0;
-	// TODO temporal: log de Ralentizado, quitar cuando se de por probado
-	if (MaxSteps > 0 && MaxSteps != Enemy->MoveRange)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Ralentizado] %s: alcance de movimiento %d -> %d"),
-			*Enemy->GetName(), Enemy->MoveRange, MaxSteps);
-	}
 	static const FTileCoord Dirs[4] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
 
 	//Busqueda por anchura: primero todas las casillas a 1 paso, luego a 2...
