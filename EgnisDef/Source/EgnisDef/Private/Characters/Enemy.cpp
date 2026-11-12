@@ -2,16 +2,14 @@
 #include "CoreAndSystems/AudioManager.h"
 #include "Cards/ActionDataAsset.h"
 #include "Characters/EnemyArcheTypeDataAsset.h"
-// FIX respecto al original: habia un include de "EntitySystem/MovieSceneEntitySystemRunner.h"
-// (sistema de Sequencer/MovieScene) que no se usa en ningun sitio de este archivo. Aparte de ser
-// codigo muerto, es una dependencia de modulo que puede no estar en el Build.cs del proyecto
-// nuevo y dar error de enlazado sin necesidad. Se quita.
 #include "Kismet/GameplayStatics.h"
 #include "AbilitySystemComponent.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Characters/EnemyStatsRow.h"
 #include "Characters/EnemyAIController.h"
+#include "Characters/EnemyCombatLibrary.h"
+#include "Components/StatusEffectComponent.h"
 
 AEnemy::AEnemy()
 {
@@ -274,6 +272,12 @@ void AEnemy::MakeAction()
 
 ACharacterBase* AEnemy::FindClosestPlayer() const
 {
+	if (ACharacterBase* Attracted = UEnemyCombatLibrary::GetSpiritAttractionTarget(this, false))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Atraccion] %s persigue a %s"), *GetName(), *Attracted->GetName());
+		return Attracted;
+	}
+	
 	TArray<AActor*> Found;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacterBase::StaticClass(), Found);
 
@@ -306,6 +310,21 @@ int32 AEnemy::ManhattanDistance(const FTileCoord& A, const FTileCoord& B)
 
 ACharacterBase* AEnemy::FindBestTarget(int32 _Range, int32 _BestRatio, int32 _Team)
 {
+	
+	if (_Team == 0)
+	{
+		if (ACharacterBase* Provoker = UEnemyCombatLibrary::GetSpiritAttractionTarget(this, false))
+		{
+			if (ManhattanDistance(CurrentTile, Provoker->CurrentTile) <= _Range)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Atraccion] %s ataca a %s"), *GetName(), *Provoker->GetName());
+				return Provoker;
+			}
+			// Provocado y fuera de alcance: no ataca a nadie mas, solo se acerca (FindClosestPlayer)
+			return nullptr;
+		}
+	}
+	
 	auto HealthRatio = [](const ACharacterBase* Unit) -> float
 	{
 		if (!Unit)

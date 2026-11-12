@@ -75,6 +75,11 @@ public:
 	//ATAQUE AREA
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	static ACharacterBase* FindHeroByHealth(const AEnemy* Enemy, bool bMostHealth = true, bool bOnlyInAttackRange = true);
+	
+	// Atraccion Espiritual: El heroe vivo mas cercano con ese estado. Devuelve nullptr si el enemigo
+	// no esta poseido por espiritus o nadie lo tiene. Con bOnlyInAttackRange solo cuenta si puede atacarle
+	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
+	static ACharacterBase* GetSpiritAttractionTarget(const AEnemy* Enemy, bool bOnlyInAttackRange = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	static int32 FindBestAreaCenter(const AEnemy* Attacker, int32 Radius, FTileCoord& OutCenter);

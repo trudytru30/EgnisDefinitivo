@@ -78,16 +78,11 @@ float UEgnisCombatLibrary::GetAttackPower(const ACharacterBase* Character)
     	else if (const AEnemy* Enemy = Cast<AEnemy>(Character)) Power = Enemy->GetPower();
     
     	// Extasiado: bonus plano al poder (la piedad de quien lo lanzo)
-    	if (IsValid(Character) && Character->StatusComp)
-    	{
-    		const float Bonus = Character->StatusComp->GetStatusMagnitude(EStatusType::Status_Ecstatic);
-    		if (Bonus > 0.f)
-    		{
-    			UE_LOG(LogTemp, Log, TEXT("[Extasiado] %s: poder %.1f + %.1f"), *Character->GetName(), Power, Bonus);
-    			Power += Bonus;
-    		}
-    	}
-    	return Power;
+		if (IsValid(Character) && Character->StatusComp)
+		{
+			Power += Character->StatusComp->GetStatusMagnitude(EStatusType::Status_Ecstatic);
+		}
+		return Power;
 }
 
 void UEgnisCombatLibrary::ApplyPureDamage(ACharacterBase* Target, float Amount)
@@ -246,6 +241,18 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 		{
 			UE_LOG(LogTemp, Log, TEXT("[Taunt] %s esta provocado por %s: solo puede apuntarle a el."),
 				*Caster->GetName(), *Taunter->GetName());
+			return false;
+		}
+	}
+	
+	// Atraccion Espiritual: provocado por una criatura enemiga, solo puede apuntarle a ella
+	if (CardTarget == ECardTarget::Enemy && Caster->StatusComp)
+	{
+		ACharacterBase* Provoker = Caster->StatusComp->GetStatusSource(EStatusType::Status_SpiritAttraction);
+		if (IsValid(Provoker) && Provoker->GetCurrentHealth() > 0.f && Provoker->GetTeam() != 0 && TargetCharacter != Provoker)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("[Atraccion] %s esta provocado por %s: solo puede apuntarle a el."),
+				*Caster->GetName(), *Provoker->GetName());
 			return false;
 		}
 	}

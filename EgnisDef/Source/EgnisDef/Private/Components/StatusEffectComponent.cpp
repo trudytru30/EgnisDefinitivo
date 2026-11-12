@@ -27,6 +27,7 @@ namespace
 		case EStatusType::Status_Slowed: return TAG_Status_Slowed;
 		case EStatusType::Status_Ecstatic: return TAG_Status_Ecstatic;
 		case EStatusType::Status_Elusive: return TAG_Status_Elusive;
+		case EStatusType::Status_SpiritAttraction: return TAG_Status_SpiritAttraction;
 		default:                            return FGameplayTag();
 		}
 	}
@@ -130,12 +131,20 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 	{
 		if (FActiveStatus* Existing = FindStatus(Type))
 		{
+			// Atraccion Espiritual: otro lanzador distinto sobrescribe al anterior, aunque dure menos
+			const bool bNewProvoker = Type == EStatusType::Status_SpiritAttraction && Existing->Source.Get() != Source;
+
 			// Ya activo: solo se refresca si la nueva duracion es mayor
-			if (Turns > Existing->TurnsLeft)
+			if (bNewProvoker || Turns > Existing->TurnsLeft)
 			{
 				Existing->TurnsLeft = Turns;
 				Existing->bSkipNextDecrement = bSkipDecrement;
 				Existing->Source = Source;
+				if (bNewProvoker)
+				{
+					UE_LOG(LogTemp, Log, TEXT("[Atraccion] %s: ahora provocado por %s"), *GetOwner()->GetName(),
+						Source ? *Source->GetName() : TEXT("nadie"));
+				}
 				OnStatusChanged.Broadcast();
 			}
 			return true;

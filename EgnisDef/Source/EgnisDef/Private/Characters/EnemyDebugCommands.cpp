@@ -334,4 +334,53 @@ namespace
 			}
 		}
 	}));
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyProvoke(
+	TEXT("Egnis.Enemy.Provoke"),
+	TEXT("Egnis.Enemy.Provoke [turnos=2] [indiceEnemigo=0]: ese enemigo aplica Atraccion Espiritual a todos los heroes."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		const int32 Turns = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 2;
+		const int32 EnemyIndex = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+
+		int32 Index = 0;
+		for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy, ++Index)
+		{
+			if (Index != EnemyIndex) continue;
+
+			for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+			{
+				if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+				Hero->StatusComp->ApplyStatus(EStatusType::Status_SpiritAttraction, FMath::Max(1, Turns), *Enemy);
+				UE_LOG(LogTemp, Log, TEXT("[ProvokeDebug] %s provoca a %s (%d turnos)."), *Enemy->GetName(), *Hero->GetName(), Turns);
+			}
+			return;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[ProvokeDebug] No hay enemigo con indice %d."), EnemyIndex);
+	}));
+
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyProvokeCheck(
+	TEXT("Egnis.Enemy.ProvokeCheck"),
+	TEXT("Muestra que heroes estan provocados por Atraccion Espiritual, por quien, y a que enemigos podrian apuntar."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+		{
+			if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+			const ACharacterBase* Provoker = Hero->StatusComp->GetStatusSource(EStatusType::Status_SpiritAttraction);
+			if (!IsValid(Provoker) || Provoker->GetCurrentHealth() <= 0.f)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[ProvokeCheck] %s NO esta provocado."), *Hero->GetName());
+				continue;
+			}
+			UE_LOG(LogTemp, Log, TEXT("[ProvokeCheck] %s provocado por %s (%d turnos)."), *Hero->GetName(), *Provoker->GetName(),
+				Hero->StatusComp->GetTurnsLeft(EStatusType::Status_SpiritAttraction));
+			for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[ProvokeCheck]   -> %s: %s"), *Enemy->GetName(),
+					*Enemy == Provoker ? TEXT("SI puede apuntarle") : TEXT("NO (bloqueado)"));
+			}
+		}
+	}));
 }
