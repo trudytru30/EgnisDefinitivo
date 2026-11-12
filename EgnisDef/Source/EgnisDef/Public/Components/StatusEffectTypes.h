@@ -25,7 +25,8 @@ enum class EStatusType : uint8
 	Status_Slowed,
 	Status_Ecstatic,
 	Status_Elusive,
-	Status_SpiritAttraction
+	Status_SpiritAttraction,
+	Status_Perfume
 };
 
 // Si el turno en que se aplica un estado cuenta como uno de sus turnos

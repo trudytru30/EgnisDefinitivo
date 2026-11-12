@@ -383,4 +383,44 @@ namespace
 			}
 		}
 	}));
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyPossess(
+TEXT("Egnis.Enemy.Possess"),
+TEXT("Egnis.Enemy.Possess [indiceEnemigo=0] [1|0]: marca o desmarca a ese enemigo como poseido por espiritus (Perfumar)."),
+FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+{
+	if (!World) return;
+	const int32 EnemyIndex = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+	const bool bValue = Args.Num() > 1 ? FCString::Atoi(*Args[1]) != 0 : true;
+
+	int32 Index = 0;
+	for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy, ++Index)
+	{
+		if (Index != EnemyIndex) continue;
+		Enemy->bPossessedBySpirits = bValue;
+		UE_LOG(LogTemp, Log, TEXT("[PerfumeDebug] %s poseido = %s"), *Enemy->GetName(), bValue ? TEXT("SI") : TEXT("NO"));
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[PerfumeDebug] No hay enemigo con indice %d."), EnemyIndex);
+}));
+
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyPerfume(
+	TEXT("Egnis.Enemy.Perfume"),
+	TEXT("Egnis.Enemy.Perfume [turnos=2] [indiceHeroe=0]: aplica Perfumar a ese heroe."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		const int32 Turns = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 2;
+		const int32 HeroIndex = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+
+		int32 Index = 0;
+		for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+		{
+			if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+			if (Index++ != HeroIndex) continue;
+			Hero->StatusComp->ApplyStatus(EStatusType::Status_Perfume, FMath::Max(1, Turns));
+			UE_LOG(LogTemp, Log, TEXT("[PerfumeDebug] %s perfumado (%d turnos)."), *Hero->GetName(), Turns);
+			return;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[PerfumeDebug] No hay heroe con indice %d."), HeroIndex);
+	}));
 }

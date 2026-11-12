@@ -28,6 +28,7 @@ namespace
 		case EStatusType::Status_Ecstatic: return TAG_Status_Ecstatic;
 		case EStatusType::Status_Elusive: return TAG_Status_Elusive;
 		case EStatusType::Status_SpiritAttraction: return TAG_Status_SpiritAttraction;
+		case EStatusType::Status_Perfume: return TAG_Status_Perfume;
 		default:                            return FGameplayTag();
 		}
 	}

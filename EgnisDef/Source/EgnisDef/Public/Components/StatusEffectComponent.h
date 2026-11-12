@@ -80,6 +80,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
 	bool bElusiveAlsoPassesUnits = true;
 	
+	// Perfumar: true = los enemigos no poseidos SOLO pueden atacar al perfumado.
+	// false = lo prefieren si esta a su alcance, pero pueden atacar a otros
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
+	bool bPerfumeExclusive = false;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr,
