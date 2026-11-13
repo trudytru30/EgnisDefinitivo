@@ -10,6 +10,7 @@
 #include "Characters/EnemyAIController.h"
 #include "Characters/EnemyCombatLibrary.h"
 #include "Components/StatusEffectComponent.h"
+#include "FMODEvent.h"
 
 AEnemy::AEnemy()
 {
@@ -509,4 +510,14 @@ void AEnemy::NotifyMoved(const FTileCoord& From, const FTileCoord& To, int32 Ste
 {
 	OnEnemyMoved(From, To, Steps);
 	OnMovedDone.Broadcast(this, From, To, Steps);
+}
+
+UFMODEvent* AEnemy::GetAttackSoundEvent() const
+{
+	return AttackSound;
+}
+
+float AEnemy::GetAudioPitch() const
+{
+	return PitchModifier;
 }

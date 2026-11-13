@@ -5,6 +5,8 @@
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Characters/Enemy.h"
+#include "CoreAndSystems/AudioManager.h"
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -140,6 +142,16 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	// Riposte: se guarda ya si esto fue un golpe (aunque el escudo lo absorba)
 	const bool bWasHit = IncomingDamage > 0.f;
 	IncomingDamage = 0.f;
+	
+	// Sonido de golpe: suena tambien si el escudo absorbe todo el daño. Va antes de la posible muerte
+	if (bWasHit)
+	{
+		if (UAudioManager* AM = OwnerCharacter->GetGameInstance()->GetSubsystem<UAudioManager>())
+		{
+			AM->PlayTrigger(Cast<AEnemy>(OwnerCharacter) ? EEgnisAudioTrigger::EnemyDamaged : EEgnisAudioTrigger::AllyDamaged,
+				nullptr, OwnerCharacter);
+		}
+	}
 
 	// Equivalente exacto a la comprobación "HealthComp->GetCurrentHealth() <= 0" que había
 	// en LossHealth(). GetHealth() ya lee el CurrentValue post-clamp gracias a PreAttributeChange.

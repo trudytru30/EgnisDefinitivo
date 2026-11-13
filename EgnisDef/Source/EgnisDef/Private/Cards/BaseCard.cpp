@@ -9,6 +9,8 @@
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "Cards/Card_AttackEffect.h"
 #include "Cards/Card_AreaDamageEffect.h"
+#include "CoreAndSystems/AudioManager.h"
+#include "Engine/GameInstance.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
@@ -17,6 +19,13 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 	if (Deck)
 	{
 		Deck->SetCardInPlay(this);
+	}
+	
+	// Sonido del culto: suena ademas del sonido base de cada efecto (las grises no tienen culto, no suenan)
+	if (Self)
+	{
+		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>())
+			AM->PlayCultSound(Cult, Self);
 	}
 	
 	for (UCardEffect* Effect : Effects)

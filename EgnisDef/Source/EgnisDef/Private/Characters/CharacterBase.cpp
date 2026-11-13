@@ -8,6 +8,8 @@
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "EngineUtils.h"
+#include "CoreAndSystems/AudioManager.h"
+#include "Engine/GameInstance.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -219,4 +221,16 @@ float ACharacterBase::GetCurrentShield() const
 int32 ACharacterBase::GetTeam()
 {
 	return Team;
+}
+
+void ACharacterBase::PlayPieceLiftSound()
+{
+	if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(EEgnisAudioTrigger::PieceLift, nullptr, this);
+}
+
+void ACharacterBase::PlayPieceLandSound()
+{
+	if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>())
+		AM->PlayTrigger(EEgnisAudioTrigger::PieceLand, nullptr, this);
 }

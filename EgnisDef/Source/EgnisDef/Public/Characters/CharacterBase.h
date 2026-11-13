@@ -8,6 +8,8 @@
 #include "AbilitySystemInterface.h"
 #include "CharacterBase.generated.h"
 
+class UFMODEvent;
+
 UCLASS()
 // Se añade IAbilitySystemInterface: es como GAS localiza el ASC de un actor sin necesidad
 // de castear. BattleManager y las futuras GameplayAbility lo usarán para preguntar
@@ -59,6 +61,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Stats")
 	int32 GetTeam();
+	
+	// Audio: sonido de ataque propio y pitch. Aliados y enemigos los sobreescriben; AudioManager los lee.
+	virtual UFMODEvent* GetAttackSoundEvent() const { return nullptr; }
+	virtual float GetAudioPitch() const { return 1.f; }
+	// Audio de la animacion de moverse: los llama el Blueprint que anima la pieza
+	// (PlayPieceLiftSound al empezar a levantarse, PlayPieceLandSound al aterrizar en la casilla)
+	UFUNCTION(BlueprintCallable, Category="Audio")
+	void PlayPieceLiftSound();
+	UFUNCTION(BlueprintCallable, Category="Audio")
+	void PlayPieceLandSound();
 
 	// ===== Grid / Board =====
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Grid")

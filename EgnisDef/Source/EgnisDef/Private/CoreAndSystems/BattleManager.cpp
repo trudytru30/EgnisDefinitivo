@@ -403,7 +403,7 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
-// TODO: estas comprobaciones estaban dentro de RequestMove y se han movido aqui (como en la version de tu compañero),
+// TODO: estas comprobaciones estaban dentro de RequestMove y se han movido aqui
 // para que BoardPlayerController::CanUnitMoveThisTurn las pueda consultar sin mover la unidad
 bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 {
@@ -476,9 +476,7 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 	{
 		return false;
 	}
-
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
-		AM->PlayTrigger(EEgnisAudioTrigger::AllyMove, nullptr, Unit);
+	
 	Unit->bHasMoved = true;
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: RequestMove OK: %s -> (%d,%d)"),

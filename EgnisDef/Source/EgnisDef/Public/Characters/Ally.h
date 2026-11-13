@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Setup")
 	virtual void InitializeFromData(UHeroDataAsset* HeroData);
 
+	virtual UFMODEvent* GetAttackSoundEvent() const override;
+	virtual float GetAudioPitch() const override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TObjectPtr<UHeroDataAsset> HeroAsset = nullptr;
 

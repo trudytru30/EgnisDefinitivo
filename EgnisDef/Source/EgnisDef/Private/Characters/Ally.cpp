@@ -13,6 +13,7 @@
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Cards/EgnisCardSettings.h"
 #include "Components/StatusEffectComponent.h"
+#include "FMODEvent.h"
 
 AAlly::AAlly()
 {
@@ -378,4 +379,14 @@ bool AAlly::CounterAttack(ACharacterBase* Target)
 	UE_LOG(LogTemp, Log, TEXT("[%s] Riposte -> %s con %s"), *GetName(), *Target->GetName(), *RiposteCard->GetName());
 	RiposteCard->ExecuteAgainst(this, Target);
 	return true;
+}
+
+UFMODEvent* AAlly::GetAttackSoundEvent() const
+{
+	return HeroAsset ? HeroAsset->AttackSound : nullptr;
+}
+
+float AAlly::GetAudioPitch() const
+{
+	return HeroAsset ? HeroAsset->PitchModifier : 1.f;
 }

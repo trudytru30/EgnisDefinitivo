@@ -19,10 +19,13 @@ enum class EEgnisAudioTrigger : uint8
 
 	/** El jugador hace clic en uno de sus personajes y lo selecciona. */
 	AllySelected UMETA(DisplayName = "Tablero - Aliado seleccionado"),
-	/** Un aliado se mueve a una casilla con el movimiento normal del turno. */
-	AllyMove UMETA(DisplayName = "Tablero - Aliado se mueve"),
 	/** Un enemigo termina su movimiento (suena al llegar). */
 	EnemyMove UMETA(DisplayName = "Tablero - Enemigo se mueve"),
+	
+	/** La pieza se levanta al empezar la animacion de moverse. No lo lanza C++: lo llama el Blueprint de la animacion. */
+	PieceLift UMETA(DisplayName = "Pieza - Se levanta"),
+	/** La pieza aterriza en la casilla al terminar la animacion de moverse. No lo lanza C++: lo llama el Blueprint. */
+	PieceLand UMETA(DisplayName = "Pieza - Aterriza"),
 
 	/** Efecto de ataque de una carta: Suena una vez por cada objetivo golpeado. */
 	CardAttack UMETA(DisplayName = "Carta - Ataque"),
@@ -51,5 +54,10 @@ enum class EEgnisAudioTrigger : uint8
 	CombatDefeat UMETA(DisplayName = "Combate - Derrota"),
 	
 	/** Un enemigo ataca a un aliado en su turno. */
-	EnemyAttack UMETA(DisplayName = "Enemigo - Ataque")
+	EnemyAttack UMETA(DisplayName = "Enemigo - Ataque"),
+	
+	/** Una pieza del jugador recibe un golpe (tambien si el escudo lo absorbe todo). */
+	AllyDamaged UMETA(DisplayName = "Golpe - Pieza del jugador"),
+	/** Una pieza enemiga recibe un golpe (tambien si el escudo lo absorbe todo). */
+	EnemyDamaged UMETA(DisplayName = "Golpe - Pieza enemiga"),
 };

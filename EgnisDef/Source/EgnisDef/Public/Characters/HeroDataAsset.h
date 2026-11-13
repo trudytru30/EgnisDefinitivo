@@ -10,6 +10,7 @@ class AAlly;
 class UBaseCard;
 class UStaticMesh;
 class UGameplayAbility;
+class UFMODEvent;
 
 UCLASS(BlueprintType)
 class EGNISDEF_API UHeroDataAsset : public UDataAsset
@@ -49,5 +50,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visuals", meta = (ClampMin = "0.01"))
 	float ModelScale = 4.f;
 
-	
+	// Sonido de ataque propio del personaje: suena ademas del sonido base cuando ataca
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<UFMODEvent> AttackSound;
+
+	// Multiplicador de pitch de los sonidos de este personaje (1 = sin cambio, 1.2 = mas agudo)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio", meta = (ClampMin = "0.25", ClampMax = "4.0"))
+	float PitchModifier = 1.f;
 };
