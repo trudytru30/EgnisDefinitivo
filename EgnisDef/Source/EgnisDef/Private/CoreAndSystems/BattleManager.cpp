@@ -712,6 +712,7 @@ void UBattleManager::ResolveMadness()
 					if (Ally->SetCurrentTile(Destination) && IsValid(Ally))
 					{
 						Ally->bHasMoved = true;
+						Ally->SnapToCurrentTile(false); // sin esto solo cambia la casilla lógica, no el actor
 						UE_LOG(LogTemp, Log, TEXT("[Locura] %s se mueve a (%d,%d)"),
 							*Ally->GetName(), Destination.X, Destination.Y);
 					}
