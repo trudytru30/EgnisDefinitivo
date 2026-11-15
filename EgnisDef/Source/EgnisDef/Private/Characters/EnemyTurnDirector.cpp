@@ -25,6 +25,13 @@ void UEnemyTurnDirector::StartEnemyPhase(const TArray<AEnemy*>& Enemies, FOnEnem
 		}
 	}
 
+	for (const TWeakObjectPtr<AEnemy>& E : Queue)
+	{
+		if (E.IsValid())
+		{
+			E->OnEnemyPhaseStarted();
+		}
+	}
 	//Orden configurable: TurnOrder mas bajo primero; si empatan, se respeta el orden de aparicion
 	Algo::StableSortBy(Queue, [](const TWeakObjectPtr<AEnemy>& E) { return E.IsValid() ? E->TurnOrder : MAX_int32; });
 
@@ -186,6 +193,11 @@ void UEnemyTurnDirector::OnEnemyDone()
 		}
 	}
 
+	if (Queue.IsValidIndex(CurrentIndex) && Queue[CurrentIndex].IsValid() && Queue[CurrentIndex]->ConsumeExtraTurn())
+	{
+		Schedule(Settings.DelayBetweenEnemies);
+		return;
+	}
 	++CurrentIndex;
 	Schedule(Settings.DelayBetweenEnemies);
 }

@@ -55,7 +55,7 @@ public:
 
 	// ===== Funciones =====
 
-	void HandleDeath();
+	virtual void HandleDeath();
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 

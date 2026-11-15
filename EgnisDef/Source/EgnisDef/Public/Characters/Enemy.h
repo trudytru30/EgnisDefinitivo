@@ -131,8 +131,11 @@ public:
 	void AddDamageBuff(float Percent, int32 Turns, bool bAppliedDuringOwnTurn);
 
 	//Lo llama el AIController al terminar el turno de este enemigo
-	virtual void OnOwnTurnFinished();	
+	virtual void OnOwnTurnFinished();
 
+	//ghol
+	virtual void OnEnemyPhaseStarted() {}
+	virtual bool ConsumeExtraTurn() { return false; }
 
 	//Orden en el turno enemigo: los numeros mas bajos actuan antes (empate = orden de aparicion)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI")
