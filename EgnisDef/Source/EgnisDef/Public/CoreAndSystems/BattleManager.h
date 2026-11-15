@@ -46,7 +46,7 @@ public:
 	void StartPlayerTurn();
 	void StartEnemyTurn();
 	void EndTurn();
-	bool PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location);
+	bool PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location, bool bFreeCost = false);
 	void UpdateUnitsAlive();
 	void EndBattle(bool bPlayerWon);
 	UFUNCTION(BlueprintCallable, Category="Battle|Player")
@@ -72,6 +72,9 @@ private:
 	// Avisan a los personajes de un bando de que empieza / termina su turno
 	void NotifyTeamTurnStart(int32 Team);
 	void NotifyTeamTurnEnd(int32 Team);
+	
+	// Locura: los aliados con el estado se mueven y juegan cartas al azar al empezar el turno del jugador
+	void ResolveMadness();
 	
 	// Salud actual de los aliados respecto a la suma de sus vidas maximas al empezar el combate (0 a 1).
 	// Los aliados muertos cuentan como 0.

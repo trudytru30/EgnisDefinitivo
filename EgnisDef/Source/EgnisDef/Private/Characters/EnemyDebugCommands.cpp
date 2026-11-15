@@ -423,4 +423,23 @@ FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& 
 		}
 		UE_LOG(LogTemp, Warning, TEXT("[PerfumeDebug] No hay heroe con indice %d."), HeroIndex);
 	}));
+	FAutoConsoleCommandWithWorldAndArgs CmdMadness(
+TEXT("Egnis.Madness"),
+TEXT("Egnis.Madness [indiceHeroe=0]: aplica Locura a ese heroe."),
+FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+{
+	if (!World) return;
+	const int32 HeroIndex = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+
+	int32 Index = 0;
+	for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+	{
+		if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+		if (Index++ != HeroIndex) continue;
+		Hero->StatusComp->ApplyStatus(EStatusType::Status_Madness, 1);
+		UE_LOG(LogTemp, Log, TEXT("[MadnessDebug] %s esta loco."), *Hero->GetName());
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[MadnessDebug] No hay heroe con indice %d."), HeroIndex);
+}));
 }

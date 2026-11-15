@@ -17,6 +17,112 @@
 
 class AAlly;
 
+namespace
+{
+	template<typename T>
+	void ShuffleInPlace(TArray<T>& Array)
+	{
+		for (int32 i = Array.Num() - 1; i > 0; --i)
+		{
+			Array.Swap(i, FMath::RandRange(0, i));
+		}
+	}
+
+	// Locura: elige al azar un objetivo valido para la carta. false si no hay ninguno
+	bool PickMadnessTarget(UBaseCard* Card, AAlly* Caster, const TArray<ACharacterBase*>& OnField, ABoard* Board,
+		ACharacterBase*& OutTarget, FVector& OutLocation)
+	{
+		OutTarget = nullptr;
+		OutLocation = FVector::ZeroVector;
+
+		switch (Card->GetTarget())
+		{
+		case ECardTarget::None:
+		case ECardTarget::Self:
+			return true; // no hace falta elegir nada
+
+		case ECardTarget::Ally:
+		case ECardTarget::Enemy:
+		{
+			const int32 WantedTeam = Card->GetTarget() == ECardTarget::Ally ? Caster->GetTeam() : 1 - Caster->GetTeam();
+			TArray<ACharacterBase*> Valid;
+			for (ACharacterBase* Candidate : OnField)
+			{
+				if (IsValid(Candidate) && Candidate->GetTeam() == WantedTeam && Candidate->GetCurrentHealth() > 0.f
+					&& UEgnisCombatLibrary::IsCardTargetInRange(Card, Caster, Candidate, Candidate->GetActorLocation()))
+				{
+					Valid.Add(Candidate);
+				}
+			}
+			if (Valid.IsEmpty())
+			{
+				return false;
+			}
+			OutTarget = Valid[FMath::RandRange(0, Valid.Num() - 1)];
+			OutLocation = OutTarget->GetActorLocation();
+			return true;
+		}
+
+		case ECardTarget::Tile:
+		{
+			if (!Board)
+			{
+				return false;
+			}
+			TArray<FTileCoord> Tiles;
+			Board->GetTilesInRange(Caster->CurrentTile, Caster->GetEffectiveRange(Card), Tiles);
+			TArray<FVector> Valid;
+			for (const FTileCoord& Tile : Tiles)
+			{
+				if (!Card->CanTargetTile(Caster, Tile))
+				{
+					continue;
+				}
+				const FVector Location = Board->TileToWorldCenter(Tile);
+				if (UEgnisCombatLibrary::IsCardTargetInRange(Card, Caster, nullptr, Location))
+				{
+					Valid.Add(Location);
+				}
+			}
+			if (Valid.IsEmpty())
+			{
+				return false;
+			}
+			OutLocation = Valid[FMath::RandRange(0, Valid.Num() - 1)];
+			return true;
+		}
+		}
+		return false;
+	}
+
+	// Locura: si la carta jugada abre una seleccion de la mano (Consumir, Descartar, Guardar), se resuelve sola al azar
+	void ResolveMadnessSelection(UDeckManager* Deck)
+	{
+		for (int32 Guard = 0; Deck->IsSelectingFromHand() && Guard < 20; ++Guard)
+		{
+			TArray<UBaseCard*> Pool = Deck->GetHand();
+			ShuffleInPlace(Pool);
+			for (UBaseCard* Candidate : Pool)
+			{
+				if (Deck->GetSelectedCards().Num() >= Deck->GetRequiredSelection())
+				{
+					break;
+				}
+				if (Deck->IsCardSelectable(Candidate) && !Deck->IsCardSelected(Candidate))
+				{
+					Deck->ToggleCardSelection(Candidate);
+				}
+			}
+			if (!Deck->CanConfirmHandSelection())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Locura] no se pudo resolver sola la seleccion de cartas"));
+				return;
+			}
+			Deck->ConfirmHandSelection();
+		}
+	}
+}
+
 void UBattleManager::SetDeckManager(UDeckManager* InDeckManager)
 {
 	DeckManager = InDeckManager;
@@ -132,6 +238,8 @@ void UBattleManager::StartPlayerTurn()
 		}
 		DeckManager->ClearKeptCards();
 	}
+	
+	ResolveMadness();
 
 	OnPlayerTurnStarted.Broadcast();
 	
@@ -226,7 +334,7 @@ void UBattleManager::EndTurn()
 }
 
 // Comprobar si el player puede jugar una carta (es decir, que sea su turno y tenga energia)
-bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location)
+bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location, bool bFreeCost)
 {
 	if (!Character || !Character->EnergyAttributeSet)
 	{
@@ -271,7 +379,8 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 	
 	const int32 Cost = UEgnisCombatLibrary::GetEffectiveCost(Card, Character);
 	const bool bNormalCost = Cost == Card->GetCost();
-	if (bNormalCost ? !Character->CanPayCardCost(Card) : Character->GetCurrentEnergy() < Cost)
+	
+	if (!bFreeCost && (bNormalCost ? !Character->CanPayCardCost(Card) : Character->GetCurrentEnergy() < Cost))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
@@ -282,13 +391,17 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
-	if (bNormalCost)
+	
+	if (!bFreeCost)
 	{
-		Character->PayCardCost(Card);
-	}
-	else
-	{
-		Character->LossPoints(Cost);
+		if (bNormalCost)
+		{
+			Character->PayCardCost(Card);
+		}
+		else
+		{
+			Character->LossPoints(Cost);
+		}
 	}
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
@@ -558,6 +671,96 @@ void UBattleManager::NotifyTeamTurnEnd(int32 Team)
 		if (IsValid(Character) && Character->GetTeam() == Team)
 		{
 			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_End, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
+		}
+	}
+}
+
+void UBattleManager::ResolveMadness()
+{
+	if (!DeckManager)
+	{
+		return;
+	}
+
+	// Copia porque jugar cartas puede matar unidades y alterar CharactersOnField
+	const TArray<ACharacterBase*> Snapshot = CharactersOnField;
+	for (ACharacterBase* Character : Snapshot)
+	{
+		AAlly* Ally = Cast<AAlly>(Character);
+		if (bBattleIsOver)
+		{
+			return;
+		}
+		if (!IsValid(Ally) || Ally->GetTeam() != 0 || !Ally->StatusComp
+			|| !Ally->StatusComp->HasStatus(EStatusType::Status_Madness))
+		{
+			continue;
+		}
+		UE_LOG(LogTemp, Log, TEXT("[Locura] %s empieza su turno loco"), *Ally->GetName());
+
+		// 1) Movimiento aleatorio (gasta su movimiento del turno)
+		if (UEgnisCombatLibrary::CanMove(Ally) && !Ally->bHasMoved)
+		{
+			if (UGridMovementComponent* MoveComp = Ally->FindComponentByClass<UGridMovementComponent>())
+			{
+				TArray<FTileCoord> Reachable;
+				MoveComp->getRachableTiles(Reachable);
+				Reachable.RemoveAll([Ally](const FTileCoord& Tile) { return Tile == Ally->CurrentTile; });
+				if (Reachable.Num() > 0)
+				{
+					const FTileCoord Destination = Reachable[FMath::RandRange(0, Reachable.Num() - 1)];
+					if (Ally->SetCurrentTile(Destination) && IsValid(Ally))
+					{
+						Ally->bHasMoved = true;
+						UE_LOG(LogTemp, Log, TEXT("[Locura] %s se mueve a (%d,%d)"),
+							*Ally->GetName(), Destination.X, Destination.Y);
+					}
+				}
+			}
+		}
+		if (!IsValid(Ally))
+		{
+			continue; // murio por el fuego del rastro al moverse
+		}
+
+		// 2) Cartas al azar, sin gastar energia
+		const int32 MaxCards = Ally->StatusComp->MadnessCardsPerTurn;
+		TArray<UBaseCard*> Candidates = DeckManager->GetHand();
+		ShuffleInPlace(Candidates);
+
+		int32 Played = 0;
+		for (UBaseCard* Card : Candidates)
+		{
+			// Para si ya jugo las que tocaban, acabo el combate, murio o perdio la Locura (le han hecho daño)
+			if (Played >= MaxCards || bBattleIsOver || !IsValid(Ally) || !Ally->StatusComp
+				|| !Ally->StatusComp->HasStatus(EStatusType::Status_Madness))
+			{
+				break;
+			}
+			if (!IsValid(Card) || !DeckManager->GetHand().Contains(Card) || !Card->CanBePlayedBy(Ally))
+			{
+				continue;
+			}
+
+			ACharacterBase* Target = nullptr;
+			FVector Location = FVector::ZeroVector;
+			if (!PickMadnessTarget(Card, Ally, CharactersOnField, Board, Target, Location))
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Locura] %s: %s no tiene objetivo valido, se salta"),
+					*Ally->GetName(), *Card->GetName());
+				continue;
+			}
+			if (!PlayCard(Card, Ally, Target, Location, true))
+			{
+				continue; // rechazada (aturdido, Ira irrefrenable...): la carta se queda en la mano
+			}
+
+			DeckManager->DiscardCardFromHand(Card);
+			++Played;
+			UE_LOG(LogTemp, Log, TEXT("[Locura] %s juega %s sobre %s (%d/%d)"), *Ally->GetName(), *Card->GetName(),
+				Target ? *Target->GetName() : TEXT("casilla o sin objetivo"), Played, MaxCards);
+
+			ResolveMadnessSelection(DeckManager);
 		}
 	}
 }
