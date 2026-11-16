@@ -3,6 +3,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Actor.h"
 #include "CoreAndSystems/CombatLibrary.h"
+#include "Components/StatusEffectComponent.h"
+#include "Environment/ObstacleBase.h"
 
 UGridMovementComponent::UGridMovementComponent(){}
 
@@ -129,7 +131,7 @@ void UGridMovementComponent::getRachableTiles(TArray<FTileCoord>& OutTiles)
 
 					if (BoardActor->IsTileOccupied(Target))
 					{
-						if (bBlockByOccupant)
+						if (bBlockByOccupant && !CanPassThroughTile(Target))
 						{
 							break;
 						}
@@ -175,7 +177,7 @@ void UGridMovementComponent::getRachableTiles(TArray<FTileCoord>& OutTiles)
 	default:
 		break;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("[Mov] %s: patron=%d rango=%d casilla=(%d,%d) alcanzables=%d"),
+	UE_LOG(LogTemp, VeryVerbose, TEXT("[Mov] %s: patron=%d rango=%d casilla=(%d,%d) alcanzables=%d"),
 	*GetNameSafe(GetOwner()), (int32)movePattern, moveRange, CurrentTile.X, CurrentTile.Y, OutTiles.Num());
 }
 
@@ -197,7 +199,7 @@ bool UGridMovementComponent::canMoveToTile(const FTileCoord& Target)
 
 	if (BoardActor->IsTileOccupied(Target))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Casilla ocupada (%d,%d)"), Target.X, Target.Y);
+		UE_LOG(LogTemp, VeryVerbose, TEXT("Casilla ocupada (%d,%d)"), Target.X, Target.Y);
 		return false;
 	}
 
@@ -316,10 +318,14 @@ void UGridMovementComponent::AddLTiles(const FTileCoord& CurrentTile, TArray<FTi
 
 				if (BoardActor->IsTileOccupied(Corner))
 				{
+					if (CanPassThroughTile(Corner))
+					{
+						continue; // la atraviesa, pero no puede parar en ella
+					}
 					bBlocked = true;
 					break;
 				}
-
+				
 				//patron ratón puede para en cualquier casilla de L
 				if (bCanStopAnywhere)
 				{
@@ -349,6 +355,10 @@ void UGridMovementComponent::AddLTiles(const FTileCoord& CurrentTile, TArray<FTi
 
 					if (BoardActor->IsTileOccupied(End))
 					{
+						if (CanPassThroughTile(End))
+						{
+							continue;
+						}
 						break;
 					}
 
@@ -430,6 +440,10 @@ void UGridMovementComponent::AddStraightLineCardinalTiles(const FTileCoord& Curr
 
 			if (BoardActor->IsTileOccupied(Target))
 			{
+				if (CanPassThroughTile(Target))
+				{
+					continue;
+				}
 				break;
 			}
 
@@ -458,6 +472,10 @@ void UGridMovementComponent::AddDiagonalPlusRing1Tiles(const FTileCoord& Current
 
 			if (BoardActor->IsTileOccupied(Target))
 			{
+				if (CanPassThroughTile(Target))
+				{
+					continue;
+				}
 				break;
 			}
 
@@ -489,4 +507,27 @@ void UGridMovementComponent::AddDiagonalPlusRing1Tiles(const FTileCoord& Current
 
 		OutTiles.AddUnique(Target);
 	}
+}
+
+bool UGridMovementComponent::CanPassThroughTile(const FTileCoord& Tile) const
+{
+	// Escurridizo: Se puede atravesar una casilla ocupada por un obstaculo
+	const ACharacterBase* Mover = Cast<ACharacterBase>(GetOwner());
+	if (!Mover || !Mover->StatusComp || !BoardActor
+		|| !Mover->StatusComp->HasStatus(EStatusType::Status_Elusive))
+	{
+		return false;
+	}
+
+	// GetTileOccupant da nullptr en huecos (Void) y fuera del tablero: esos nunca se atraviesan
+	const AActor* Occupant = BoardActor->GetTileOccupant(Tile);
+	if (!Occupant)
+	{
+		return false;
+	}
+	if (Occupant->IsA<AObstacleBase>())
+	{
+		return true;
+	}
+	return Mover->StatusComp->bElusiveAlsoPassesUnits && Occupant->IsA<ACharacterBase>();
 }

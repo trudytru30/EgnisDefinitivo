@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "CoreAndSystems/AudioTriggers.h"
+#include "GameplayTagContainer.h"
 #include "AudioDataAsset.generated.h"
 
 class UFMODEvent;
@@ -41,6 +42,11 @@ public:
 	// Las filas se crean solas, solo hay que elegir el evento FMOD de cada una.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FMOD")
 	TMap<EEgnisAudioTrigger, TObjectPtr<UFMODEvent>> TriggerEvents;
+	
+	// Sonido de culto: suena ademas del sonido base de la carta. Una fila por culto.
+	// Las cartas grises no tienen culto, asi que solo suenan con el base.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FMOD")
+	TMap<FGameplayTag, TObjectPtr<UFMODEvent>> CultEvents;
 	
 	// Evento de la musica del juego. Se arranca una sola vez y se controla con parametros globales de FMOD.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FMOD|Music")

@@ -1,4 +1,6 @@
 #include "CoreAndSystems/AudioDataAsset.h"
+#include "GameplayTagsManager.h"
+#include "CoreAndSystems/EgnisGameplayTags.h"
 
 // Se ejecuta al crear el objeto: cubre los AudioDataAsset NUEVOS, que nacen ya con todas las filas.
 void UAudioDataAsset::PostInitProperties()
@@ -43,6 +45,16 @@ void UAudioDataAsset::FillMissingTriggers()
 		if (!TriggerEvents.Contains(Trigger))
 		{
 			TriggerEvents.Add(Trigger, nullptr);
+		}
+	}
+	
+	// Una fila por cada culto registrado (hijos del tag "Cult"), igual que con los momentos
+	const FGameplayTagContainer Cults = UGameplayTagsManager::Get().RequestGameplayTagChildren(TAG_Cult);
+	for (const FGameplayTag& Cult : Cults)
+	{
+		if (!CultEvents.Contains(Cult))
+		{
+			CultEvents.Add(Cult, nullptr);
 		}
 	}
 }

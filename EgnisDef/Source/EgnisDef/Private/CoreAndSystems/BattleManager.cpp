@@ -14,8 +14,115 @@
 #include "CoreAndSystems/CombatCameraSubsystem.h"
 #include "CoreAndSystems/CombatTimerSubsystem.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
+#include "Engine/World.h"
 
 class AAlly;
+
+namespace
+{
+	template<typename T>
+	void ShuffleInPlace(TArray<T>& Array)
+	{
+		for (int32 i = Array.Num() - 1; i > 0; --i)
+		{
+			Array.Swap(i, FMath::RandRange(0, i));
+		}
+	}
+
+	// Locura: elige al azar un objetivo valido para la carta. false si no hay ninguno
+	bool PickMadnessTarget(UBaseCard* Card, AAlly* Caster, const TArray<ACharacterBase*>& OnField, ABoard* Board,
+		ACharacterBase*& OutTarget, FVector& OutLocation)
+	{
+		OutTarget = nullptr;
+		OutLocation = FVector::ZeroVector;
+
+		switch (Card->GetTarget())
+		{
+		case ECardTarget::None:
+		case ECardTarget::Self:
+			return true; // no hace falta elegir nada
+
+		case ECardTarget::Ally:
+		case ECardTarget::Enemy:
+		{
+			const int32 WantedTeam = Card->GetTarget() == ECardTarget::Ally ? Caster->GetTeam() : 1 - Caster->GetTeam();
+			TArray<ACharacterBase*> Valid;
+			for (ACharacterBase* Candidate : OnField)
+			{
+				if (IsValid(Candidate) && Candidate->GetTeam() == WantedTeam && Candidate->GetCurrentHealth() > 0.f
+					&& UEgnisCombatLibrary::IsCardTargetInRange(Card, Caster, Candidate, Candidate->GetActorLocation()))
+				{
+					Valid.Add(Candidate);
+				}
+			}
+			if (Valid.IsEmpty())
+			{
+				return false;
+			}
+			OutTarget = Valid[FMath::RandRange(0, Valid.Num() - 1)];
+			OutLocation = OutTarget->GetActorLocation();
+			return true;
+		}
+
+		case ECardTarget::Tile:
+		{
+			if (!Board)
+			{
+				return false;
+			}
+			TArray<FTileCoord> Tiles;
+			Board->GetTilesInRange(Caster->CurrentTile, Caster->GetEffectiveRange(Card), Tiles);
+			TArray<FVector> Valid;
+			for (const FTileCoord& Tile : Tiles)
+			{
+				if (!Card->CanTargetTile(Caster, Tile))
+				{
+					continue;
+				}
+				const FVector Location = Board->TileToWorldCenter(Tile);
+				if (UEgnisCombatLibrary::IsCardTargetInRange(Card, Caster, nullptr, Location))
+				{
+					Valid.Add(Location);
+				}
+			}
+			if (Valid.IsEmpty())
+			{
+				return false;
+			}
+			OutLocation = Valid[FMath::RandRange(0, Valid.Num() - 1)];
+			return true;
+		}
+		}
+		return false;
+	}
+
+	// Locura: si la carta jugada abre una seleccion de la mano (Consumir, Descartar, Guardar), se resuelve sola al azar
+	void ResolveMadnessSelection(UDeckManager* Deck)
+	{
+		for (int32 Guard = 0; Deck->IsSelectingFromHand() && Guard < 20; ++Guard)
+		{
+			TArray<UBaseCard*> Pool = Deck->GetHand();
+			ShuffleInPlace(Pool);
+			for (UBaseCard* Candidate : Pool)
+			{
+				if (Deck->GetSelectedCards().Num() >= Deck->GetRequiredSelection())
+				{
+					break;
+				}
+				if (Deck->IsCardSelectable(Candidate) && !Deck->IsCardSelected(Candidate))
+				{
+					Deck->ToggleCardSelection(Candidate);
+				}
+			}
+			if (!Deck->CanConfirmHandSelection())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Locura] no se pudo resolver sola la seleccion de cartas"));
+				return;
+			}
+			Deck->ConfirmHandSelection();
+		}
+	}
+}
 
 void UBattleManager::SetDeckManager(UDeckManager* InDeckManager)
 {
@@ -132,6 +239,8 @@ void UBattleManager::StartPlayerTurn()
 		}
 		DeckManager->ClearKeptCards();
 	}
+	
+	ResolveMadness();
 
 	OnPlayerTurnStarted.Broadcast();
 	
@@ -197,6 +306,12 @@ void UBattleManager::OnEnemyPhaseFinished()
 void UBattleManager::EndTurn()
 {
 	if (bBattleIsOver) return;
+	
+	if (bMadnessResolving && CurrentTurn == ETurnEnum::PlayerTurn)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: la Locura esta actuando, no se puede terminar el turno todavia"));
+		return;
+	}
 
 	switch ( CurrentTurn)
 	{
@@ -226,8 +341,14 @@ void UBattleManager::EndTurn()
 }
 
 // Comprobar si el player puede jugar una carta (es decir, que sea su turno y tenga energia)
-bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location)
+bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase* TargetCharacter, FVector Location, bool bFreeCost)
 {
+	if (bMadnessResolving && !bFreeCost)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: la Locura esta actuando, no se puede jugar cartas ahora"));
+		return false;
+	}
+	
 	if (!Character || !Character->EnergyAttributeSet)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
@@ -271,7 +392,8 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 	
 	const int32 Cost = UEgnisCombatLibrary::GetEffectiveCost(Card, Character);
 	const bool bNormalCost = Cost == Card->GetCost();
-	if (bNormalCost ? !Character->CanPayCardCost(Card) : Character->GetCurrentEnergy() < Cost)
+	
+	if (!bFreeCost && (bNormalCost ? !Character->CanPayCardCost(Card) : Character->GetCurrentEnergy() < Cost))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Not enough energy to play card"));
 		return false;
@@ -282,13 +404,17 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: Character or EnergyAttributeSet is null"));
 		return false;
 	}
-	if (bNormalCost)
+	
+	if (!bFreeCost)
 	{
-		Character->PayCardCost(Card);
-	}
-	else
-	{
-		Character->LossPoints(Cost);
+		if (bNormalCost)
+		{
+			Character->PayCardCost(Card);
+		}
+		else
+		{
+			Character->LossPoints(Cost);
+		}
 	}
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: Played card: %s. Energy left: %d"), *Card->GetName(),
 		Character->GetCurrentEnergy());
@@ -368,6 +494,8 @@ void UBattleManager::HandleCombatTimeRemaining(float TimeRemaining, float TotalT
 void UBattleManager::EndBattle(bool bPlayerWon)
 {
 	bBattleIsOver = true;
+	
+	FinishMadness();
 
 	if (UCombatTimerSubsystem* Timer = GetCombatTimer())
 	{
@@ -403,7 +531,7 @@ void UBattleManager::EndBattle(bool bPlayerWon)
 	OnBattleEndedEvent.Broadcast(bPlayerWon);
 }
 
-// TODO: estas comprobaciones estaban dentro de RequestMove y se han movido aqui (como en la version de tu compañero),
+// TODO: estas comprobaciones estaban dentro de RequestMove y se han movido aqui
 // para que BoardPlayerController::CanUnitMoveThisTurn las pueda consultar sin mover la unidad
 bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 {
@@ -417,6 +545,9 @@ bool UBattleManager::CanUnitMove(ACharacterBase* Unit) const
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Not player turn"));
 		return false;
 	}
+	
+	if (bMadnessResolving) return false; // la Locura esta actuando
+	
 	if (Unit->GetTeam() != 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: RequestMove failed: Unit is not ally"));
@@ -476,9 +607,7 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 	{
 		return false;
 	}
-
-	if (UAudioManager* AM = GetWorld()->GetGameInstance()->GetSubsystem<UAudioManager>()) 
-		AM->PlayTrigger(EEgnisAudioTrigger::AllyMove, nullptr, Unit);
+	
 	Unit->bHasMoved = true;
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: RequestMove OK: %s -> (%d,%d)"),
@@ -561,6 +690,288 @@ void UBattleManager::NotifyTeamTurnEnd(int32 Team)
 		{
 			UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Turn_End, Character, nullptr, TurnCount, nullptr, FGameplayTagContainer());
 		}
+	}
+}
+
+void UBattleManager::ResolveMadness()
+{
+	if (!DeckManager || bMadnessResolving)
+	{
+		return;
+	}
+
+	// Aliados locos por orden de aparicion en el campo. Los va resolviendo uno a uno MadnessNextAlly
+	MadnessQueue.Reset();
+	float StartDelay = 0.f;
+	for (ACharacterBase* Character : CharactersOnField)
+	{
+		AAlly* Ally = Cast<AAlly>(Character);
+		if (IsValid(Ally) && Ally->GetTeam() == 0 && Ally->StatusComp
+			&& Ally->StatusComp->HasStatus(EStatusType::Status_Madness))
+		{
+			if (MadnessQueue.IsEmpty())
+			{
+				StartDelay = Ally->StatusComp->MadnessStartDelay;
+			}
+			MadnessQueue.Add(Ally);
+		}
+	}
+	if (MadnessQueue.IsEmpty())
+	{
+		return;
+	}
+
+	bMadnessResolving = true;
+	OnMadnessStarted.Broadcast();
+	ScheduleMadness(&UBattleManager::MadnessNextAlly, StartDelay);
+}
+
+// Llama a Func ahora (Delay <= 0) o dentro de Delay segundos
+void UBattleManager::ScheduleMadness(void (UBattleManager::*Func)(), float Delay)
+{
+	UWorld* World = GetWorld();
+	if (Delay <= 0.f || !World)
+	{
+		(this->*Func)();
+		return;
+	}
+	World->GetTimerManager().SetTimer(MadnessTimer, this, Func, Delay, false);
+}
+
+// Pasa al siguiente aliado loco de la cola y le arma su plan: un movimiento y N cartas, en orden aleatorio
+void UBattleManager::MadnessNextAlly()
+{
+	if (bBattleIsOver || CurrentTurn != ETurnEnum::PlayerTurn)
+	{
+		FinishMadness();
+		return;
+	}
+
+	while (!MadnessQueue.IsEmpty())
+	{
+		AAlly* Ally = MadnessQueue[0].Get();
+		MadnessQueue.RemoveAt(0);
+		if (!IsValid(Ally) || !Ally->StatusComp || !Ally->StatusComp->HasStatus(EStatusType::Status_Madness))
+		{
+			continue; // murio o perdio la Locura antes de que le tocara
+		}
+
+		MadnessAlly = Ally;
+		MadnessCardsTotal = Ally->StatusComp->MadnessCardsPerTurn;
+		MadnessCardsPlayed = 0;
+
+		MadnessPlan.Reset();
+		if (UEgnisCombatLibrary::CanMove(Ally) && !Ally->bHasMoved)
+		{
+			MadnessPlan.Add(EMadnessAction::Move);
+		}
+		for (int32 i = 0; i < MadnessCardsTotal; ++i)
+		{
+			MadnessPlan.Add(EMadnessAction::Card);
+		}
+		ShuffleInPlace(MadnessPlan);
+
+		UE_LOG(LogTemp, Log, TEXT("[Locura] %s empieza su turno loco"), *Ally->GetName());
+		MadnessStep();
+		return;
+	}
+
+	FinishMadness();
+}
+
+// Ejecuta la siguiente accion del plan del aliado actual. Las acciones que no se pueden hacer se saltan sin espera
+void UBattleManager::MadnessStep()
+{
+	if (bBattleIsOver || CurrentTurn != ETurnEnum::PlayerTurn)
+	{
+		FinishMadness();
+		return;
+	}
+
+	AAlly* Ally = MadnessAlly.Get();
+	if (!IsValid(Ally) || !Ally->StatusComp || !Ally->StatusComp->HasStatus(EStatusType::Status_Madness))
+	{
+		// murio o perdio la Locura (le han hecho daño): termina con el, sigue el siguiente
+		MadnessNextAlly();
+		return;
+	}
+
+	// Se leen antes porque moverse puede matar al aliado (fuego del rastro)
+	const float ActionDelay = Ally->StatusComp->MadnessActionDelay;
+	const float PreviewDelay = Ally->StatusComp->MadnessCardPreviewDelay;
+
+	while (!MadnessPlan.IsEmpty())
+	{
+		const EMadnessAction Action = MadnessPlan.Pop();
+		if (Action == EMadnessAction::Move)
+		{
+			if (MadnessDoMove(Ally))
+			{
+				ScheduleMadness(&UBattleManager::MadnessStep, ActionDelay);
+				return;
+			}
+		}
+		else
+		{
+			if (MadnessPrepareCard(Ally))
+			{
+				ScheduleMadness(&UBattleManager::MadnessExecuteCard, PreviewDelay);
+				return;
+			}
+			// Sin cartas jugables ahora: los huecos de carta que quedan tampoco tendrian ninguna
+			MadnessPlan.RemoveAll([](EMadnessAction A) { return A == EMadnessAction::Card; });
+		}
+	}
+
+	ScheduleMadness(&UBattleManager::MadnessNextAlly, ActionDelay);
+}
+
+// Movimiento aleatorio a una casilla alcanzable. Devuelve true si se movio (o murio al moverse)
+bool UBattleManager::MadnessDoMove(AAlly* Ally)
+{
+	UGridMovementComponent* MoveComp = Ally->FindComponentByClass<UGridMovementComponent>();
+	if (!MoveComp)
+	{
+		return false;
+	}
+
+	TArray<FTileCoord> Reachable;
+	MoveComp->getRachableTiles(Reachable);
+	Reachable.RemoveAll([Ally](const FTileCoord& Tile) { return Tile == Ally->CurrentTile; });
+	if (Reachable.IsEmpty())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Locura] %s no tiene casillas a las que moverse"), *Ally->GetName());
+		return false;
+	}
+
+	const FTileCoord Destination = Reachable[FMath::RandRange(0, Reachable.Num() - 1)];
+	const FVector From = Ally->GetActorLocation();
+	const FVector To = Ally->GetStandLocationForTile(Destination);
+	const FString AllyName = Ally->GetName();
+
+	if (!Ally->SetCurrentTile(Destination))
+	{
+		return false;
+	}
+	if (!IsValid(Ally))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Locura] %s muere al moverse a (%d,%d)"), *AllyName, Destination.X, Destination.Y);
+		return true;
+	}
+
+	Ally->bHasMoved = true;
+	if (OnMadnessMove.IsBound())
+	{
+		OnMadnessMove.Broadcast(Ally, From, To); // lo anima el Blueprint
+	}
+	else
+	{
+		Ally->SnapToCurrentTile(false); // sin animacion: solo se coloca el actor
+	}
+	UE_LOG(LogTemp, Log, TEXT("[Locura] %s se mueve a (%d,%d)"), *AllyName, Destination.X, Destination.Y);
+	return true;
+}
+
+// Elige al azar una carta de la mano que pueda jugarse y su objetivo. Avisa a la UI y la deja pendiente de jugar
+bool UBattleManager::MadnessPrepareCard(AAlly* Ally)
+{
+	MadnessPendingCard.Reset();
+	MadnessPendingTarget.Reset();
+	if (!DeckManager || DeckManager->IsSelectingFromHand() || !UEgnisCombatLibrary::CanAct(Ally))
+	{
+		return false;
+	}
+
+	TArray<UBaseCard*> Candidates = DeckManager->GetHand();
+	ShuffleInPlace(Candidates);
+	for (UBaseCard* Card : Candidates)
+	{
+		if (!IsValid(Card) || !Card->CanBePlayedBy(Ally) || !UEgnisCombatLibrary::CanPlayCardUnderRage(Card, Ally))
+		{
+			continue;
+		}
+
+		ACharacterBase* Target = nullptr;
+		FVector Location = FVector::ZeroVector;
+		if (!PickMadnessTarget(Card, Ally, CharactersOnField, Board, Target, Location))
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Locura] %s: %s no tiene objetivo valido, se salta"),
+				*Ally->GetName(), *Card->GetName());
+			continue;
+		}
+
+		MadnessPendingCard = Card;
+		MadnessPendingTarget = Target;
+		MadnessPendingLocation = Location;
+		OnMadnessCardAboutToPlay.Broadcast(Ally, Card, Target, MadnessCardsPlayed + 1, MadnessCardsTotal);
+		return true;
+	}
+	return false;
+}
+
+// Juega la carta elegida en MadnessPrepareCard (gratis) y la descarta
+void UBattleManager::MadnessExecuteCard()
+{
+	AAlly* Ally = MadnessAlly.Get();
+	UBaseCard* Card = MadnessPendingCard.Get();
+	ACharacterBase* Target = MadnessPendingTarget.Get();
+	const FVector Location = MadnessPendingLocation;
+	MadnessPendingCard.Reset();
+	MadnessPendingTarget.Reset();
+
+	if (bBattleIsOver || CurrentTurn != ETurnEnum::PlayerTurn)
+	{
+		FinishMadness();
+		return;
+	}
+	if (!IsValid(Ally) || !Ally->StatusComp || !Ally->StatusComp->HasStatus(EStatusType::Status_Madness)
+		|| !IsValid(Card) || !DeckManager || !DeckManager->GetHand().Contains(Card))
+	{
+		MadnessStep(); // algo cambio durante la espera: se reevalua
+		return;
+	}
+
+	const float ActionDelay = Ally->StatusComp->MadnessActionDelay;
+	const FString AllyName = Ally->GetName();
+	const FString CardName = Card->GetName();
+	const FString TargetName = Target ? Target->GetName() : FString(TEXT("casilla o sin objetivo"));
+
+	if (!PlayCard(Card, Ally, Target, Location, true))
+	{
+		MadnessStep(); // rechazada (aturdido, Ira irrefrenable...): la carta se queda en la mano
+		return;
+	}
+	if (bBattleIsOver)
+	{
+		return;
+	}
+
+	DeckManager->DiscardCardFromHand(Card);
+	++MadnessCardsPlayed;
+	UE_LOG(LogTemp, Log, TEXT("[Locura] %s juega %s sobre %s (%d/%d)"),
+		*AllyName, *CardName, *TargetName, MadnessCardsPlayed, MadnessCardsTotal);
+
+	ResolveMadnessSelection(DeckManager);
+	ScheduleMadness(&UBattleManager::MadnessStep, ActionDelay);
+}
+
+// Fin de la secuencia (o la corta si acaba el combate / el turno)
+void UBattleManager::FinishMadness()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(MadnessTimer);
+	}
+	MadnessQueue.Reset();
+	MadnessPlan.Reset();
+	MadnessAlly.Reset();
+	MadnessPendingCard.Reset();
+	MadnessPendingTarget.Reset();
+
+	if (bMadnessResolving)
+	{
+		bMadnessResolving = false;
+		OnMadnessFinished.Broadcast();
 	}
 }
 

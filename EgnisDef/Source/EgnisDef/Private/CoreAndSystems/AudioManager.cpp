@@ -4,6 +4,7 @@
 #include "Components/AudioComponent.h"
 #include "FMODBlueprintStatics.h"
 #include "FMODEvent.h"
+#include "Characters/CharacterBase.h"
 
 void UAudioManager::SetAudioData(UAudioDataAsset* Data)
 {
@@ -28,6 +29,21 @@ void UAudioManager::PlayTrigger(EEgnisAudioTrigger Trigger, UFMODEvent* Override
 		}
 	}
 	
+	// Personaje que provoca el sonido (puede ser nulo): de el salen el pitch y su sonido de ataque propio
+	const ACharacterBase* Character = Cast<ACharacterBase>(Context);
+	const float Pitch = Character ? Character->GetAudioPitch() : 1.f;
+
+	// Capa extra: el ataque propio del personaje suena a la vez que el evento general del momento
+	if (Character && (Trigger == EEgnisAudioTrigger::CardAttack
+		|| Trigger == EEgnisAudioTrigger::CardAreaAttack
+		|| Trigger == EEgnisAudioTrigger::EnemyAttack))
+	{
+		if (UFMODEvent* CharacterEvent = Character->GetAttackSoundEvent())
+		{
+			PlayEvent2DWithPitch(CharacterEvent, Pitch);
+		}
+	}
+	
 	UFMODEvent* EventToPlay = OverrideEvent;
 	if (!IsValid(EventToPlay) && AudioData)
 	{
@@ -39,7 +55,7 @@ void UAudioManager::PlayTrigger(EEgnisAudioTrigger Trigger, UFMODEvent* Override
 
 	if (IsValid(EventToPlay))
 	{
-		UFMODBlueprintStatics::PlayEvent2D(GetGameInstance(), EventToPlay, true);
+		PlayEvent2DWithPitch(EventToPlay, Pitch);
 		return;
 	}
 
@@ -50,7 +66,6 @@ void UAudioManager::PlayTrigger(EEgnisAudioTrigger Trigger, UFMODEvent* Override
 	case EEgnisAudioTrigger::CardSelect:	PlaySelectCardSound(0);		break;
 	case EEgnisAudioTrigger::CardDraw:		PlayDrawCardSound(0);		break;
 	case EEgnisAudioTrigger::AllySelected:	PlayElevateSound(0);		break;
-	case EEgnisAudioTrigger::AllyMove:
 	case EEgnisAudioTrigger::EnemyMove:
 	case EEgnisAudioTrigger::CardMove:
 	case EEgnisAudioTrigger::CardPushPull:	PlayLandSound(0);			break;
@@ -129,6 +144,32 @@ void UAudioManager::PlaySoundFromArray(const TArray<TObjectPtr<USoundBase>>& Sou
 	}
 
 	UGameplayStatics::PlaySound2D(GetGameInstance(), Sound);
+}
+
+void UAudioManager::PlayEvent2DWithPitch(UFMODEvent* Event, float Pitch)
+{
+	const FFMODEventInstance Instance = UFMODBlueprintStatics::PlayEvent2D(GetGameInstance(), Event, true);
+	if (!FMath::IsNearlyEqual(Pitch, 1.f))
+	{
+		UFMODBlueprintStatics::EventInstanceSetPitch(Instance, Pitch);
+	}
+}
+
+void UAudioManager::PlayCultSound(FGameplayTag Cult, AActor* Context)
+{
+	if (!AudioData || !Cult.IsValid())
+	{
+		return;
+	}
+
+	const TObjectPtr<UFMODEvent>* Found = AudioData->CultEvents.Find(Cult);
+	if (!Found || !IsValid(Found->Get()))
+	{
+		return;
+	}
+
+	const ACharacterBase* Character = Cast<ACharacterBase>(Context);
+	PlayEvent2DWithPitch(Found->Get(), Character ? Character->GetAudioPitch() : 1.f);
 }
 
 // ── SFX ──────────────────────────────────────────────────────────────────────

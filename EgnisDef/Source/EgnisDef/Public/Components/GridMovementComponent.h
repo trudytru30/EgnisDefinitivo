@@ -70,4 +70,5 @@ private:
 	void AddTriangleTiles(const FTileCoord& CurrentTile, TArray<FTileCoord>& OutTiles);
 	void AddStraightLineCardinalTiles(const FTileCoord& CurrentTile, TArray<FTileCoord>& OutTiles);
 	void AddDiagonalPlusRing1Tiles(const FTileCoord& CurrentTile, TArray<FTileCoord>& OutTiles);
+	bool CanPassThroughTile(const FTileCoord& Tile) const;
 };
