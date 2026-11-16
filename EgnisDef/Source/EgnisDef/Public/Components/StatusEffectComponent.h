@@ -85,6 +85,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
 	bool bPerfumeExclusive = false;
 	
+	// Locura: cuantas cartas juega al azar al empezar su turno (si tiene menos jugables, juega las que haya)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
+	int32 MadnessCardsPerTurn = 3;
+	
+	// Locura: segundos que espera tras empezar el turno antes de actuar (que de tiempo a repartir la mano)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0.0"))
+	float MadnessStartDelay = 1.2f;
+
+	// Locura: segundos entre una accion (moverse o jugar una carta) y la siguiente
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0.0"))
+	float MadnessActionDelay = 0.8f;
+
+	// Locura: segundos que se ve la carta elegida en la mano antes de jugarse
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0.0"))
+	float MadnessCardPreviewDelay = 0.5f;
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr,

@@ -29,6 +29,7 @@ namespace
 		case EStatusType::Status_Elusive: return TAG_Status_Elusive;
 		case EStatusType::Status_SpiritAttraction: return TAG_Status_SpiritAttraction;
 		case EStatusType::Status_Perfume: return TAG_Status_Perfume;
+		case EStatusType::Status_Madness: return TAG_Status_Madness;
 		default:                            return FGameplayTag();
 		}
 	}
@@ -36,7 +37,7 @@ namespace
 	// Estados que duran todo el combate: no gastan turnos y no caducan
 	bool IsPermanentStatus(EStatusType Type)
 	{
-		return Type == EStatusType::Status_FieryCurse;
+		return Type == EStatusType::Status_FieryCurse || Type == EStatusType::Status_Madness;
 	}
 	
 	// Estados que se van al final del turno en que se aplican: ese turno ya cuenta como uno de los suyos
@@ -132,6 +133,11 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 	{
 		if (FActiveStatus* Existing = FindStatus(Type))
 		{
+			if (IsPermanentStatus(Type))
+			{
+				return true;
+			}
+			
 			// Atraccion Espiritual: otro lanzador distinto sobrescribe al anterior, aunque dure menos
 			const bool bNewProvoker = Type == EStatusType::Status_SpiritAttraction && Existing->Source.Get() != Source;
 
@@ -154,7 +160,7 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 
 	FActiveStatus NewStatus;
 	NewStatus.Type = Type;
-	NewStatus.TurnsLeft = Turns;
+	NewStatus.TurnsLeft = IsPermanentStatus(Type) ? 0 : Turns;
 	NewStatus.Source = Source;
 	NewStatus.Magnitude = GetMagnitudeFor(Type, Source);
 	NewStatus.bSkipNextDecrement = bSkipDecrement;

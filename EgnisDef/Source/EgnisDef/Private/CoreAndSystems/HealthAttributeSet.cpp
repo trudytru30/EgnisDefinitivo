@@ -7,6 +7,7 @@
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Characters/Enemy.h"
 #include "CoreAndSystems/AudioManager.h"
+#include "Components/StatusEffectComponent.h"
 
 UHealthAttributeSet::UHealthAttributeSet()
 {
@@ -112,6 +113,14 @@ void UHealthAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 		if (Hitter && Hitter != OwnerCharacter)
 		{
 			OwnerCharacter->LastDamageInstigator = Hitter;
+			
+			// Locura: el daño de otra criatura (enemiga o aliada) la quita; el propio no
+			if (OwnerCharacter->StatusComp && OwnerCharacter->StatusComp->HasStatus(EStatusType::Status_Madness))
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Locura] %s pierde la Locura al recibir daño de %s"),
+					*OwnerCharacter->GetName(), *Hitter->GetName());
+				OwnerCharacter->StatusComp->RemoveStatus(EStatusType::Status_Madness);
+			}
 		}
 	}
 	

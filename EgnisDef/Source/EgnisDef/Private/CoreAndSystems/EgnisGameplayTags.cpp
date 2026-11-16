@@ -20,6 +20,7 @@ UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Ecstatic, "Status.Ecstatic");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Elusive, "Status.Elusive");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_SpiritAttraction, "Status.SpiritAttraction");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Perfume, "Status.Perfume");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Madness, "Status.Madness");
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult, "Cult");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult_Doru, "Cult.Doru");

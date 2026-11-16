@@ -60,4 +60,7 @@ enum class EEgnisAudioTrigger : uint8
 	AllyDamaged UMETA(DisplayName = "Golpe - Pieza del jugador"),
 	/** Una pieza enemiga recibe un golpe (tambien si el escudo lo absorbe todo). */
 	EnemyDamaged UMETA(DisplayName = "Golpe - Pieza enemiga"),
+	
+	/** Se abre el mapa (BeginPlay del mapa). Pensado para Music Rules: devuelve la musica al estado del mapa. */
+	MapEntered UMETA(DisplayName = "Mapa - Se abre"),
 };
