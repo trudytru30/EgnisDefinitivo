@@ -101,6 +101,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0.0"))
 	float MadnessCardPreviewDelay = 0.5f;
 	
+	// Sangre hirviente: daño puro por accion o movimiento. Empieza en Initial y baja Reduction por cada turno
+	// que ha pasado desde que se aplico, sin bajar de Min.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
+	float BoilingBloodInitialDamage = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
+	float BoilingBloodReductionPerTurn = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
+	float BoilingBloodMinDamage = 1.f;
+	
+	// Cenizas: añade cargas. No usa turnos
+	UFUNCTION(BlueprintCallable, Category = "Status")
+	bool ApplyAshes(int32 Stacks, ACharacterBase* Source = nullptr);
+
+	// Sangre hirviente: daño que haria ahora una accion o movimiento
+	UFUNCTION(BlueprintPure, Category = "Status")
+	float GetBoilingBloodDamage() const;
+
+	// Lo llama BattleManager cuando el afectado juega una carta o se mueve
+	void OnOwnerActionTaken(const TCHAR* ActionName);
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr,
@@ -152,4 +174,7 @@ private:
 	void ConsumeTurns();
 	
 	void ApplyBurnDamage();
+	
+	// Cenizas: bloquea el estado entrante y gasta una carga.
+	bool TryBlockWithAshes(EStatusType Incoming);
 };

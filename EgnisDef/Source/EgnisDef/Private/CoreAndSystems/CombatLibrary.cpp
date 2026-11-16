@@ -10,6 +10,7 @@
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "Cards/Card_AttackEffect.h"
 #include "Cards/Card_AreaDamageEffect.h"
+#include "Components/GridMovementComponent.h"
 
 namespace
 {
@@ -321,4 +322,63 @@ int32 UEgnisCombatLibrary::GetSlowedRange(const ACharacterBase* Character, int32
 
 	// El margen pequeño evita que un error de decimales suba o baje un punto de mas
 	return FMath::Max(1, FMath::CeilToInt(BaseRange * Character->StatusComp->SlowMovementFactor - KINDA_SMALL_NUMBER));
+}
+
+ACharacterBase* UEgnisCombatLibrary::GetFearSource(const ACharacterBase* Character)
+{
+	if (!Character || !Character->StatusComp || !HasStatusTag(Character, TAG_Status_Frightened))
+	{
+		return nullptr;
+	}
+	ACharacterBase* Source = Character->StatusComp->GetStatusSource(EStatusType::Status_Frightened);
+	return IsValid(Source) ? Source : nullptr;
+}
+
+void UEgnisCombatLibrary::FilterFleeTiles(const ACharacterBase* Character, TArray<FTileCoord>& Tiles)
+{
+	const ACharacterBase* FearSource = GetFearSource(Character);
+	if (!FearSource || Tiles.IsEmpty())
+	{
+		return;
+	}
+
+	// Misma distancia Manhattan que el rango de las cartas
+	auto DistanceToSource = [FearSource](const FTileCoord& Tile)
+	{
+		return FMath::Abs(Tile.X - FearSource->CurrentTile.X) + FMath::Abs(Tile.Y - FearSource->CurrentTile.Y);
+	};
+
+	int32 BestDistance = 0;
+	for (const FTileCoord& Tile : Tiles)
+	{
+		BestDistance = FMath::Max(BestDistance, DistanceToSource(Tile));
+	}
+
+	// Si ni la mejor casilla lo aleja mas de lo que ya esta, no hay a donde huir
+	if (BestDistance <= DistanceToSource(Character->CurrentTile))
+	{
+		Tiles.Reset();
+		return;
+	}
+
+	Tiles.RemoveAll([&](const FTileCoord& Tile) { return DistanceToSource(Tile) != BestDistance; });
+}
+
+bool UEgnisCombatLibrary::MustFleeBeforeActing(const ACharacterBase* Character)
+{
+	if (!Character || Character->bHasMoved || !GetFearSource(Character))
+	{
+		return false;
+	}
+
+	UGridMovementComponent* MoveComp = Character->FindComponentByClass<UGridMovementComponent>();
+	if (!MoveComp)
+	{
+		return false;
+	}
+
+	// getRachableTiles ya devuelve la lista filtrada para huir (y vacia si esta paralizado)
+	TArray<FTileCoord> Tiles;
+	MoveComp->getRachableTiles(Tiles);
+	return !Tiles.IsEmpty();
 }

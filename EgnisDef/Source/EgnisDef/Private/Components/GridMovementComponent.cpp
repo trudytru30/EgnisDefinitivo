@@ -177,6 +177,13 @@ void UGridMovementComponent::getRachableTiles(TArray<FTileCoord>& OutTiles)
 	default:
 		break;
 	}
+	
+	// Asustado: solo puede ir a las casillas que mas lo alejan de quien lo asusta
+	if (const ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner()))
+	{
+		UEgnisCombatLibrary::FilterFleeTiles(OwnerChar, OutTiles);
+	}
+	
 	UE_LOG(LogTemp, VeryVerbose, TEXT("[Mov] %s: patron=%d rango=%d casilla=(%d,%d) alcanzables=%d"),
 	*GetNameSafe(GetOwner()), (int32)movePattern, moveRange, CurrentTile.X, CurrentTile.Y, OutTiles.Num());
 }

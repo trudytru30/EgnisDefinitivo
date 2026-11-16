@@ -27,7 +27,10 @@ enum class EStatusType : uint8
 	Status_Elusive,
 	Status_SpiritAttraction,
 	Status_Perfume,
-	Status_Madness
+	Status_Madness,
+	Status_Frightened,
+	Status_BoilingBlood,
+	Status_Ashes
 };
 
 // Si el turno en que se aplica un estado cuenta como uno de sus turnos
@@ -73,4 +76,8 @@ struct FActiveStatus
 	// Valor numerico del estado, fijado al aplicarlo.
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float Magnitude = 0.f;
+	
+	// Duracion con la que se aplico el estado (Sangre hirviente la usa para saber cuantos turnos han pasado)
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
+	int32 TotalTurns = 0;
 };

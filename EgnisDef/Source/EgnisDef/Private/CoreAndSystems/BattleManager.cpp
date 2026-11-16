@@ -375,6 +375,14 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 		return false;
 	}
 	
+	// Asustado: antes de actuar tiene que usar su movimiento para huir
+	if (UEgnisCombatLibrary::MustFleeBeforeActing(Character))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleManager]: %s esta asustado y tiene que huir antes de jugar cartas"),
+			*Character->GetName());
+		return false;
+	}
+	
 	// Ira irrefrenable: solo puede jugar cartas de ataque
 	if (!UEgnisCombatLibrary::CanPlayCardUnderRage(Card, Character))
 	{
@@ -428,6 +436,18 @@ bool UBattleManager::PlayCard(UBaseCard* Card, AAlly* Character, ACharacterBase*
 			CardTags.AddTag(Card->GetCult());
 		}
 		UEgnisAbilityLibrary::SendEvent(Character, TAG_Event_Card_Played, Character, TargetCharacter, Card->GetCost(), Card, CardTags);
+	}
+	
+	// Sangre hirviente: jugar una carta es una accion y hace daño al lanzador
+	if (IsValid(Character) && Character->StatusComp)
+	{
+		Character->StatusComp->OnOwnerActionTaken(TEXT("carta"));
+	}
+	
+	// Efimero: las efimeras que queden en la mano ya no pueden ser la primera en jugarse
+	if (DeckManager && !DeckManager->IsSelectingFromHand())
+	{
+		DeckManager->ReplaceEphemeralCardsInHand(Card);
 	}
 
 	UpdateUnitsAlive();
@@ -612,6 +632,13 @@ bool UBattleManager::RequestMove(ACharacterBase* Unit, const FTileCoord& TargetT
 
 	UE_LOG(LogTemp, Log, TEXT("[BattleManager]: RequestMove OK: %s -> (%d,%d)"),
 		*Unit->GetName(), Unit->CurrentTile.X, Unit->CurrentTile.Y);
+	
+	// Sangre hirviente: moverse es una accion y hace daño
+	if (Unit->StatusComp)
+	{
+		Unit->StatusComp->OnOwnerActionTaken(TEXT("movimiento"));
+		UpdateUnitsAlive(); // por si ha muerto
+	}
 	return true;
 }
 

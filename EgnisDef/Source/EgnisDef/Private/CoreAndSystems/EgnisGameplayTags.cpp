@@ -21,6 +21,9 @@ UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Elusive, "Status.Elusive");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_SpiritAttraction, "Status.SpiritAttraction");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Perfume, "Status.Perfume");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Madness, "Status.Madness");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Frightened, "Status.Frightened");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Status_BoilingBlood, "Status.BoilingBlood");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Status_Ashes, "Status.Ashes");
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult, "Cult");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Cult_Doru, "Cult.Doru");

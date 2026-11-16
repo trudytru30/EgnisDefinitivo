@@ -1,4 +1,3 @@
-
 // Play -> clic en la ventana del juego -> tecla º -> comando -> enter y mirar registro
 //
 //   Egnis.Enemy.Debug  -> para cada enemigo: sus estadísticas, a qué héroes puede atacar
@@ -482,12 +481,19 @@ FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& 
 	const int32 Turns = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 2;
 	const int32 HeroIndex = Args.Num() > 2 ? FCString::Atoi(*Args[2]) : 0;
 
+	// Lanzador de prueba: el primer enemigo (Asustado y otros estados necesitan un Source)
+	ACharacterBase* FirstEnemy = nullptr;
+	for (TActorIterator<ACharacterBase> It(World); It; ++It)
+	{
+		if (It->GetTeam() == 1) { FirstEnemy = *It; break; }
+	}
+
 	int32 Index = 0;
 	for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
 	{
 		if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
 		if (Index++ != HeroIndex) continue;
-		Hero->StatusComp->ApplyStatus(static_cast<EStatusType>(Value), FMath::Max(1, Turns));
+		Hero->StatusComp->ApplyStatus(static_cast<EStatusType>(Value), FMath::Max(1, Turns), FirstEnemy);
 		UE_LOG(LogTemp, Log, TEXT("[StatusDebug] %s: %s (%d turnos)"), *Hero->GetName(), *Args[0], FMath::Max(1, Turns));
 		return;
 	}
