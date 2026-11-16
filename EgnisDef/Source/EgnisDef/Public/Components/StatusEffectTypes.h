@@ -76,8 +76,4 @@ struct FActiveStatus
 	// Valor numerico del estado, fijado al aplicarlo.
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float Magnitude = 0.f;
-	
-	// Duracion con la que se aplico el estado (Sangre hirviente la usa para saber cuantos turnos han pasado)
-	UPROPERTY(BlueprintReadOnly, Category = "Status")
-	int32 TotalTurns = 0;
 };

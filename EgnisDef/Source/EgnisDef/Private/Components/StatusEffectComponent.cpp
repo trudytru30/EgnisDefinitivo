@@ -160,7 +160,6 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 			if (bNewProvoker || Turns > Existing->TurnsLeft)
 			{
 				Existing->TurnsLeft = Turns;
-				Existing->TotalTurns = Turns;
 				Existing->bSkipNextDecrement = bSkipDecrement;
 				Existing->Source = Source;
 				if (bNewProvoker)
@@ -177,7 +176,6 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 	FActiveStatus NewStatus;
 	NewStatus.Type = Type;
 	NewStatus.TurnsLeft = IsPermanentStatus(Type) ? 0 : Turns;
-	NewStatus.TotalTurns = IsPermanentStatus(Type) ? 0 : Turns;
 	NewStatus.Source = Source;
 	NewStatus.Magnitude = GetMagnitudeFor(Type, Source);
 	NewStatus.bSkipNextDecrement = bSkipDecrement;
@@ -460,19 +458,6 @@ bool UStatusEffectComponent::ApplyAshes(int32 Stacks, ACharacterBase* Source)
 	return true;
 }
 
-float UStatusEffectComponent::GetBoilingBloodDamage() const
-{
-	const FActiveStatus* Blood = FindStatus(EStatusType::Status_BoilingBlood);
-	if (!Blood)
-	{
-		return 0.f;
-	}
-
-	// Turnos completos que ya han pasado desde que se aplico
-	const int32 Elapsed = FMath::Max(0, Blood->TotalTurns - Blood->TurnsLeft);
-	return FMath::Max(BoilingBloodMinDamage, BoilingBloodInitialDamage - Elapsed * BoilingBloodReductionPerTurn);
-}
-
 void UStatusEffectComponent::OnOwnerActionTaken(const TCHAR* ActionName)
 {
 	if (!HasStatus(EStatusType::Status_BoilingBlood))
@@ -481,12 +466,11 @@ void UStatusEffectComponent::OnOwnerActionTaken(const TCHAR* ActionName)
 	}
 
 	ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner());
-	const float Damage = GetBoilingBloodDamage();
-	if (!OwnerChar || Damage <= 0.f)
+	if (!OwnerChar || BoilingBloodDamage <= 0.f)
 	{
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[%s] Sangre hirviente (%s): %.0f de daño puro"), *OwnerChar->GetName(), ActionName, Damage);
-	UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, Damage); // puede matarlo: quien llama debe comprobar IsValid
+	UE_LOG(LogTemp, Log, TEXT("[%s] Sangre hirviente (%s): %.0f de daño puro"), *OwnerChar->GetName(), ActionName, BoilingBloodDamage);
+	UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, BoilingBloodDamage);
 }
