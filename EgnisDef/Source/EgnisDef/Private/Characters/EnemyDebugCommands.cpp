@@ -1,4 +1,3 @@
-
 // Play -> clic en la ventana del juego -> tecla º -> comando -> enter y mirar registro
 //
 //   Egnis.Enemy.Debug  -> para cada enemigo: sus estadísticas, a qué héroes puede atacar
@@ -334,4 +333,170 @@ namespace
 			}
 		}
 	}));
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyProvoke(
+	TEXT("Egnis.Enemy.Provoke"),
+	TEXT("Egnis.Enemy.Provoke [turnos=2] [indiceEnemigo=0]: ese enemigo aplica Atraccion Espiritual a todos los heroes."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		const int32 Turns = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 2;
+		const int32 EnemyIndex = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+
+		int32 Index = 0;
+		for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy, ++Index)
+		{
+			if (Index != EnemyIndex) continue;
+
+			for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+			{
+				if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+				Hero->StatusComp->ApplyStatus(EStatusType::Status_SpiritAttraction, FMath::Max(1, Turns), *Enemy);
+				UE_LOG(LogTemp, Log, TEXT("[ProvokeDebug] %s provoca a %s (%d turnos)."), *Enemy->GetName(), *Hero->GetName(), Turns);
+			}
+			return;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[ProvokeDebug] No hay enemigo con indice %d."), EnemyIndex);
+	}));
+
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyProvokeCheck(
+	TEXT("Egnis.Enemy.ProvokeCheck"),
+	TEXT("Muestra que heroes estan provocados por Atraccion Espiritual, por quien, y a que enemigos podrian apuntar."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+		{
+			if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+			const ACharacterBase* Provoker = Hero->StatusComp->GetStatusSource(EStatusType::Status_SpiritAttraction);
+			if (!IsValid(Provoker) || Provoker->GetCurrentHealth() <= 0.f)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[ProvokeCheck] %s NO esta provocado."), *Hero->GetName());
+				continue;
+			}
+			UE_LOG(LogTemp, Log, TEXT("[ProvokeCheck] %s provocado por %s (%d turnos)."), *Hero->GetName(), *Provoker->GetName(),
+				Hero->StatusComp->GetTurnsLeft(EStatusType::Status_SpiritAttraction));
+			for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[ProvokeCheck]   -> %s: %s"), *Enemy->GetName(),
+					*Enemy == Provoker ? TEXT("SI puede apuntarle") : TEXT("NO (bloqueado)"));
+			}
+		}
+	}));
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyPossess(
+TEXT("Egnis.Enemy.Possess"),
+TEXT("Egnis.Enemy.Possess [indiceEnemigo=0] [1|0]: marca o desmarca a ese enemigo como poseido por espiritus (Perfumar)."),
+FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+{
+	if (!World) return;
+	const int32 EnemyIndex = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+	const bool bValue = Args.Num() > 1 ? FCString::Atoi(*Args[1]) != 0 : true;
+
+	int32 Index = 0;
+	for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy, ++Index)
+	{
+		if (Index != EnemyIndex) continue;
+		Enemy->bPossessedBySpirits = bValue;
+		UE_LOG(LogTemp, Log, TEXT("[PerfumeDebug] %s poseido = %s"), *Enemy->GetName(), bValue ? TEXT("SI") : TEXT("NO"));
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[PerfumeDebug] No hay enemigo con indice %d."), EnemyIndex);
+}));
+
+	FAutoConsoleCommandWithWorldAndArgs CmdEnemyPerfume(
+	TEXT("Egnis.Enemy.Perfume"),
+	TEXT("Egnis.Enemy.Perfume [turnos=2] [indiceHeroe=0]: aplica Perfumar a ese heroe."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) return;
+		const int32 Turns = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 2;
+		const int32 HeroIndex = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+
+		int32 Index = 0;
+		for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+		{
+			if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+			if (Index++ != HeroIndex) continue;
+			Hero->StatusComp->ApplyStatus(EStatusType::Status_Perfume, FMath::Max(1, Turns));
+			UE_LOG(LogTemp, Log, TEXT("[PerfumeDebug] %s perfumado (%d turnos)."), *Hero->GetName(), Turns);
+			return;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[PerfumeDebug] No hay heroe con indice %d."), HeroIndex);
+	}));
+	FAutoConsoleCommandWithWorldAndArgs CmdMadness(
+TEXT("Egnis.Madness"),
+TEXT("Egnis.Madness [indiceHeroe=0]: aplica Locura a ese heroe."),
+FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+{
+	if (!World) return;
+	const int32 HeroIndex = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+
+	int32 Index = 0;
+	for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+	{
+		if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+		if (Index++ != HeroIndex) continue;
+		Hero->StatusComp->ApplyStatus(EStatusType::Status_Madness, 1);
+		UE_LOG(LogTemp, Log, TEXT("[MadnessDebug] %s esta loco."), *Hero->GetName());
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[MadnessDebug] No hay heroe con indice %d."), HeroIndex);
+}));
+	FAutoConsoleCommandWithWorldAndArgs CmdStatus(
+TEXT("Egnis.Status"),
+TEXT("Egnis.Status <Estado> [turnos=2] [indiceHeroe=0]: aplica un estado a ese heroe. Sin argumentos lista los estados. Ej: Egnis.Status Burn 3"),
+FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+{
+	if (!World) return;
+	const UEnum* StatusEnum = StaticEnum<EStatusType>();
+	if (!StatusEnum) return;
+
+	if (Args.Num() == 0)
+	{
+		FString All;
+		for (int32 i = 0; i < StatusEnum->NumEnums() - 1; ++i)
+		{
+			All += StatusEnum->GetNameStringByIndex(i).Replace(TEXT("Status_"), TEXT("")) + TEXT(" ");
+		}
+		UE_LOG(LogTemp, Log, TEXT("[StatusDebug] Estados: %s"), *All);
+		return;
+	}
+
+	// Acepta "Burn" o "Status_Burn", sin distinguir mayusculas
+	int64 Value = INDEX_NONE;
+	for (int32 i = 0; i < StatusEnum->NumEnums() - 1; ++i)
+	{
+		const FString Name = StatusEnum->GetNameStringByIndex(i).Replace(TEXT("Status_"), TEXT(""));
+		if (Name.Equals(Args[0].Replace(TEXT("Status_"), TEXT("")), ESearchCase::IgnoreCase))
+		{
+			Value = StatusEnum->GetValueByIndex(i);
+			break;
+		}
+	}
+	if (Value == INDEX_NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[StatusDebug] Estado desconocido '%s'. Escribe Egnis.Status solo para ver la lista."), *Args[0]);
+		return;
+	}
+
+	const int32 Turns = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 2;
+	const int32 HeroIndex = Args.Num() > 2 ? FCString::Atoi(*Args[2]) : 0;
+
+	// Lanzador de prueba: el primer enemigo (Asustado y otros estados necesitan un Source)
+	ACharacterBase* FirstEnemy = nullptr;
+	for (TActorIterator<ACharacterBase> It(World); It; ++It)
+	{
+		if (It->GetTeam() == 1) { FirstEnemy = *It; break; }
+	}
+
+	int32 Index = 0;
+	for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+	{
+		if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
+		if (Index++ != HeroIndex) continue;
+		Hero->StatusComp->ApplyStatus(static_cast<EStatusType>(Value), FMath::Max(1, Turns), FirstEnemy);
+		UE_LOG(LogTemp, Log, TEXT("[StatusDebug] %s: %s (%d turnos)"), *Hero->GetName(), *Args[0], FMath::Max(1, Turns));
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[StatusDebug] No hay heroe con indice %d."), HeroIndex);
+}));
 }

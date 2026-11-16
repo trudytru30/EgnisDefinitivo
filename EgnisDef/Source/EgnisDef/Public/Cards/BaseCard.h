@@ -56,14 +56,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Card")
 	UTexture2D* GetCardImage() const;
-
-	UFUNCTION(BlueprintPure, Category="Card")
-	TArray<UCardEffect*> GetEffects() const { return Effects; }
-
-	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
-	bool CanTargetObstacle() const;
 	
-#pragma region Functions
 	// Acciones de las cartas
 	void Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location);
 
@@ -76,11 +69,20 @@ public:
 	// de la mano sin haberse jugado. DeckManager llama a esto en DrawCard/DiscardCardFromHand.
 	void NotifyHandEnter(ACharacterBase* Owner);
 	void NotifyHandLeave(ACharacterBase* Owner);
-#pragma endregion
+	
+	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
+	bool CanTargetObstacle() const;
+	
+	// Efimero: si no es la primera carta que se juega, se descarta y se sustituye por otra
+	UFUNCTION(BlueprintPure, Category="Card")
+	bool IsEphemeral() const { return bEphemeral; }
+
+	// Duplicacion: la carta se juega dos veces al momento
+	UFUNCTION(BlueprintPure, Category="Card")
+	bool PlaysTwice() const { return bPlaysTwice; }
 
 protected:
-
-#pragma region Stats
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	FText CardName;
 
@@ -111,5 +113,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category="Card")
 	TArray<UCardEffect*> Effects;
 
-#pragma endregion
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card|Keywords", meta=(DisplayName="Efímero"))
+	bool bEphemeral = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card|Keywords", meta=(DisplayName="Duplicación"))
+	bool bPlaysTwice = false;
 };

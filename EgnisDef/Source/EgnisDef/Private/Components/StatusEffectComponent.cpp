@@ -27,6 +27,12 @@ namespace
 		case EStatusType::Status_Slowed: return TAG_Status_Slowed;
 		case EStatusType::Status_Ecstatic: return TAG_Status_Ecstatic;
 		case EStatusType::Status_Elusive: return TAG_Status_Elusive;
+		case EStatusType::Status_SpiritAttraction: return TAG_Status_SpiritAttraction;
+		case EStatusType::Status_Perfume: return TAG_Status_Perfume;
+		case EStatusType::Status_Madness: return TAG_Status_Madness;
+		case EStatusType::Status_Frightened:   return TAG_Status_Frightened;
+		case EStatusType::Status_BoilingBlood: return TAG_Status_BoilingBlood;
+		case EStatusType::Status_Ashes:        return TAG_Status_Ashes;
 		default:                            return FGameplayTag();
 		}
 	}
@@ -34,7 +40,8 @@ namespace
 	// Estados que duran todo el combate: no gastan turnos y no caducan
 	bool IsPermanentStatus(EStatusType Type)
 	{
-		return Type == EStatusType::Status_FieryCurse;
+		return Type == EStatusType::Status_FieryCurse || Type == EStatusType::Status_Madness
+			|| Type == EStatusType::Status_Ashes;
 	}
 	
 	// Estados que se van al final del turno en que se aplican: ese turno ya cuenta como uno de los suyos
@@ -108,6 +115,17 @@ ACharacterBase* UStatusEffectComponent::GetStatusSource(EStatusType Type) const
 
 bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source,	EStatusApplicationTurn ApplicationTurn)
 {
+	// Cenizas: bloquea cualquier estado que llegue y gasta una carga
+	if (TryBlockWithAshes(Type))
+	{
+		return false;
+	}
+
+	// Cenizas: no usa turnos. 'Turns' son las cargas que se aplican
+	if (Type == EStatusType::Status_Ashes)
+	{
+		return ApplyAshes(Turns, Source);
+	}
 	
 	// Maldicion Ignea: no usa turnos; cada llamada intenta aplicar una carga
 	if (Type == EStatusType::Status_FieryCurse)
@@ -130,12 +148,25 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 	{
 		if (FActiveStatus* Existing = FindStatus(Type))
 		{
+			if (IsPermanentStatus(Type))
+			{
+				return true;
+			}
+			
+			// Atraccion Espiritual: otro lanzador distinto sobrescribe al anterior, aunque dure menos
+			const bool bNewProvoker = Type == EStatusType::Status_SpiritAttraction && Existing->Source.Get() != Source;
+
 			// Ya activo: solo se refresca si la nueva duracion es mayor
-			if (Turns > Existing->TurnsLeft)
+			if (bNewProvoker || Turns > Existing->TurnsLeft)
 			{
 				Existing->TurnsLeft = Turns;
 				Existing->bSkipNextDecrement = bSkipDecrement;
 				Existing->Source = Source;
+				if (bNewProvoker)
+				{
+					UE_LOG(LogTemp, Log, TEXT("[Atraccion] %s: ahora provocado por %s"), *GetOwner()->GetName(),
+						Source ? *Source->GetName() : TEXT("nadie"));
+				}
 				OnStatusChanged.Broadcast();
 			}
 			return true;
@@ -144,7 +175,7 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 
 	FActiveStatus NewStatus;
 	NewStatus.Type = Type;
-	NewStatus.TurnsLeft = Turns;
+	NewStatus.TurnsLeft = IsPermanentStatus(Type) ? 0 : Turns;
 	NewStatus.Source = Source;
 	NewStatus.Magnitude = GetMagnitudeFor(Type, Source);
 	NewStatus.bSkipNextDecrement = bSkipDecrement;
@@ -164,6 +195,11 @@ int32 UStatusEffectComponent::ApplyFieryCurse(int32 Charges, ACharacterBase* Sou
 {
 	ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner());
 	if (Charges <= 0 || !IsValid(OwnerChar))
+	{
+		return 0;
+	}
+	
+	if (TryBlockWithAshes(EStatusType::Status_FieryCurse))
 	{
 		return 0;
 	}
@@ -359,4 +395,82 @@ float UStatusEffectComponent::GetStatusMagnitude(EStatusType Type) const
 		}
 	}
 	return Total;
+}
+
+bool UStatusEffectComponent::TryBlockWithAshes(EStatusType Incoming)
+{
+	if (Incoming == EStatusType::Status_Ashes)
+	{
+		return false; // aplicar mas Cenizas suma cargas, no se bloquea
+	}
+
+	FActiveStatus* Ashes = FindStatus(EStatusType::Status_Ashes);
+	if (!Ashes)
+	{
+		return false;
+	}
+
+	Ashes->Stacks--;
+	UE_LOG(LogTemp, Log, TEXT("[%s] Cenizas: bloquea el estado %d, cargas: %d"),
+		*GetOwner()->GetName(), (int32)Incoming, Ashes->Stacks);
+
+	if (Ashes->Stacks <= 0)
+	{
+		RemoveStatus(EStatusType::Status_Ashes); // quita la entrada y el tag y avisa a la UI
+	}
+	else
+	{
+		OnStatusChanged.Broadcast();
+	}
+	return true;
+}
+
+bool UStatusEffectComponent::ApplyAshes(int32 Stacks, ACharacterBase* Source)
+{
+	if (Stacks <= 0 || !IsValid(GetOwner()))
+	{
+		return false;
+	}
+
+	if (FActiveStatus* Existing = FindStatus(EStatusType::Status_Ashes))
+	{
+		Existing->Stacks += Stacks;
+		Existing->Source = Source;
+		UE_LOG(LogTemp, Log, TEXT("[%s] Cenizas: +%d, cargas: %d"), *GetOwner()->GetName(), Stacks, Existing->Stacks);
+		OnStatusChanged.Broadcast();
+		return true;
+	}
+
+	FActiveStatus NewStatus;
+	NewStatus.Type = EStatusType::Status_Ashes;
+	NewStatus.TurnsLeft = 0; // no caduca por turnos (ver IsPermanentStatus)
+	NewStatus.Stacks = Stacks;
+	NewStatus.Source = Source;
+	ActiveStatuses.Add(NewStatus);
+
+	if (UAbilitySystemComponent* ASC = GetOwnerASC())
+	{
+		ASC->AddLooseGameplayTag(TAG_Status_Ashes);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[%s] Cenizas aplicadas, cargas: %d"), *GetOwner()->GetName(), Stacks);
+	OnStatusChanged.Broadcast();
+	return true;
+}
+
+void UStatusEffectComponent::OnOwnerActionTaken(const TCHAR* ActionName)
+{
+	if (!HasStatus(EStatusType::Status_BoilingBlood))
+	{
+		return;
+	}
+
+	ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner());
+	if (!OwnerChar || BoilingBloodDamage <= 0.f)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[%s] Sangre hirviente (%s): %.0f de daño puro"), *OwnerChar->GetName(), ActionName, BoilingBloodDamage);
+	UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, BoilingBloodDamage);
 }

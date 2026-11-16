@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CoreAndSystems/AudioTriggers.h"
+#include "GameplayTagContainer.h"
 #include "AudioManager.generated.h"
 
 class UAudioDataAsset;
@@ -39,6 +40,10 @@ public:
 	// Siempre lanza OnAudioTrigger. Context es el personaje/actor que provoca el sonido (puede ser nulo).
 	UFUNCTION(BlueprintCallable, Category = "Audio|FMOD")
 	void PlayTrigger(EEgnisAudioTrigger Trigger, UFMODEvent* OverrideEvent = nullptr, AActor* Context = nullptr);
+	
+	// Suena el sonido del culto de una carta (el base lo lanza cada efecto). Context = quien juega la carta.
+	UFUNCTION(BlueprintCallable, Category = "Audio|FMOD")
+	void PlayCultSound(FGameplayTag Cult, AActor* Context = nullptr);
 
 	UPROPERTY(BlueprintAssignable, Category = "Audio|FMOD")
 	FOnAudioTrigger OnAudioTrigger;
@@ -136,4 +141,6 @@ private:
 	TSharedPtr<FFMODEventInstance> FMODMusicInstance;
 
 	void PlaySoundFromArray(const TArray<TObjectPtr<USoundBase>>& Sounds, int32 Index, const TCHAR* CategoryName);
+	// Reproduce un evento FMOD en 2D con un multiplicador de pitch (1 = sin cambio)
+	void PlayEvent2DWithPitch(UFMODEvent* Event, float Pitch);
 };

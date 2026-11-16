@@ -9,6 +9,8 @@
 #include "Abilities/EgnisAbilityLibrary.h"
 #include "Cards/Card_AttackEffect.h"
 #include "Cards/Card_AreaDamageEffect.h"
+#include "CoreAndSystems/AudioManager.h"
+#include "Engine/GameInstance.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
@@ -19,82 +21,105 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 		Deck->SetCardInPlay(this);
 	}
 	
-	for (UCardEffect* Effect : Effects)
+	// Sonido del culto: suena ademas del sonido base de cada efecto (las grises no tienen culto, no suenan)
+	if (Self)
 	{
-		switch (Effect->Target)
-		{
-		case ECardTarget::None:
-			Effect->Execute_None(Deck);
-			break;
-			
-		case ECardTarget::Ally:
-			if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
-			{
-				for (ACharacterBase* Ally : UEgnisAbilityLibrary::GetSeedingTargets(Self, true))
-				{
-					if (IsValid(Ally))
-					{
-						Effect->Execute_Ally(Self, Ally);
-					}
-				}
-				break;
-			}
-			// Solo se aplica si el objetivo elegido es del mismo equipo que quien juega la carta
-			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() != Self->GetTeam())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[BaseCard]: %s tiene un efecto de aliado pero el objetivo elegido no "
-								  "es un aliado, se omite"), *GetName());
-				break;
-			}
-			Effect->Execute_Ally(Self, TargetCharacter);
-			break;
-			
-		case ECardTarget::Enemy:
-			if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
-			{
-				for (ACharacterBase* Enemy : UEgnisAbilityLibrary::GetSeedingTargets(Self, false))
-				{
-					if (IsValid(Enemy))
-					{
-						Effect->Execute_Enemy(Self, Enemy);
-					}
-				}
-				break;
-			}
-			// Objetivo sin personaje: puede ser un obstaculo destructible, se busca por la casilla de Location
-			if (!TargetCharacter && Self && Self->Board)
-			{
-				FTileCoord Tile;
-				AObstacleBase* Obstacle = Self->Board->WorldPointToTile(Location, Tile)
-					? Cast<AObstacleBase>(Self->Board->GetTileOccupant(Tile)) : nullptr;
-				if (Obstacle && Obstacle->bDestructible)
-				{
-					Effect->Execute_Obstacle(Self, Obstacle);
-					break;
-				}
-			}
-			// Solo se aplica si el objetivo elegido es del equipo contrario
-			if (!TargetCharacter || !Self || TargetCharacter->GetTeam() == Self->GetTeam())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[BaseCard]: %s tiene un efecto de enemigo pero el objetivo elegido no "
-								  "es un enemigo, se omite"), *GetName());
-				break;
-			}
-			Effect->Execute_Enemy(Self, TargetCharacter);
-			break;
-		case ECardTarget::Self:
-			Effect->Execute_Self(Self);
-			break;
-			
-		case ECardTarget::Tile:
-			//Effect->Execute_Tile(Location);
-			Effect->Execute_Tile(Self,Location);
-			break;
-		default:
-			break;
-		}
+		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>())
+			AM->PlayCultSound(Cult, Self);
 	}
 	
+	const int32 Repetitions = bPlaysTwice ? 2 : 1;
+	for (int32 Rep = 0; Rep < Repetitions; ++Rep)
+	{
+		if (Rep > 0)
+		{
+			if (!IsValid(Self))
+			{
+				break;
+			}
+			if (TargetCharacter && !IsValid(TargetCharacter))
+			{
+				TargetCharacter = nullptr;
+			}
+		}
+		
+		for (UCardEffect* Effect : Effects)
+		{
+			switch (Effect->Target)
+			{
+			case ECardTarget::None:
+				Effect->Execute_None(Deck);
+				break;
+				
+			case ECardTarget::Ally:
+				if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
+				{
+					for (ACharacterBase* Ally : UEgnisAbilityLibrary::GetSeedingTargets(Self, true))
+					{
+						if (IsValid(Ally))
+						{
+							Effect->Execute_Ally(Self, Ally);
+						}
+					}
+					break;
+				}
+				// Solo se aplica si el objetivo elegido es del mismo equipo que quien juega la carta
+				if (!TargetCharacter || !Self || TargetCharacter->GetTeam() != Self->GetTeam())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[BaseCard]: %s tiene un efecto de aliado pero el objetivo elegido no "
+									  "es un aliado, se omite"), *GetName());
+					break;
+				}
+				Effect->Execute_Ally(Self, TargetCharacter);
+				break;
+				
+			case ECardTarget::Enemy:
+				if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
+				{
+					for (ACharacterBase* Enemy : UEgnisAbilityLibrary::GetSeedingTargets(Self, false))
+					{
+						if (IsValid(Enemy))
+						{
+							Effect->Execute_Enemy(Self, Enemy);
+						}
+					}
+					break;
+				}
+				// Objetivo sin personaje: puede ser un obstaculo destructible, se busca por la casilla de Location
+				if (!TargetCharacter && Self && Self->Board)
+				{
+					FTileCoord Tile;
+					AObstacleBase* Obstacle = Self->Board->WorldPointToTile(Location, Tile)
+						? Cast<AObstacleBase>(Self->Board->GetTileOccupant(Tile)) : nullptr;
+					if (Obstacle && Obstacle->bDestructible)
+					{
+						Effect->Execute_Obstacle(Self, Obstacle);
+						break;
+					}
+				}
+				// Solo se aplica si el objetivo elegido es del equipo contrario
+				if (!TargetCharacter || !Self || TargetCharacter->GetTeam() == Self->GetTeam())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[BaseCard]: %s tiene un efecto de enemigo pero el objetivo elegido no "
+									  "es un enemigo, se omite"), *GetName());
+					break;
+				}
+				Effect->Execute_Enemy(Self, TargetCharacter);
+				break;
+			case ECardTarget::Self:
+				Effect->Execute_Self(Self);
+				break;
+				
+			case ECardTarget::Tile:
+				//Effect->Execute_Tile(Location);
+				Effect->Execute_Tile(Self,Location);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+		
 	if (Deck)
 	{
 		Deck->SetCardInPlay(nullptr);
