@@ -56,7 +56,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Card")
 	UTexture2D* GetCardImage() const;
-	
+
+	UFUNCTION(BlueprintPure, Category="Card")
+	TArray<UCardEffect*> GetEffects() const { return Effects; }
+
 	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
 	bool CanTargetObstacle() const;
 	

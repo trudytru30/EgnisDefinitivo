@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "CardTarget.h"
+#include "CardDisplayTypes.h"
 #include "Characters/CharacterBase.h"
 #include "CardEffect.generated.h"
 
 class UDeckManager;
 class UFMODEvent;
+class UTexture2D;
 
 UCLASS(Blueprintable, Abstract)
 class EGNISDEF_API UCardEffect : public UObject
@@ -22,6 +24,18 @@ public:
 	// de efecto que haya en la tabla Trigger Events del AudioDataAsset.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Audio")
 	TObjectPtr<UFMODEvent> SoundOverride;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	TObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	ECardEffectPolarity Polarity = ECardEffectPolarity::Auto;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	bool bShowOnCard = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	bool bShowValue = true;
 	
 #pragma region Effects
 	virtual void Execute_None(UDeckManager* Deck) {};
