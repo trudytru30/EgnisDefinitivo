@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Characters/EnemyTurnDirector.h"
+#include "TimerManager.h"
 #include "BattleManager.generated.h"
 
 class UAudioManager;
@@ -36,6 +37,15 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnBattleEndedSignature OnBattleEndedEvent;
+	
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMadnessPhaseSignature);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMadnessMoveSignature, AAlly*, Ally, FVector, From, FVector, To);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnMadnessCardSignature, AAlly*, Ally, UBaseCard*, Card, ACharacterBase*, Target, int32, CardNumber, int32, CardsTotal);
+
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Madness") FOnMadnessPhaseSignature OnMadnessStarted;
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Madness") FOnMadnessPhaseSignature OnMadnessFinished;
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Madness") FOnMadnessMoveSignature OnMadnessMove;
+	UPROPERTY(BlueprintAssignable, Category = "Battle|Madness") FOnMadnessCardSignature OnMadnessCardAboutToPlay;
 
 #pragma region Functions
 	void SetDeckManager(UDeckManager* InDeckManager);
@@ -58,6 +68,9 @@ public:
 	TArray<ACharacterBase*> GetCharactersOnField() const;
 	UFUNCTION(BlueprintPure)
 	bool IsPlayerTurn() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Battle|Madness")
+	bool IsMadnessResolving() const { return bMadnessResolving; }
 
 	void SetEnemyTurnSettings(const FEnemyTurnSettings& InSettings) { EnemyTurnSettings = InSettings; }
 	UFUNCTION(BlueprintPure, Category = "Battle")
@@ -73,8 +86,14 @@ private:
 	void NotifyTeamTurnStart(int32 Team);
 	void NotifyTeamTurnEnd(int32 Team);
 	
-	// Locura: los aliados con el estado se mueven y juegan cartas al azar al empezar el turno del jugador
 	void ResolveMadness();
+	void MadnessNextAlly();
+	void MadnessStep();
+	void MadnessExecuteCard();
+	void FinishMadness();
+	void ScheduleMadness(void (UBattleManager::*Func)(), float Delay);
+	bool MadnessDoMove(AAlly* Ally);
+	bool MadnessPrepareCard(AAlly* Ally);
 	
 	// Salud actual de los aliados respecto a la suma de sus vidas maximas al empezar el combate (0 a 1).
 	// Los aliados muertos cuentan como 0.
@@ -108,6 +127,18 @@ private:
 
 	UPROPERTY()
 	FEnemyTurnSettings EnemyTurnSettings;
+	
+	enum class EMadnessAction : uint8 { Move, Card };
+	bool bMadnessResolving = false;
+	TArray<TWeakObjectPtr<AAlly>> MadnessQueue;
+	TWeakObjectPtr<AAlly> MadnessAlly;
+	TArray<EMadnessAction> MadnessPlan;
+	int32 MadnessCardsPlayed = 0;
+	int32 MadnessCardsTotal = 0;
+	TWeakObjectPtr<UBaseCard> MadnessPendingCard;
+	TWeakObjectPtr<ACharacterBase> MadnessPendingTarget;
+	FVector MadnessPendingLocation = FVector::ZeroVector;
+	FTimerHandle MadnessTimer;
 	
 #pragma endregion
 };
