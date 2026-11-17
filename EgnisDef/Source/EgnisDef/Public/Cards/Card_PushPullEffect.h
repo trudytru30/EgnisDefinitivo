@@ -31,4 +31,10 @@ public:
 	int32 Distance = 1;
 
 	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) override;
+	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) override;
+	virtual bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const override;
+
+private:
+	// Cuerpo compartido por Execute_Enemy y Execute_Ally
+	void ApplyForcedMove(ACharacterBase* Self, ACharacterBase* Enemy) const;
 };

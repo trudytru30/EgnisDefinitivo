@@ -233,6 +233,12 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 	{
 		return true;
 	}
+	
+	// Efectos que rechazan ciertos objetivos (por ejemplo, empujar o tirar de uno mismo)
+	if (TargetCharacter && CardTarget != ECardTarget::Tile && !Card->CanTargetCharacter(Caster, TargetCharacter))
+	{
+		return false;
+	}
 
 	//Taunt
 	if (CardTarget == ECardTarget::Enemy && Caster->StatusComp)

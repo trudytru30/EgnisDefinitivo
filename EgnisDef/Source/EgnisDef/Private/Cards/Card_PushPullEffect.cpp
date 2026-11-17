@@ -12,7 +12,23 @@ UCard_PushPullEffect::UCard_PushPullEffect()
 void UCard_PushPullEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy)
 {
 	Super::Execute_Enemy(Self, Enemy);
+	ApplyForcedMove(Self, Enemy);
+}
 
+void UCard_PushPullEffect::Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally)
+{
+	Super::Execute_Ally(Self, Ally);
+
+	if (IsValid(Self) && IsValid(Ally) && Self->GetTeam() != Ally->GetTeam())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ForcedMove: el objetivo Ally es de otro equipo"));
+		return;
+	}
+	ApplyForcedMove(Self, Ally);
+}
+
+void UCard_PushPullEffect::ApplyForcedMove(ACharacterBase* Self, ACharacterBase* Enemy) const
+{
 	// IsValid y no solo != nullptr: si otro efecto de la misma carta ya ha matado al objetivo,
 	// HandleDeath() lo ha destruido pero el puntero sigue sin ser null. Moverlo lo volveria a
 	// a registrar como ocupante de una casilla.
@@ -105,4 +121,10 @@ void UCard_PushPullEffect::Execute_Enemy(ACharacterBase* Self, ACharacterBase* E
 	UE_LOG(LogTemp, Log, TEXT("ForcedMove (%s): %s movido de (%d,%d) a (%d,%d)"),
 		Mode == EForcedMoveMode::Pull ? TEXT("Pull") : TEXT("Push"),
 		*Enemy->GetName(), Start.X, Start.Y, Destination.X, Destination.Y);
+}
+
+bool UCard_PushPullEffect::CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const
+{
+	// Empujar o tirar de uno mismo no tiene direccion
+	return Self != Victim;
 }

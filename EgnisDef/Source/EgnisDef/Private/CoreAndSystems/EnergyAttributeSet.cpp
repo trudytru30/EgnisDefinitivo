@@ -2,7 +2,7 @@
 
 UEnergyAttributeSet::UEnergyAttributeSet()
 {
-	// Mismos valores por defecto que tenía EnergyComponent.h (MaxPoints=6)
+	// Mismos valores por defecto que tenía EnergyComponent.h
 	InitEnergy(6.f);
 	InitMaxEnergy(6.f);
 	InitSecondWindEnergy(0.f);
@@ -14,9 +14,7 @@ void UEnergyAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 
 	if (Attribute == GetEnergyAttribute())
 	{
-		// Equivalente a EnergyComponent::ApplyDelta/BeginPlay, que ya hacían este clamp
-		// contra MaxPoints
-		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxEnergy());
+		NewValue = bAllowOverMax ? FMath::Max(NewValue, 0.f) : FMath::Clamp(NewValue, 0.f, GetMaxEnergy());
 	}
 	else if (Attribute == GetSecondWindEnergyAttribute())
 	{

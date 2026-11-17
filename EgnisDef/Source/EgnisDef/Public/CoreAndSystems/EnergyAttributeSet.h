@@ -29,6 +29,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Energy")
 	FGameplayAttributeData SecondWindEnergy;
 	ATTRIBUTE_ACCESSORS(UEnergyAttributeSet, SecondWindEnergy)
+	
+	// Lo activa solo AAlly::GainPointsIgnoringMax durante una ganancia concreta (Energia al matar). Fuera de eso,
+	// la energia nunca pasa de MaxEnergy.
+	bool bAllowOverMax = false;
 
 protected:
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;

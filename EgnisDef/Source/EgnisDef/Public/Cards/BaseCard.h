@@ -71,6 +71,7 @@ public:
 	void NotifyHandLeave(ACharacterBase* Owner);
 	
 	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
+	bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const;
 	bool CanTargetObstacle() const;
 	
 	// Efimero: si no es la primera carta que se juega, se descarta y se sustituye por otra
@@ -80,6 +81,9 @@ public:
 	// Duplicacion: la carta se juega dos veces al momento
 	UFUNCTION(BlueprintPure, Category="Card")
 	bool PlaysTwice() const { return bPlaysTwice; }
+	
+	UFUNCTION(BlueprintPure, Category = "Card")
+	int32 GetEnergyOnKill() const { return EnergyOnKill; }
 
 protected:
 	
@@ -118,4 +122,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card|Keywords", meta=(DisplayName="Duplicación"))
 	bool bPlaysTwice = false;
+	
+	// Energia que recupera quien juega la carta por cada enemigo que muera mientras se juega (sin tope de energia
+	// maxima). Cuenta cualquier baja de la carta (area, empujar a una casilla en llamas...), y con Duplicacion las
+	// de las dos jugadas. 0 = no hace nada.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Card|Keywords", meta = (ClampMin = "0", DisplayName = "Energía al matar"))
+	int32 EnergyOnKill = 0;
 };
