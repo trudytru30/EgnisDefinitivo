@@ -56,7 +56,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Card")
 	UTexture2D* GetCardImage() const;
-	
+
+	UFUNCTION(BlueprintPure, Category="Card")
+	TArray<UCardEffect*> GetEffects() const { return Effects; }
+
 	// Acciones de las cartas
 	void Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location);
 
