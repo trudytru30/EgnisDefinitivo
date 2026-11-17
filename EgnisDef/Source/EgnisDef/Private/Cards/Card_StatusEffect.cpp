@@ -1,5 +1,6 @@
 #include "Cards/Card_StatusEffect.h"
 #include "Components/StatusEffectComponent.h"
+#include "CoreAndSystems/Board.h"
 
 UCard_StatusEffect::UCard_StatusEffect()
 {
@@ -50,4 +51,60 @@ void UCard_StatusEffect::ApplyTo(ACharacterBase* Source, ACharacterBase* Receive
 	{
 		StatusComp->ApplyStatus(Status, Turns, Source, ApplicationTurn);
 	}
+}
+
+void UCard_StatusEffect::Execute_Tile(ACharacterBase* Self, FVector Location)
+{
+	Super::Execute_Tile(Self, Location);
+
+	if (!IsValid(Self) || !Self->Board)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StatusEffect (area): Self o Board no son validos"));
+		return;
+	}
+
+	// De momento solo Perfumar funciona en area. Para abrirlo a otros estados, borrar este bloque.
+	if (Status != EStatusType::Status_Perfume)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StatusEffect (area): de momento solo Perfumar se puede aplicar en area"));
+		return;
+	}
+
+	FTileCoord Center;
+	if (!Self->Board->WorldPointToTile(Location, Center))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StatusEffect (area): la casilla esta fuera del tablero"));
+		return;
+	}
+
+	TArray<FTileCoord> AreaTiles;
+	Self->Board->GetTilesInRange(Center, AreaRadius, AreaTiles);
+	AreaTiles.Add(Center);
+
+	// Primero se recogen los afectados y luego se aplica, por si aplicar el estado cambiara algo del tablero
+	TArray<ACharacterBase*> Affected;
+	for (const FTileCoord& Tile : AreaTiles)
+	{
+		ACharacterBase* Character = Cast<ACharacterBase>(Self->Board->GetTileOccupant(Tile));
+		if (!IsValid(Character))
+		{
+			continue;
+		}
+
+		const bool bSameTeam = Character->GetTeam() == Self->GetTeam();
+		if ((AreaFilter == EStatusAreaFilter::Allies && !bSameTeam)
+			|| (AreaFilter == EStatusAreaFilter::Enemies && bSameTeam))
+		{
+			continue;
+		}
+		Affected.AddUnique(Character);
+	}
+
+	for (ACharacterBase* Character : Affected)
+	{
+		ApplyTo(Self, Character);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("StatusEffect (area): centro (%d,%d), radio %d, %d personajes afectados"),
+		Center.X, Center.Y, AreaRadius, Affected.Num());
 }

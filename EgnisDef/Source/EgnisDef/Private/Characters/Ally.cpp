@@ -235,6 +235,20 @@ void AAlly::GainPoints(int32 Bonus)
 		UEnergyAttributeSet::GetEnergyAttribute(), EGameplayModOp::Additive, +Bonus);
 }
 
+void AAlly::GainPointsIgnoringMax(int32 Bonus)
+{
+	if (!EnergyAttributeSet || !GetAbilitySystemComponent() || Bonus <= 0)
+	{
+		return;
+	}
+
+	// ApplyModToAttribute es sincrono: el flag solo vale durante esta ganancia
+	EnergyAttributeSet->bAllowOverMax = true;
+	GetAbilitySystemComponent()->ApplyModToAttribute(
+		UEnergyAttributeSet::GetEnergyAttribute(), EGameplayModOp::Additive, +Bonus);
+	EnergyAttributeSet->bAllowOverMax = false;
+}
+
 void AAlly::ResetEnergyForTurn()
 {
 	if (EnergyAttributeSet && GetAbilitySystemComponent())

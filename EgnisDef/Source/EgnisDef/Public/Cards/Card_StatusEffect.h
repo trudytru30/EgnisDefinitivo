@@ -5,6 +5,15 @@
 #include "Components/StatusEffectTypes.h"
 #include "Card_StatusEffect.generated.h"
 
+
+UENUM(BlueprintType)
+enum class EStatusAreaFilter : uint8
+{
+	Allies UMETA(DisplayName = "Aliados"),
+	Enemies UMETA(DisplayName = "Enemigos"),
+	All UMETA(DisplayName = "Todos")
+};
+
 // Aplica un estado alterado al objetivo de la carta durante un numero de turnos del propio objetivo.
 // El tipo de objetivo (Enemy, Ally o Self) se elige con el campo Target heredado de UCardEffect.
 UCLASS(EditInlineNew)
@@ -21,11 +30,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "StatusEffect", meta = (ClampMin = "1"))
 	int32 Turns = 1;
 	
-	// Si el turno en que se aplica cuenta como uno de los Turns. "Segun el estado": Extasiado cuenta, el resto no.
-	// Diseño puede forzarlo en cualquier carta.
+	// Si el turno en que se aplica cuenta como uno de los Turns. Puede ser forzado en cualquier carta.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "StatusEffect")
 	EStatusApplicationTurn ApplicationTurn = EStatusApplicationTurn::Default;
 
+	// Solo se usan con Target = Tile: el estado se aplica a quien haya en la casilla elegida y en las que estan a
+	// AreaRadius casillas de distancia. Con radio 0 solo afecta a la casilla central.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "StatusEffect|Area", meta = (ClampMin = "0"))
+	int32 AreaRadius = 1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "StatusEffect|Area")
+	EStatusAreaFilter AreaFilter = EStatusAreaFilter::Allies;
+
+	virtual void Execute_Tile(ACharacterBase* Self, FVector Location) override;
 	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) override;
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) override;
 	virtual void Execute_Self(ACharacterBase* Source) override;

@@ -49,6 +49,9 @@ public:
 	// Solo para efectos con Target Tile. Se consulta antes de gastar la energia y la carta, asi un clic invalido
 	// se ignora y la carta se queda en la mano.
 	virtual bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const { return true; }
+	// Para efectos con Target Ally o Enemy. Se consulta antes de gastar la energia y la carta (igual que CanTargetTile),
+	// asi un objetivo invalido se ignora y la carta se queda en la mano.
+	virtual bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const { return true; }
 
 	// Hooks para cartas/efectos que hacen algo por el simple
 	// hecho de estar en la mano, sin necesidad de jugarlas

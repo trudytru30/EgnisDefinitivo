@@ -11,6 +11,7 @@
 #include "Cards/Card_AreaDamageEffect.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "Engine/GameInstance.h"
+#include "EngineUtils.h"
 
 // Utilizar carta
 void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location)
@@ -26,6 +27,21 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 	{
 		if (UAudioManager* AM = Self->GetGameInstance()->GetSubsystem<UAudioManager>())
 			AM->PlayCultSound(Cult, Self);
+	}
+	
+	// Energia al matar: se apunta quienes son enemigos de Self antes de los efectos, y al terminar se cuentan los
+	// que ya no existen. Si uno muere (HandleDeath lo destruye) deja de ser valido.
+	TArray<TWeakObjectPtr<ACharacterBase>> EnemiesBefore;
+	if (EnergyOnKill > 0 && IsValid(Self))
+	{
+		for (TActorIterator<ACharacterBase> It(Self->GetWorld()); It; ++It)
+		{
+			ACharacterBase* Other = *It;
+			if (IsValid(Other) && Other->GetTeam() != Self->GetTeam())
+			{
+				EnemiesBefore.Add(Other);
+			}
+		}
 	}
 	
 	const int32 Repetitions = bPlaysTwice ? 2 : 1;
@@ -120,6 +136,29 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 		}
 	}
 		
+	if (EnergyOnKill > 0 && IsValid(Self))
+	{
+		int32 Kills = 0;
+		for (const TWeakObjectPtr<ACharacterBase>& Enemy : EnemiesBefore)
+		{
+			if (!Enemy.IsValid())
+			{
+				++Kills;
+			}
+		}
+
+		if (Kills > 0)
+		{
+			if (AAlly* AllySelf = Cast<AAlly>(Self))
+			{
+				AllySelf->GainPointsIgnoringMax(Kills * EnergyOnKill);
+				UE_LOG(LogTemp, Log, TEXT("[BaseCard] %s: %d bajas, %s recupera %d de energia (ahora %d/%d)"),
+					*GetName(), Kills, *AllySelf->GetName(), Kills * EnergyOnKill,
+					AllySelf->GetCurrentEnergy(), AllySelf->GetMaxEnergy());
+			}
+		}
+	}
+	
 	if (Deck)
 	{
 		Deck->SetCardInPlay(nullptr);
@@ -213,6 +252,19 @@ bool UBaseCard::CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile
 	for (const UCardEffect* Effect : Effects)
 	{
 		if (Effect && Effect->Target == ECardTarget::Tile && !Effect->CanTargetTile(Self, Tile))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool UBaseCard::CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const
+{
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Effect && (Effect->Target == ECardTarget::Ally || Effect->Target == ECardTarget::Enemy)
+			&& !Effect->CanTargetCharacter(Self, Victim))
 		{
 			return false;
 		}
