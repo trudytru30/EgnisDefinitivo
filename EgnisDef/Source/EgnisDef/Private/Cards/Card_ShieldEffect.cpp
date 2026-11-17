@@ -3,6 +3,7 @@
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "Characters/Ally.h"
+#include "Components/StatusEffectComponent.h"
 
 UCard_ShieldEffect::UCard_ShieldEffect()
 {
@@ -60,6 +61,10 @@ void UCard_ShieldEffect::ApplyShield(ACharacterBase* Source, ACharacterBase* Rec
 	// Mismo tag que usan daño y curacion: el GE es "Add" y solo cambia el atributo (Shield)
 	Spec.Data->SetSetByCallerMagnitude(TAG_Data_Damage, FinalAmount);
 	TargetASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+	if (ShieldTurns > 0 && Receiver->StatusComp)
+	{
+		Receiver->StatusComp->AddTimedShield(FinalAmount, ShieldTurns);
+	}
 
 	if (UAudioManager* AM = Source->GetGameInstance()->GetSubsystem<UAudioManager>()) 
 		AM->PlayTrigger(EEgnisAudioTrigger::CardShield, SoundOverride, Source);

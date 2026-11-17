@@ -4,6 +4,7 @@
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Characters/Ally.h"
+#include "CoreAndSystems/HealthAttributeSet.h"
 
 namespace
 {
@@ -113,8 +114,40 @@ ACharacterBase* UStatusEffectComponent::GetStatusSource(EStatusType Type) const
 	return Found ? Found->Source.Get() : nullptr;
 }
 
+bool UStatusEffectComponent::HasStatusFromSource(EStatusType Type, const ACharacterBase* Source) const
+{
+	if (!Source)
+	{
+		return false;
+	}
+	return ActiveStatuses.ContainsByPredicate([Type, Source](const FActiveStatus& S)
+	{
+		return S.Type == Type && S.Source.Get() == Source;
+	});
+}
+
 bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source,	EStatusApplicationTurn ApplicationTurn)
 {
+	
+	// Asustado e Ira irrefrenable son incompatibles: con Ira activa se es inmune a Asustado (no gasta carga de Cenizas)
+	if (Type == EStatusType::Status_Frightened && HasStatus(EStatusType::Status_UnrestrainedRage))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Asustado ignorado: es inmune por Ira irrefrenable"), *GetNameSafe(GetOwner()));
+		return false;
+	}
+
+	// Perfumar solo afecta a enemigos y necesita saber quien lo lanza (es a quien ignoraran)
+	if (Type == EStatusType::Status_Perfume)
+	{
+		ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner());
+		if (!OwnerChar || OwnerChar->GetTeam() == 0 || !IsValid(Source))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Perfumar solo se aplica a enemigos y con lanzador, se rechaza"),
+				*GetNameSafe(GetOwner()));
+			return false;
+		}
+	}
+	
 	// Cenizas: bloquea cualquier estado que llegue y gasta una carga
 	if (TryBlockWithAshes(Type))
 	{
@@ -133,6 +166,13 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 		return ApplyFieryCurse(1, Source) > 0;
 	}
 	
+	// Ira irrefrenable anula Asustado si ya lo tenia (despues de Cenizas: si Cenizas bloquea la Ira, no se quita nada)
+	if (Type == EStatusType::Status_UnrestrainedRage && HasStatus(EStatusType::Status_Frightened))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Ira irrefrenable anula Asustado"), *GetNameSafe(GetOwner()));
+		RemoveStatus(EStatusType::Status_Frightened);
+	}
+	
 	if (Turns <= 0 || !IsValid(GetOwner()))
 	{
 		return false;
@@ -143,8 +183,24 @@ bool UStatusEffectComponent::ApplyStatus(EStatusType Type, int32 Turns, ACharact
 		|| (ApplicationTurn == EStatusApplicationTurn::Default && CountsApplicationTurnByDefault(Type));
 	const bool bSkipDecrement = bOwnerTurnActive && !bCountsFirstTurn;
 
+	// Perfumar: una entrada por lanzador. Varios heroes pueden perfumar al mismo enemigo, cada uno con su duracion
+	if (Type == EStatusType::Status_Perfume)
+	{
+		if (FActiveStatus* SameSource = ActiveStatuses.FindByPredicate([Source](const FActiveStatus& S)
+			{ return S.Type == EStatusType::Status_Perfume && S.Source.Get() == Source; }))
+		{
+			if (Turns > SameSource->TurnsLeft)
+			{
+				SameSource->TurnsLeft = Turns;
+				SameSource->bSkipNextDecrement = bSkipDecrement;
+				OnStatusChanged.Broadcast();
+			}
+			return true;
+		}
+	}
+
 	// Los estados apilables (Extasiado) no se fusionan: cada aplicacion es una entrada nueva
-	if (!IsStackableStatus(Type))
+	if (!IsStackableStatus(Type) && Type != EStatusType::Status_Perfume)
 	{
 		if (FActiveStatus* Existing = FindStatus(Type))
 		{
@@ -288,6 +344,9 @@ void UStatusEffectComponent::RemoveStatus(EStatusType Type)
 void UStatusEffectComponent::OnOwnerTurnStart()
 {
 	bOwnerTurnActive = true;
+	
+	// Escudos temporales: pierden un turno y caducan los que llegan a 0
+	ExpireTimedShields();
 
 	// Quemadura: hace su daño al principio del turno (y caduca al final)
 	if (HasStatus(EStatusType::Status_Burn))
@@ -473,4 +532,79 @@ void UStatusEffectComponent::OnOwnerActionTaken(const TCHAR* ActionName)
 
 	UE_LOG(LogTemp, Log, TEXT("[%s] Sangre hirviente (%s): %.0f de daño puro"), *OwnerChar->GetName(), ActionName, BoilingBloodDamage);
 	UEgnisCombatLibrary::ApplyPureDamage(OwnerChar, BoilingBloodDamage);
+}
+
+void UStatusEffectComponent::AddTimedShield(float Amount, int32 Turns)
+{
+	if (Amount <= 0.f || Turns <= 0)
+	{
+		return;
+	}
+
+	FTimedShield& NewShield = TimedShields.AddDefaulted_GetRef();
+	NewShield.Amount = Amount;
+	NewShield.TurnsLeft = Turns;
+}
+
+void UStatusEffectComponent::ExpireTimedShields()
+{
+	ACharacterBase* OwnerChar = Cast<ACharacterBase>(GetOwner());
+	UAbilitySystemComponent* ASC = GetOwnerASC();
+	if (TimedShields.Num() == 0 || !IsValid(OwnerChar) || !ASC)
+	{
+		return;
+	}
+
+	// Lo que el escudo ha perdido desde que se dio (golpes absorbidos...) se descuenta primero de los temporales
+	// que caducan antes. El escudo que no esta apuntado aqui (InitialShield, otros efectos) no caduca.
+	float Tracked = 0.f;
+	for (const FTimedShield& Shield : TimedShields)
+	{
+		Tracked += Shield.Amount;
+	}
+	float Missing = Tracked - OwnerChar->GetCurrentShield();
+	if (Missing > 0.f)
+	{
+		TimedShields.StableSort([](const FTimedShield& A, const FTimedShield& B) { return A.TurnsLeft < B.TurnsLeft; });
+		for (FTimedShield& Shield : TimedShields)
+		{
+			const float Taken = FMath::Min(Shield.Amount, Missing);
+			Shield.Amount -= Taken;
+			Missing -= Taken;
+			if (Missing <= 0.f)
+			{
+				break;
+			}
+		}
+	}
+
+	// Pasa un turno y se quitan los que llegan a 0
+	float ToRemove = 0.f;
+	for (int32 i = TimedShields.Num() - 1; i >= 0; --i)
+	{
+		if (--TimedShields[i].TurnsLeft > 0)
+		{
+			continue;
+		}
+		ToRemove += TimedShields[i].Amount;
+		TimedShields.RemoveAt(i);
+	}
+	if (ToRemove <= 0.f)
+	{
+		return;
+	}
+
+	const float Before = OwnerChar->GetCurrentShield();
+	if (OwnerChar->HealthAttributeSet)
+	{
+		OwnerChar->HealthAttributeSet->bSilentShieldChange = true;
+	}
+	ASC->ApplyModToAttribute(UHealthAttributeSet::GetShieldAttribute(), EGameplayModOp::Additive, -ToRemove);
+	if (OwnerChar->HealthAttributeSet)
+	{
+		OwnerChar->HealthAttributeSet->bSilentShieldChange = false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[%s] Escudo temporal caduca: %.0f (escudo %.0f -> %.0f)"),
+		*OwnerChar->GetName(), ToRemove, Before, OwnerChar->GetCurrentShield());
 }

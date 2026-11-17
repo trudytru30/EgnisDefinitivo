@@ -207,6 +207,12 @@ void UCombatCameraSubsystem::WatchAlly(ACharacterBase* Character)
 			{
 				if (Data.NewValue < Data.OldValue)
 				{
+					// Un escudo que caduca no es un golpe: sin sacudida
+					const AAlly* Owner = WeakAlly.Get();
+					if (Owner && Owner->HealthAttributeSet && Owner->HealthAttributeSet->bSilentShieldChange)
+					{
+						return;
+					}
 					PlayDamageShake(WeakAlly.Get(), Data.OldValue - Data.NewValue);
 				}
 			});

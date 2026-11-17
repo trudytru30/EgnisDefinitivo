@@ -284,13 +284,6 @@ ACharacterBase* AEnemy::FindClosestPlayer() const
 		UE_LOG(LogTemp, Log, TEXT("[Ira] %s persigue a %s"), *GetName(), *Raged->GetName());
 		return Raged;
 	}
-
-	// Perfumar: un enemigo no poseido persigue al perfumado
-	if (ACharacterBase* Perfumed = UEnemyCombatLibrary::GetPerfumeTarget(this, false))
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Perfume] %s persigue a %s"), *GetName(), *Perfumed->GetName());
-		return Perfumed;
-	}
 	
 	TArray<AActor*> Found;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacterBase::StaticClass(), Found);
@@ -346,21 +339,6 @@ ACharacterBase* AEnemy::FindBestTarget(int32 _Range, int32 _BestRatio, int32 _Te
 			UE_LOG(LogTemp, Log, TEXT("[Ira] %s solo puede atacar a %s"), *GetName(), *Raged->GetName());
 			return ManhattanDistance(CurrentTile, Raged->CurrentTile) <= _Range ? Raged : nullptr;
 		}
-
-		// Perfumar: un enemigo no poseido ataca al perfumado si le alcanza
-		if (ACharacterBase* Perfumed = UEnemyCombatLibrary::GetPerfumeTarget(this, false))
-		{
-			if (ManhattanDistance(CurrentTile, Perfumed->CurrentTile) <= _Range)
-			{
-				UE_LOG(LogTemp, Log, TEXT("[Perfume] %s ataca a %s"), *GetName(), *Perfumed->GetName());
-				return Perfumed;
-			}
-			if (UEnemyCombatLibrary::IsPerfumeExclusive(Perfumed))
-			{
-				// Exclusivo y fuera de alcance: no ataca a nadie mas, solo se acerca (FindClosestPlayer)
-				return nullptr;
-			}
-		}
 	}
 	
 	auto HealthRatio = [](const ACharacterBase* Unit) -> float
@@ -390,6 +368,9 @@ ACharacterBase* AEnemy::FindBestTarget(int32 _Range, int32 _BestRatio, int32 _Te
 		{
 			continue;
 		}
+		
+		// Perfumar: no ataca a quien lo perfumo
+		if (_Team == 0 && UEnemyCombatLibrary::IsPerfumeIgnored(this, Char)) continue;
 
 		// Solo un team
 		if (Char->GetTeam() != _Team)

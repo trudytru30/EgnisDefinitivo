@@ -207,29 +207,6 @@ TArray<ACharacterBase*> UEnemyCombatLibrary::GetHeroesInAttackRange(const AEnemy
 			Result.Add(Raged);
 		}
 	}
-	// Perfumar: un enemigo no poseido va a por el perfumado (si esta provocado, Atraccion manda)
-	else if (ACharacterBase* Perfumed = GetPerfumeTarget(Attacker, false))
-	{
-		ACharacterBase* InRange = GetPerfumeTarget(Attacker, true);
-		if (IsPerfumeExclusive(Perfumed))
-		{
-			// Exclusivo: solo el perfumado (si no le alcanza, la lista queda vacia)
-			Result.Reset();
-			if (InRange)
-			{
-				Result.Add(InRange);
-			}
-		}
-		else if (InRange)
-		{
-			// Preferencia: el perfumado va el primero de la lista
-			const int32 Idx = Result.IndexOfByKey(InRange);
-			if (Idx > 0)
-			{
-				Result.Swap(0, Idx);
-			}
-		}
-	}
 	
 	return Result;
 }
@@ -446,19 +423,6 @@ ACharacterBase* UEnemyCombatLibrary::FindHeroByHealth(const AEnemy* Enemy, bool 
 		return (!bOnlyInAttackRange || CanAttackTarget(Enemy, Raged)) ? Raged : nullptr;
 	}
 
-	// Perfumar: un enemigo no poseido va a por el perfumado
-	if (ACharacterBase* Perfumed = GetPerfumeTarget(Enemy, false))
-	{
-		if (!bOnlyInAttackRange || CanAttackTarget(Enemy, Perfumed))
-		{
-			return Perfumed;
-		}
-		if (IsPerfumeExclusive(Perfumed))
-		{
-			return nullptr;
-		}
-	}
-
 	ACharacterBase* Best = nullptr;
 	for (TActorIterator<ACharacterBase> It(Enemy->GetWorld()); It; ++It)
 	{
@@ -550,52 +514,15 @@ int32 UEnemyCombatLibrary::FindBestAreaCenter(const AEnemy* Attacker, int32 Radi
 
 bool UEnemyCombatLibrary::IsPerfumeIgnored(const AEnemy* Enemy, const ACharacterBase* Target)
 {
-	if (!IsValid(Enemy) || !IsValid(Target) || !Enemy->bPossessedBySpirits
-		|| !Target->StatusComp || !Target->StatusComp->HasStatus(EStatusType::Status_Perfume))
+	if (!IsValid(Enemy) || !IsValid(Target) || !Enemy->StatusComp
+		|| !Enemy->StatusComp->HasStatusFromSource(EStatusType::Status_Perfume, Target))
 	{
 		return false;
 	}
 
-	// Atraccion Espiritual manda: si el perfumado es su provocador, lo sigue atacando
-	const ACharacterBase* Provoker = Enemy->StatusComp
-		? Enemy->StatusComp->GetStatusSource(EStatusType::Status_SpiritAttraction) : nullptr;
+	// Atraccion Espiritual manda: si Target es su provocador, lo sigue atacando
+	const ACharacterBase* Provoker = Enemy->StatusComp->GetStatusSource(EStatusType::Status_SpiritAttraction);
 	return Provoker != Target;
-}
-
-ACharacterBase* UEnemyCombatLibrary::GetPerfumeTarget(const AEnemy* Enemy, bool bOnlyInAttackRange)
-{
-	if (!IsValid(Enemy) || !Enemy->GetWorld() || Enemy->bPossessedBySpirits)
-	{
-		return nullptr;
-	}
-
-	ACharacterBase* Best = nullptr;
-	int32 BestDist = MAX_int32;
-	for (TActorIterator<ACharacterBase> It(Enemy->GetWorld()); It; ++It)
-	{
-		ACharacterBase* Hero = *It;
-		if (!IsValid(Hero) || Hero->GetTeam() != 0 || Hero->GetCurrentHealth() <= 0.f
-			|| !Hero->StatusComp || !Hero->StatusComp->HasStatus(EStatusType::Status_Perfume))
-		{
-			continue;
-		}
-		if (bOnlyInAttackRange && !CanAttackTarget(Enemy, Hero))
-		{
-			continue;
-		}
-		const int32 Dist = TileDistance(Enemy->CurrentTile, Hero->CurrentTile);
-		if (Dist < BestDist)
-		{
-			BestDist = Dist;
-			Best = Hero;
-		}
-	}
-	return Best;
-}
-
-bool UEnemyCombatLibrary::IsPerfumeExclusive(const ACharacterBase* PerfumedHero)
-{
-	return !PerfumedHero || !PerfumedHero->StatusComp || PerfumedHero->StatusComp->bPerfumeExclusive;
 }
 
 float UEnemyCombatLibrary::EnemyAreaAttack(AEnemy* Attacker, const FTileCoord& Center, int32 Radius, bool bSplitDamage)

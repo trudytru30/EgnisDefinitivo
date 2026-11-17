@@ -80,11 +80,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
 	bool bElusiveAlsoPassesUnits = true;
 	
-	// Perfumar: true = los enemigos no poseidos SOLO pueden atacar al perfumado.
-	// false = lo prefieren si esta a su alcance, pero pueden atacar a otros
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
-	bool bPerfumeExclusive = false;
-	
 	// Locura: cuantas cartas juega al azar al empezar su turno (si tiene menos jugables, juega las que haya)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
 	int32 MadnessCardsPerTurn = 3;
@@ -125,6 +120,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	void RemoveStatus(EStatusType Type);
+	
+	// Escudo temporal: se apunta aqui cada escudo que se da con duracion. Pierde un turno al empezar el turno del dueño
+	// y, al llegar a 0, se quita del escudo lo que quede de el.
+	UFUNCTION(BlueprintCallable, Category = "Status")
+	void AddTimedShield(float Amount, int32 Turns);
 
 	UFUNCTION(BlueprintPure, Category = "Status")
 	bool HasStatus(EStatusType Type) const;
@@ -143,6 +143,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Status")
 	ACharacterBase* GetStatusSource(EStatusType Type) const;
 	
+	// True si tiene ese estado aplicado por Source (para estados con una entrada por lanzador, como Perfumar)
+	UFUNCTION(BlueprintPure, Category = "Status")
+	bool HasStatusFromSource(EStatusType Type, const ACharacterBase* Source) const;
+	
 	UFUNCTION(BlueprintPure, Category = "Status")
 	TArray<FActiveStatus> GetActiveStatuses() const { return ActiveStatuses; }
 	
@@ -151,6 +155,15 @@ public:
 	void OnOwnerTurnEnd();
 
 private:
+	struct FTimedShield
+	{
+		float Amount = 0.f;
+		int32 TurnsLeft = 0;
+	};
+	TArray<FTimedShield> TimedShields;
+
+	void ExpireTimedShields();
+	
 	UPROPERTY()
 	TArray<FActiveStatus> ActiveStatuses;
 

@@ -403,25 +403,34 @@ FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& 
 }));
 
 	FAutoConsoleCommandWithWorldAndArgs CmdEnemyPerfume(
-	TEXT("Egnis.Enemy.Perfume"),
-	TEXT("Egnis.Enemy.Perfume [turnos=2] [indiceHeroe=0]: aplica Perfumar a ese heroe."),
-	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
-	{
-		if (!World) return;
-		const int32 Turns = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 2;
-		const int32 HeroIndex = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+TEXT("Egnis.Enemy.Perfume"),
+TEXT("Egnis.Enemy.Perfume [turnos=2] [indiceEnemigo=0] [indiceHeroe=0]: perfuma a ese enemigo; ignorara a ese heroe."),
+FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+{
+	if (!World) return;
+	const int32 Turns = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 2;
+	const int32 EnemyIndex = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+	const int32 HeroIndex = Args.Num() > 2 ? FCString::Atoi(*Args[2]) : 0;
 
-		int32 Index = 0;
-		for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
-		{
-			if (Hero->GetTeam() != 0 || !Hero->StatusComp) continue;
-			if (Index++ != HeroIndex) continue;
-			Hero->StatusComp->ApplyStatus(EStatusType::Status_Perfume, FMath::Max(1, Turns));
-			UE_LOG(LogTemp, Log, TEXT("[PerfumeDebug] %s perfumado (%d turnos)."), *Hero->GetName(), Turns);
-			return;
-		}
-		UE_LOG(LogTemp, Warning, TEXT("[PerfumeDebug] No hay heroe con indice %d."), HeroIndex);
-	}));
+	ACharacterBase* HeroSource = nullptr;
+	int32 Index = 0;
+	for (TActorIterator<ACharacterBase> Hero(World); Hero; ++Hero)
+	{
+		if (Hero->GetTeam() != 0) continue;
+		if (Index++ == HeroIndex) { HeroSource = *Hero; break; }
+	}
+
+	Index = 0;
+	for (TActorIterator<AEnemy> Enemy(World); Enemy; ++Enemy, ++Index)
+	{
+		if (Index != EnemyIndex || !Enemy->StatusComp) continue;
+		Enemy->StatusComp->ApplyStatus(EStatusType::Status_Perfume, FMath::Max(1, Turns), HeroSource);
+		UE_LOG(LogTemp, Log, TEXT("[PerfumeDebug] %s perfumado (%d turnos), ignorara a %s."),
+			*Enemy->GetName(), Turns, HeroSource ? *HeroSource->GetName() : TEXT("nadie"));
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[PerfumeDebug] No hay enemigo con indice %d."), EnemyIndex);
+}));
 	FAutoConsoleCommandWithWorldAndArgs CmdMadness(
 TEXT("Egnis.Madness"),
 TEXT("Egnis.Madness [indiceHeroe=0]: aplica Locura a ese heroe."),

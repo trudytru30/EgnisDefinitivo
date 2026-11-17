@@ -15,6 +15,11 @@ class EGNISDEF_API UCard_ShieldEffect : public UCardEffect
 public:
 	UCard_ShieldEffect();
 
+	// Turnos del receptor que dura el escudo: caduca al empezar su turno numero ShieldTurns despues de recibirlo.
+	// Con 1 (por defecto) se va al empezar su siguiente turno. 0 = permanente, no caduca.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ShieldEffect", meta = (ClampMin = "0"))
+	int32 ShieldTurns = 1;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ShieldEffect", meta = (ClampMin = "0"))
 	float ShieldAmount = 10.0f;
 

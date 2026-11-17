@@ -81,19 +81,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
 	static ACharacterBase* GetSpiritAttractionTarget(const AEnemy* Enemy, bool bOnlyInAttackRange = false);
 
-	// Perfumar: true si este enemigo esta poseido por espiritus y Target tiene Perfumar (lo ignora).
+	// Perfumar: true si este enemigo esta perfumado por Target (lo ignora: no lo ataca ni va a por el).
 	// No aplica si Target es su provocador de Atraccion Espiritual: esa manda
 	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
 	static bool IsPerfumeIgnored(const AEnemy* Enemy, const ACharacterBase* Target);
-
-	// Perfumar: el heroe perfumado vivo mas cercano al que este enemigo (NO poseido) debe ir a por.
-	// nullptr si no hay o el enemigo esta poseido. Con bOnlyInAttackRange solo cuenta si puede atacarle
-	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
-	static ACharacterBase* GetPerfumeTarget(const AEnemy* Enemy, bool bOnlyInAttackRange = false);
-
-	// Perfumar: lee bPerfumeExclusive del StatusComp del heroe perfumado
-	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
-	static bool IsPerfumeExclusive(const ACharacterBase* PerfumedHero);
 	
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	static int32 FindBestAreaCenter(const AEnemy* Attacker, int32 Radius, FTileCoord& OutCenter);

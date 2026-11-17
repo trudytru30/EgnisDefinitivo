@@ -41,6 +41,9 @@ public:
 	
 	// Se llama automáticamente después de que un GameplayEffect haya modificado un atributo.
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
+	
+	// Lo activa UStatusEffectComponent mientras caduca un escudo temporal, para que la camara no lo trate como un golpe
+	bool bSilentShieldChange = false;
 
 protected:
 	// Se llama antes de que el cambio se aplique, aquí se hace el clamp (evitar que Health se
