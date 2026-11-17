@@ -88,6 +88,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Card")
 	int32 GetEnergyOnKill() const { return EnergyOnKill; }
 
+	UFUNCTION(BlueprintPure, Category = "Card|Shop")
+	int32 GetShopValue() const { return ShopValue; }
+
 protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
@@ -116,6 +119,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	int32 Range = 1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card|Shop", meta=(ClampMin="0", DisplayName="Valor en tienda"))
+	int32 ShopValue = 0;
 
 	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category="Card")
 	TArray<UCardEffect*> Effects;
