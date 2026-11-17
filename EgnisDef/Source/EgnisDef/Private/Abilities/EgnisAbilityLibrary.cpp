@@ -6,6 +6,7 @@
 #include "Cards/DeckManager.h"
 #include "Characters/Ally.h"
 #include "Characters/HeroDataAsset.h"
+#include "Components/StatusEffectComponent.h"
 #include "CoreAndSystems/BattleManager.h"
 #include "CoreAndSystems/BattleSceneManager.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
@@ -245,4 +246,12 @@ TArray<ACharacterBase*> UEgnisAbilityLibrary::GetSeedingTargets(ACharacterBase* 
 		}
 	}
 	return Result;
+}
+
+void UEgnisAbilityLibrary::SetBurnDamageTaken(ACharacterBase* Character, float Damage)
+{
+	if (IsValid(Character) && Character->StatusComp)
+	{
+		Character->StatusComp->BurnDamage = FMath::Max(0.f, Damage);
+	}
 }

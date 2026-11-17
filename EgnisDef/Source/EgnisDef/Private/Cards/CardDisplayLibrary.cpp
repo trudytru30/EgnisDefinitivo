@@ -39,10 +39,16 @@ namespace
 		case EStatusType::Status_FieryCurse:       return LOCTEXT("FieryCurse", "Maldición ígnea");
 		case EStatusType::Status_Rooted:           return LOCTEXT("Rooted", "Enraizado");
 		case EStatusType::Status_Riposte:          return LOCTEXT("Riposte", "Riposte");
-		case EStatusType::Status_UnrestrainedRage: return LOCTEXT("UnrestrainedRage", "Furia desatada");
+		case EStatusType::Status_UnrestrainedRage: return LOCTEXT("UnrestrainedRage", "Ira irrefrenable");
 		case EStatusType::Status_Slowed:           return LOCTEXT("Slowed", "Ralentizado");
 		case EStatusType::Status_Ecstatic:         return LOCTEXT("Ecstatic", "Éxtasis");
 		case EStatusType::Status_Elusive:          return LOCTEXT("Elusive", "Escurridizo");
+		case EStatusType::Status_SpiritAttraction: return LOCTEXT("SpiritAttraction", "Atracción espiritual");
+		case EStatusType::Status_Perfume:          return LOCTEXT("Perfume", "Perfume");
+		case EStatusType::Status_Madness:          return LOCTEXT("Madness", "Locura");
+		case EStatusType::Status_Frightened:       return LOCTEXT("Frightened", "Asustado");
+		case EStatusType::Status_BoilingBlood:     return LOCTEXT("BoilingBlood", "Sangre hirviente");
+		case EStatusType::Status_Ashes:            return LOCTEXT("Ashes", "Cenizas");
 		default:                                   return FText::GetEmpty();
 		}
 	}
@@ -90,12 +96,18 @@ namespace
 		else if (const UCard_HealEffect* Heal = Cast<UCard_HealEffect>(Effect))
 		{
 			Display.Label = LOCTEXT("Heal", "Cura");
-			SetValue(Display, FMath::RoundToInt(Heal->HealAmount));
+			if (Heal->PietyMultiplier <= 0.f || Ally)
+			{
+				SetValue(Display, FMath::RoundToInt(Heal->GetFinalAmount(Caster)));
+			}
 		}
 		else if (const UCard_ShieldEffect* Shield = Cast<UCard_ShieldEffect>(Effect))
 		{
 			Display.Label = LOCTEXT("Shield", "Escudo");
-			SetValue(Display, FMath::RoundToInt(Shield->ShieldAmount));
+			if (Shield->PietyMultiplier <= 0.f || Ally)
+			{
+				SetValue(Display, FMath::RoundToInt(Shield->GetFinalAmount(Caster)));
+			}
 		}
 		else if (const UCard_DrawEffect* Draw = Cast<UCard_DrawEffect>(Effect))
 		{
@@ -186,6 +198,17 @@ TArray<FCardEffectDisplay> UCardDisplayLibrary::GetEffectDisplays(const UBaseCar
 			Displays.Add(GetEffectDisplay(Effect, Caster));
 		}
 	}
+	if (Card->GetEnergyOnKill() > 0)
+	{
+		const UEgnisCardDisplaySettings* Settings = GetDefault<UEgnisCardDisplaySettings>();
+		FCardEffectDisplay EnergyDisplay;
+		EnergyDisplay.Icon = Settings->EnergyOnKillIcon.LoadSynchronous();
+		EnergyDisplay.Label = LOCTEXT("EnergyOnKill", "Energía al matar");
+		EnergyDisplay.bGoodForPlayer = true;
+		EnergyDisplay.Color = Settings->GoodColor;
+		SetValue(EnergyDisplay, Card->GetEnergyOnKill());
+		Displays.Add(EnergyDisplay);
+	}
 	return Displays;
 }
 
@@ -233,6 +256,10 @@ bool UCardDisplayLibrary::IsEffectGoodForPlayer(const UCardEffect* Effect)
 	if (const UCard_StatusEffect* Status = Cast<UCard_StatusEffect>(Effect))
 	{
 		const bool bBeneficial = IsBeneficialStatus(Status->Status);
+		if (Effect->Target == ECardTarget::Tile)
+		{
+			return Status->AreaFilter == EStatusAreaFilter::Enemies ? !bBeneficial : bBeneficial;
+		}
 		return Effect->Target == ECardTarget::Enemy ? !bBeneficial : bBeneficial;
 	}
 	return true;
@@ -253,7 +280,7 @@ ECardLaunchType UCardDisplayLibrary::GetLaunchType(const UBaseCard* Card)
 	case ECardTarget::Tile:
 		for (const UCardEffect* Effect : Card->GetEffects())
 		{
-			if (Effect && Effect->IsA<UCard_AreaDamageEffect>())
+			if (Effect && (Effect->IsA<UCard_AreaDamageEffect>() || (Effect->IsA<UCard_StatusEffect>() && Effect->Target == ECardTarget::Tile)))
 			{
 				return ECardLaunchType::Area;
 			}

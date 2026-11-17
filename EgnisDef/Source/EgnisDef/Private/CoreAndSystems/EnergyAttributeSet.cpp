@@ -3,8 +3,8 @@
 UEnergyAttributeSet::UEnergyAttributeSet()
 {
 	// Mismos valores por defecto que tenía EnergyComponent.h
-	InitEnergy(6.f);
-	InitMaxEnergy(6.f);
+	InitEnergy(5.f);
+	InitMaxEnergy(5.f);
 	InitSecondWindEnergy(0.f);
 }
 

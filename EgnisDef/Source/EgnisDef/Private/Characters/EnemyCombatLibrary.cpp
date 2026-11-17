@@ -199,6 +199,14 @@ TArray<ACharacterBase*> UEnemyCombatLibrary::GetHeroesInAttackRange(const AEnemy
 			Result.Add(Provoker);
 		}
 	}
+	else if (ACharacterBase* Raged = UEgnisCombatLibrary::GetRageTarget(Attacker); Raged && Raged->GetTeam() == 0)
+	{
+		Result.Reset();
+		if (CanAttackTarget(Attacker, Raged))
+		{
+			Result.Add(Raged);
+		}
+	}
 	// Perfumar: un enemigo no poseido va a por el perfumado (si esta provocado, Atraccion manda)
 	else if (ACharacterBase* Perfumed = GetPerfumeTarget(Attacker, false))
 	{
@@ -433,6 +441,11 @@ ACharacterBase* UEnemyCombatLibrary::FindHeroByHealth(const AEnemy* Enemy, bool 
 		return (!bOnlyInAttackRange || CanAttackTarget(Enemy, Provoker)) ? Provoker : nullptr;
 	}
 	
+	if (ACharacterBase* Raged = UEgnisCombatLibrary::GetRageTarget(Enemy); Raged && Raged->GetTeam() == 0)
+	{
+		return (!bOnlyInAttackRange || CanAttackTarget(Enemy, Raged)) ? Raged : nullptr;
+	}
+
 	// Perfumar: un enemigo no poseido va a por el perfumado
 	if (ACharacterBase* Perfumed = GetPerfumeTarget(Enemy, false))
 	{

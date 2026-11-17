@@ -279,6 +279,12 @@ ACharacterBase* AEnemy::FindClosestPlayer() const
 		return Attracted;
 	}
 	
+	if (ACharacterBase* Raged = UEgnisCombatLibrary::GetRageTarget(this); Raged && Raged->GetTeam() == 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Ira] %s persigue a %s"), *GetName(), *Raged->GetName());
+		return Raged;
+	}
+
 	// Perfumar: un enemigo no poseido persigue al perfumado
 	if (ACharacterBase* Perfumed = UEnemyCombatLibrary::GetPerfumeTarget(this, false))
 	{
@@ -335,6 +341,12 @@ ACharacterBase* AEnemy::FindBestTarget(int32 _Range, int32 _BestRatio, int32 _Te
 			return nullptr;
 		}
 		
+		if (ACharacterBase* Raged = UEgnisCombatLibrary::GetRageTarget(this); Raged && Raged->GetTeam() == 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Ira] %s solo puede atacar a %s"), *GetName(), *Raged->GetName());
+			return ManhattanDistance(CurrentTile, Raged->CurrentTile) <= _Range ? Raged : nullptr;
+		}
+
 		// Perfumar: un enemigo no poseido ataca al perfumado si le alcanza
 		if (ACharacterBase* Perfumed = UEnemyCombatLibrary::GetPerfumeTarget(this, false))
 		{

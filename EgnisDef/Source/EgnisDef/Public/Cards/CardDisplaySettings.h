@@ -46,4 +46,7 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Estados")
 	TMap<EStatusType, FCardStatusDisplay> Statuses;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Palabras clave")
+	TSoftObjectPtr<UTexture2D> EnergyOnKillIcon;
 };
