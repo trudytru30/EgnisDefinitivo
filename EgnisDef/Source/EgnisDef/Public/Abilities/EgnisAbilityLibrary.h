@@ -59,4 +59,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Board")
 	static TArray<ACharacterBase*> GetSeedingTargets(ACharacterBase* Caster, bool bAllies);
+
+	UFUNCTION(BlueprintCallable, Category = "Abilities|Status")
+	static void SetBurnDamageTaken(ACharacterBase* Character, float Damage);
 };

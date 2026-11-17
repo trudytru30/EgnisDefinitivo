@@ -431,3 +431,27 @@ TArray<UBaseCard*> UDeckManager::GetHand()
 {
 	return Hand;
 }
+
+void UDeckManager::ReplaceEphemeralCardsInHand(const UBaseCard* PlayedCard)
+{
+	TArray<UBaseCard*> Ephemerals;
+	for (UBaseCard* Card : Hand)
+	{
+		if (Card && Card != PlayedCard && Card->IsEphemeral())
+		{
+			Ephemerals.Add(Card);
+		}
+	}
+	if (Ephemerals.IsEmpty())
+	{
+		return;
+	}
+
+	// Primero se roba y luego se descarta: si la pila de robo se agota, el reshuffle no devuelve las efimeras recien descartadas
+	UE_LOG(LogTemp, Log, TEXT("[DeckManager]: %d cartas efimeras ya no son la primera, se sustituyen"), Ephemerals.Num());
+	DrawCardAmount(Ephemerals.Num());
+	for (UBaseCard* Card : Ephemerals)
+	{
+		DiscardCardFromHand(Card);
+	}
+}

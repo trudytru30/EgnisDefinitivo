@@ -8,6 +8,8 @@ class ACharacterBase;
 class AAlly;
 class UBaseCard;
 
+struct FTileCoord;
+
 // Reglas de combate compartidas. Los efectos de carta y las acciones de enemigos consultan aqui
 // en vez de repetir la logica de estados cada uno por su lado.
 UCLASS()
@@ -69,4 +71,10 @@ public:
 	// La UI debe usar esta funcion en vez de GetCost de la carta para pintar el coste.
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	static int32 GetEffectiveCost(const UBaseCard* Card, const ACharacterBase* Caster);
+	
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static ACharacterBase* GetFearSource(const ACharacterBase* Character);
+	static void FilterFleeTiles(const ACharacterBase* Character, TArray<FTileCoord>& Tiles);
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	static bool MustFleeBeforeActing(const ACharacterBase* Character);
 };

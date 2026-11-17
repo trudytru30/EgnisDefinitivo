@@ -16,6 +16,11 @@ class EGNISDEF_API UCard_HealEffect : public UCardEffect
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "HealEffect")
 	float HealAmount = 10.0f;
+	
+	// Si es mayor que 0 y quien juega la carta es un aliado, la curacion es Piedad x este valor (redondeada hacia
+	// arriba) y HealAmount se ignora. Con 0, o si quien juega es un enemigo (no tiene piedad), cura HealAmount fijo.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "HealEffect", meta = (ClampMin = "0"))
+	float PietyMultiplier = 1.0f;
 
 	// Reutiliza el mismo GE_CardDamage de Card_AttackEffect — Add + Set by
 	// Caller funciona igual para curar que para dañar, solo cambia el signo del valor pasado.
@@ -23,4 +28,7 @@ public:
 	TSubclassOf<class UGameplayEffect> HealEffect;
 	
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) override;
+	
+	UFUNCTION(BlueprintPure, Category = "HealEffect")
+	float GetFinalAmount(const ACharacterBase* SelfChar) const;
 };

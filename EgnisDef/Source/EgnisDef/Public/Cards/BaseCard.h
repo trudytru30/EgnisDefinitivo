@@ -56,11 +56,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Card")
 	UTexture2D* GetCardImage() const;
-	
-	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
-	bool CanTargetObstacle() const;
-	
-#pragma region Functions
+
+	UFUNCTION(BlueprintPure, Category="Card")
+	TArray<UCardEffect*> GetEffects() const { return Effects; }
+
 	// Acciones de las cartas
 	void Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase* TargetCharacter, FVector Location);
 
@@ -73,11 +72,27 @@ public:
 	// de la mano sin haberse jugado. DeckManager llama a esto en DrawCard/DiscardCardFromHand.
 	void NotifyHandEnter(ACharacterBase* Owner);
 	void NotifyHandLeave(ACharacterBase* Owner);
-#pragma endregion
+	
+	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
+	bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const;
+	bool CanTargetObstacle() const;
+	
+	// Efimero: si no es la primera carta que se juega, se descarta y se sustituye por otra
+	UFUNCTION(BlueprintPure, Category="Card")
+	bool IsEphemeral() const { return bEphemeral; }
+
+	// Duplicacion: la carta se juega dos veces al momento
+	UFUNCTION(BlueprintPure, Category="Card")
+	bool PlaysTwice() const { return bPlaysTwice; }
+	
+	UFUNCTION(BlueprintPure, Category = "Card")
+	int32 GetEnergyOnKill() const { return EnergyOnKill; }
+
+	UFUNCTION(BlueprintPure, Category = "Card|Shop")
+	int32 GetShopValue() const { return ShopValue; }
 
 protected:
-
-#pragma region Stats
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	FText CardName;
 
@@ -105,8 +120,21 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card")
 	int32 Range = 1;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card|Shop", meta=(ClampMin="0", DisplayName="Valor en tienda"))
+	int32 ShopValue = 0;
+
 	UPROPERTY(EditDefaultsOnly, Instanced, BlueprintReadOnly, Category="Card")
 	TArray<UCardEffect*> Effects;
 
-#pragma endregion
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card|Keywords", meta=(DisplayName="Efímero"))
+	bool bEphemeral = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Card|Keywords", meta=(DisplayName="Duplicación"))
+	bool bPlaysTwice = false;
+	
+	// Energia que recupera quien juega la carta por cada enemigo que muera mientras se juega (sin tope de energia
+	// maxima). Cuenta cualquier baja de la carta (area, empujar a una casilla en llamas...), y con Duplicacion las
+	// de las dos jugadas. 0 = no hace nada.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Card|Keywords", meta = (ClampMin = "0", DisplayName = "Energía al matar"))
+	int32 EnergyOnKill = 0;
 };

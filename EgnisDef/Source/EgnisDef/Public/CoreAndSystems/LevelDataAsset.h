@@ -26,23 +26,43 @@ struct FEnemySpawnInfo
 	FTileCoord SpawnCoord;
 };
 
-// Grupo de casillas donde el jugador puede colocar héroes en la fase de despliegue.
-// Es un struct porque son solo datos del nivel: quien decide si se puede desplegar es DeployManager, que las consulta
+// Las mismas dificultades que Egnis Blockout (Tutorial a Nightmare)
+UENUM(BlueprintType)
+enum class ELevelDifficulty : uint8
+{
+	Tutorial,
+	Easy,
+	Normal,
+	Hard,
+	VeryHard UMETA(DisplayName = "Very Hard"),
+	Nightmare
+};
+
+// Objetivos secundarios opcionales del nivel (solo datos: la lógica de juego y las recompensas van aparte)
 USTRUCT(BlueprintType)
-struct FDeployZone
+struct FSecondaryObjectives
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Deploy")
-	FText Name;
+	// Escolta: llevar un peón de EscortStart (A) a EscortEnd (B)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objectives")
+	bool bEscort = false;
 
-	// Cuántos héroes caben a la vez en esta zona
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Deploy", meta = (ClampMin = "1"))
-	int32 MaxHeroes = 2;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objectives", meta = (EditCondition = "bEscort"))
+	FTileCoord EscortStart;
 
-	// Se pintan desde el editor visual del asset (modo "Zonas de despliegue")
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Deploy")
-	TArray<FTileCoord> Tiles;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objectives", meta = (EditCondition = "bEscort"))
+	FTileCoord EscortEnd;
+
+	// Casillas que el enemigo no debe destruir
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objectives")
+	TArray<FTileCoord> TilesToProtect;
+
+	// Casillas que el jugador tiene que destruir
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objectives")
+	TArray<FTileCoord> TilesToDestroy;
+
+	bool HasAny() const { return bEscort || TilesToProtect.Num() > 0 || TilesToDestroy.Num() > 0; }
 };
 
 UCLASS()
@@ -57,6 +77,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Config", meta = (ClampMin = "1"))
 	int32 Height = 8;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Config")
+	ELevelDifficulty Difficulty = ELevelDifficulty::Normal;
+
 	// La matriz visual del diseño del nivel: GridRows[Y].Columns[X]
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Grid")
 	TArray<FTileRow> GridRows;
@@ -65,19 +88,47 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Enemies")
 	TArray<FEnemySpawnInfo> EnemiesToSpawn;
 
-	// Únicos sitios donde se pueden colocar héroes. Si no hay ninguna, se puede desplegar en todo el tablero
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Deploy")
-	TArray<FDeployZone> DeployZones;
+	// No se pueden colocar héroes a esta distancia o menos de un enemigo (cuadrado alrededor, como en Egnis Blockout)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Deploy", meta = (ClampMin = "0"))
+	int32 DeployMinDistanceToEnemies = 2;
 
-	// Índice de la zona que contiene la casilla, o -1 (INDEX_NONE) si no es de ninguna
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Objectives")
+	FSecondaryObjectives SecondaryObjectives;
+
+#if WITH_EDITORONLY_DATA
+	// De qué nivel de Egnis Blockout sale este asset: se usa para reimportar sin duplicar
+	UPROPERTY(VisibleAnywhere, Category = "Level|Import")
+	FString BlockoutLevelId;
+
+	UPROPERTY(VisibleAnywhere, Category = "Level|Import")
+	FString BlockoutLevelName;
+
+	// Último archivo .json importado (vacío si se pegó desde el portapapeles)
+	UPROPERTY(VisibleAnywhere, Category = "Level|Import")
+	FString BlockoutSourceFile;
+#endif
+
+	UFUNCTION(BlueprintPure, Category = "Level|Grid")
+	ETileType GetTileType(const FTileCoord& Tile) const;
+
+	// Si en ese tipo de casilla se puede poner un héroe (no es un hueco, un obstáculo ni agua)
 	UFUNCTION(BlueprintPure, Category = "Level|Deploy")
-	int32 FindDeployZoneIndex(const FTileCoord& Tile) const;
+	static bool IsDeployableTileType(ETileType Type);
+
+	// Si la casilla está a DeployMinDistanceToEnemies o menos de algún enemigo del nivel (o tiene uno encima)
+	UFUNCTION(BlueprintPure, Category = "Level|Deploy")
+	bool IsTileNearEnemy(const FTileCoord& Tile) const;
+
+	// Regla del nivel para colocar héroes: dentro del tablero, tipo de casilla válido y lejos de los enemigos.
+	// No mira si la casilla está ocupada en la partida (eso lo hace DeployManager con el tablero)
+	UFUNCTION(BlueprintPure, Category = "Level|Deploy")
+	bool CanDeployOnTile(const FTileCoord& Tile) const;
 
 	// Ajusta GridRows a Height filas x Width columnas. Las casillas nuevas son Normal.
 	void ResizeGrid();
 
-	// Quita de las zonas las casillas fuera del tablero y las repetidas (una casilla solo puede estar en una zona)
-	void ValidateDeployZones();
+	// Quita de los objetivos las casillas que se han quedado fuera del tablero
+	void ValidateObjectives();
 
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
@@ -85,4 +136,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+
+private:
+	bool IsInsideGrid(const FTileCoord& Tile) const { return Tile.X >= 0 && Tile.X < Width && Tile.Y >= 0 && Tile.Y < Height; }
 };

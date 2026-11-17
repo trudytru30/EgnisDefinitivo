@@ -11,7 +11,7 @@ void UDeployManager::Initialize(TSubclassOf<AAlly> InBaseAllyClass, int32 InMaxD
 	MaxDeployedHeroes = FMath::Max(1, InMaxDeployedHeroes);
 	SelectedHero = nullptr;
 	DeployedHeroes.Empty();//lista nueva en cada despliegue
-	bWarnedNoDeployZones = false;
+	bWarnedNoLevelData = false;
 }
 
 bool UDeployManager::TryDeployHeroAtTile(ABoard* Board, const FTileCoord& Tile)
@@ -32,25 +32,20 @@ bool UDeployManager::TryDeployHeroAtTile(ABoard* Board, const FTileCoord& Tile)
 	//Las reglas se comprueban aquí aunque la UI ya desactive los botones: así nadie se las puede saltar
 	if (!CanDeployHero(SelectedHero))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[DeployManager]: %s ya está en el tablero, se ha llegado al límite (%d) o no queda hueco en ninguna zona"), *SelectedHero->GetName(), MaxDeployedHeroes);
+		UE_LOG(LogTemp, Warning, TEXT("[DeployManager]: %s ya está en el tablero, se ha llegado al límite (%d) o no queda ninguna casilla donde colocarlo"), *SelectedHero->GetName(), MaxDeployedHeroes);
 		return false;
 	}
 
-	if (!IsTileInFreeDeployZone(Tile))
+	if (!GetLevelData() && !bWarnedNoLevelData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[DeployManager]: La casilla (%d, %d) no es de ninguna zona de despliegue o su zona está llena"), Tile.X, Tile.Y);
-		return false;
+		bWarnedNoLevelData = true;
+		UE_LOG(LogTemp, Warning, TEXT("[DeployManager]: El tablero no tiene CurrentLevelData: se puede desplegar en cualquier casilla libre"));
 	}
 
-	if (!LevelHasDeployZones() && !bWarnedNoDeployZones)
+	if (!CanDeployOnTile(Tile))
 	{
-		bWarnedNoDeployZones = true;
-		UE_LOG(LogTemp, Warning, TEXT("[DeployManager]: El tablero no tiene CurrentLevelData o su nivel no tiene zonas: se puede desplegar en todo el tablero"));
-	}
-
-	if (Board->IsTileOccupied(Tile))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[DeployManager]: La casilla (%d, %d) está ocupada o fuera del tablero"), Tile.X, Tile.Y);
+		UE_LOG(LogTemp, Warning, TEXT("[DeployManager]: No se puede colocar en (%d, %d): está ocupada, fuera del tablero o a %d casillas o menos de un enemigo"),
+			Tile.X, Tile.Y, GetLevelData() ? GetLevelData()->DeployMinDistanceToEnemies : 0);
 		return false;
 	}
 
@@ -126,72 +121,44 @@ bool UDeployManager::CanDeployHero(const UHeroDataAsset* Hero) const
 		return false;
 	}
 
-	//con zonas, además tiene que quedar alguna casilla libre en una zona con hueco
+	//además tiene que quedar alguna casilla libre donde colocarlo
 	TArray<FTileCoord> DeployableTiles;
-	return !LevelHasDeployZones() || (GetDeployableTiles(DeployableTiles) && DeployableTiles.Num() > 0);
+	return GetDeployableTiles(DeployableTiles) && DeployableTiles.Num() > 0;
 }
 
-bool UDeployManager::IsTileInFreeDeployZone(const FTileCoord& Tile) const
+bool UDeployManager::CanDeployOnTile(const FTileCoord& Tile) const
 {
-	if (!LevelHasDeployZones())
-	{
-		return true;
-	}
-
-	const ULevelDataAsset* LevelData = GetLevelData();
-	const int32 ZoneIndex = LevelData->FindDeployZoneIndex(Tile);
-	return ZoneIndex != INDEX_NONE && GetNumHeroesInZone(ZoneIndex) < LevelData->DeployZones[ZoneIndex].MaxHeroes;
-}
-
-bool UDeployManager::GetDeployableTiles(TArray<FTileCoord>& OutTiles) const
-{
-	OutTiles.Reset();
-	if (!LevelHasDeployZones())
+	const ABoard* Board = GetBoard();
+	if (!Board || Board->IsTileOccupied(Tile))
 	{
 		return false;
 	}
 
 	const ULevelDataAsset* LevelData = GetLevelData();
-	const ABoard* Board = GetBoard();
-	for (int32 ZoneIndex = 0; ZoneIndex < LevelData->DeployZones.Num(); ++ZoneIndex)
-	{
-		const FDeployZone& Zone = LevelData->DeployZones[ZoneIndex];
-		if (GetNumHeroesInZone(ZoneIndex) >= Zone.MaxHeroes)
-		{
-			continue;
-		}
+	return !LevelData || LevelData->CanDeployOnTile(Tile);
+}
 
-		for (const FTileCoord& Tile : Zone.Tiles)
+bool UDeployManager::GetDeployableTiles(TArray<FTileCoord>& OutTiles) const
+{
+	OutTiles.Reset();
+	const ABoard* Board = GetBoard();
+	if (!Board)
+	{
+		return false;
+	}
+
+	for (int32 Y = 0; Y < Board->BoardSizeY; ++Y)
+	{
+		for (int32 X = 0; X < Board->BoardSizeX; ++X)
 		{
-			if (!Board->IsTileOccupied(Tile))
+			const FTileCoord Tile(X, Y);
+			if (CanDeployOnTile(Tile))
 			{
 				OutTiles.Add(Tile);
 			}
 		}
 	}
 	return true;
-}
-
-int32 UDeployManager::GetNumHeroesInZone(int32 ZoneIndex) const
-{
-	const ULevelDataAsset* LevelData = GetLevelData();
-	if (!LevelData || !LevelData->DeployZones.IsValidIndex(ZoneIndex))
-	{
-		return 0;
-	}
-
-	//No se guarda un contador por zona: se calcula con las casillas de los héroes desplegados,
-	//así al quitar uno con clic derecho su hueco se libera solo
-	int32 Count = 0;
-	for (const TPair<TWeakObjectPtr<AAlly>, FName>& Deployed : DeployedHeroes)
-	{
-		const AAlly* Ally = Deployed.Key.Get();
-		if (Ally && LevelData->FindDeployZoneIndex(Ally->CurrentTile) == ZoneIndex)
-		{
-			++Count;
-		}
-	}
-	return Count;
 }
 
 ABoard* UDeployManager::GetBoard() const
@@ -207,10 +174,4 @@ const ULevelDataAsset* UDeployManager::GetLevelData() const
 {
 	const ABoard* Board = GetBoard();
 	return Board ? Board->CurrentLevelData : nullptr;
-}
-
-bool UDeployManager::LevelHasDeployZones() const
-{
-	const ULevelDataAsset* LevelData = GetLevelData();
-	return LevelData && LevelData->DeployZones.Num() > 0;
 }

@@ -10,7 +10,7 @@ class UAudioManager;
 enum class EActionId : uint8;
 class UActionDataAsset;
 class UEnemyArchetypeDataAsset;
-
+class UFMODEvent;
 
 //Que accion ha hecho el enemigo(para animaciones / efectos)
 UENUM(BlueprintType)
@@ -42,6 +42,8 @@ class EGNISDEF_API AEnemy : public ACharacterBase
 public:
 
 	AEnemy();
+	
+	virtual void Tick(float DeltaTime) override;
 
 	//estadisticas de la tabla
 	//mira que fila de la tabla es este enemigo
@@ -75,7 +77,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Combat")
 	bool bAttacksOverObstacles = false;	
 	
-	virtual void Tick(float DeltaTime) override;
+	// Atraccion Espiritual: si es true, este enemigo prioriza atacar a quien tenga ese estado
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Spirits")
+	bool bPossessedBySpirits = false;
+	
+	// Audio: ataque propio de este enemigo (suena ademas del general "Enemigo - Ataque") y pitch
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Audio")
+	TObjectPtr<UFMODEvent> AttackSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Audio", meta = (ClampMin = "0.25", ClampMax = "4.0"))
+	float PitchModifier = 1.f;
+
+	virtual UFMODEvent* GetAttackSoundEvent() const override;
+	virtual float GetAudioPitch() const override;
 	
 	//Selecionar Arquetipo
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly, Category = "Enemy|Data")
@@ -117,8 +131,11 @@ public:
 	void AddDamageBuff(float Percent, int32 Turns, bool bAppliedDuringOwnTurn);
 
 	//Lo llama el AIController al terminar el turno de este enemigo
-	virtual void OnOwnTurnFinished();	
+	virtual void OnOwnTurnFinished();
 
+	//ghol
+	virtual void OnEnemyPhaseStarted() {}
+	virtual bool ConsumeExtraTurn() { return false; }
 
 	//Orden en el turno enemigo: los numeros mas bajos actuan antes (empate = orden de aparicion)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI")

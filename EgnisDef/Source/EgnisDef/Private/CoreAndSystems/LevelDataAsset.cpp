@@ -1,5 +1,46 @@
 #include "CoreAndSystems/LevelDataAsset.h"
 
+ETileType ULevelDataAsset::GetTileType(const FTileCoord& Tile) const
+{
+	if (GridRows.IsValidIndex(Tile.Y) && GridRows[Tile.Y].Columns.IsValidIndex(Tile.X))
+	{
+		return GridRows[Tile.Y].Columns[Tile.X];
+	}
+	return ETileType::Void;
+}
+
+bool ULevelDataAsset::IsDeployableTileType(ETileType Type)
+{
+	switch (Type)
+	{
+	case ETileType::Normal:
+	case ETileType::WaterPlatform:
+	case ETileType::Ice:
+	case ETileType::Fog:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool ULevelDataAsset::IsTileNearEnemy(const FTileCoord& Tile) const
+{
+	for (const FEnemySpawnInfo& Enemy : EnemiesToSpawn)
+	{
+		const int32 Distance = FMath::Max(FMath::Abs(Tile.X - Enemy.SpawnCoord.X), FMath::Abs(Tile.Y - Enemy.SpawnCoord.Y));
+		if (Distance <= DeployMinDistanceToEnemies)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ULevelDataAsset::CanDeployOnTile(const FTileCoord& Tile) const
+{
+	return IsInsideGrid(Tile) && IsDeployableTileType(GetTileType(Tile)) && !IsTileNearEnemy(Tile);
+}
+
 void ULevelDataAsset::ResizeGrid()
 {
 	GridRows.SetNum(FMath::Max(Height, 1));
@@ -14,27 +55,15 @@ void ULevelDataAsset::ResizeGrid()
 	}
 }
 
-void ULevelDataAsset::ValidateDeployZones()
+void ULevelDataAsset::ValidateObjectives()
 {
-	TSet<FTileCoord> UsedTiles;
-	for (FDeployZone& Zone : DeployZones)
+	const auto Outside = [this](const FTileCoord& Tile) { return !IsInsideGrid(Tile); };
+	SecondaryObjectives.TilesToProtect.RemoveAll(Outside);
+	SecondaryObjectives.TilesToDestroy.RemoveAll(Outside);
+	if (SecondaryObjectives.bEscort && (Outside(SecondaryObjectives.EscortStart) || Outside(SecondaryObjectives.EscortEnd)))
 	{
-		Zone.Tiles.RemoveAll([this, &UsedTiles](const FTileCoord& Tile)
-		{
-			const bool bInside = Tile.X >= 0 && Tile.X < Width && Tile.Y >= 0 && Tile.Y < Height;
-			bool bAlreadyUsed = false;
-			UsedTiles.Add(Tile, &bAlreadyUsed);
-			return !bInside || bAlreadyUsed;
-		});
+		SecondaryObjectives.bEscort = false;
 	}
-}
-
-int32 ULevelDataAsset::FindDeployZoneIndex(const FTileCoord& Tile) const
-{
-	return DeployZones.IndexOfByPredicate([&Tile](const FDeployZone& Zone)
-	{
-		return Zone.Tiles.Contains(Tile);
-	});
 }
 
 void ULevelDataAsset::PostInitProperties()
@@ -52,7 +81,7 @@ void ULevelDataAsset::PostLoad()
 {
 	Super::PostLoad();
 	ResizeGrid();
-	ValidateDeployZones();
+	ValidateObjectives();
 }
 
 #if WITH_EDITOR
@@ -67,7 +96,7 @@ void ULevelDataAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		ResizeGrid();
 	}
 
-	// Al encoger el tablero o duplicar una zona pueden quedar casillas inválidas o repetidas
-	ValidateDeployZones();
+	// Al encoger el tablero pueden quedar objetivos fuera
+	ValidateObjectives();
 }
 #endif

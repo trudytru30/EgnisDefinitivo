@@ -76,6 +76,38 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0", ClampMax = "1"))
 	float SlowMovementFactor = 0.5f;
 	
+	// Escurridizo: false = solo atraviesa obstaculos; true = tambien unidades (aliadas y enemigas)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status")
+	bool bElusiveAlsoPassesUnits = true;
+	
+	// Locura: cuantas cartas juega al azar al empezar su turno (si tiene menos jugables, juega las que haya)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
+	int32 MadnessCardsPerTurn = 3;
+	
+	// Locura: segundos que espera tras empezar el turno antes de actuar (que de tiempo a repartir la mano)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0.0"))
+	float MadnessStartDelay = 1.2f;
+
+	// Locura: segundos entre una accion (moverse o jugar una carta) y la siguiente
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0.0"))
+	float MadnessActionDelay = 0.8f;
+
+	// Locura: segundos que se ve la carta elegida en la mano antes de jugarse
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0.0"))
+	float MadnessCardPreviewDelay = 0.5f;
+	
+	// Sangre hirviente: daño puro por accion o movimiento. Empieza en Initial y baja Reduction por cada turno
+	// que ha pasado desde que se aplico, sin bajar de Min.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status", meta = (ClampMin = "0"))
+	float BoilingBloodDamage = 4.f;
+	
+	// Cenizas: añade cargas. No usa turnos
+	UFUNCTION(BlueprintCallable, Category = "Status")
+	bool ApplyAshes(int32 Stacks, ACharacterBase* Source = nullptr);
+
+	// Lo llama BattleManager cuando el afectado juega una carta o se mueve
+	void OnOwnerActionTaken(const TCHAR* ActionName);
+	
 	// Si el estado ya estaba activo, se queda con la duracion mayor (no se suman turnos de momento)
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	bool ApplyStatus(EStatusType Type, int32 Turns, ACharacterBase* Source = nullptr,
@@ -88,6 +120,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Status")
 	void RemoveStatus(EStatusType Type);
+	
+	// Escudo temporal: se apunta aqui cada escudo que se da con duracion. Pierde un turno al empezar el turno del dueño
+	// y, al llegar a 0, se quita del escudo lo que quede de el.
+	UFUNCTION(BlueprintCallable, Category = "Status")
+	void AddTimedShield(float Amount, int32 Turns);
 
 	UFUNCTION(BlueprintPure, Category = "Status")
 	bool HasStatus(EStatusType Type) const;
@@ -106,6 +143,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Status")
 	ACharacterBase* GetStatusSource(EStatusType Type) const;
 	
+	// True si tiene ese estado aplicado por Source (para estados con una entrada por lanzador, como Perfumar)
+	UFUNCTION(BlueprintPure, Category = "Status")
+	bool HasStatusFromSource(EStatusType Type, const ACharacterBase* Source) const;
+	
 	UFUNCTION(BlueprintPure, Category = "Status")
 	TArray<FActiveStatus> GetActiveStatuses() const { return ActiveStatuses; }
 	
@@ -114,6 +155,15 @@ public:
 	void OnOwnerTurnEnd();
 
 private:
+	struct FTimedShield
+	{
+		float Amount = 0.f;
+		int32 TurnsLeft = 0;
+	};
+	TArray<FTimedShield> TimedShields;
+
+	void ExpireTimedShields();
+	
 	UPROPERTY()
 	TArray<FActiveStatus> ActiveStatuses;
 
@@ -127,4 +177,7 @@ private:
 	void ConsumeTurns();
 	
 	void ApplyBurnDamage();
+	
+	// Cenizas: bloquea el estado entrante y gasta una carga.
+	bool TryBlockWithAshes(EStatusType Incoming);
 };

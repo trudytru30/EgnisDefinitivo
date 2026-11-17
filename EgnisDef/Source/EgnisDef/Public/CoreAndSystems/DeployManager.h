@@ -32,7 +32,7 @@ public:
 	FOnDeploymentChanged OnDeploymentChanged;
 
 	//Coloca SelectedHero en la casilla. Falla si ya está desplegado, si se ha llegado al límite,
-	//si la casilla no es de una zona de despliegue con hueco o si está ocupada
+	//si la casilla está demasiado cerca de un enemigo o si está ocupada
 	UFUNCTION(BlueprintCallable, Category = "Scene Director|Deployment")
 	bool TryDeployHeroAtTile(ABoard* Board, const FTileCoord& Tile);
 
@@ -43,24 +43,19 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Scene Director|Deployment")
 	bool IsHeroDeployed(const UHeroDataAsset* Hero) const;
 
-	//Lo que usan los botones de la UI: no está ya en el tablero, no se ha llegado al límite y queda hueco en alguna zona
+	//Lo que usan los botones de la UI: no está ya en el tablero, no se ha llegado al límite y queda alguna casilla donde colocarlo
 	UFUNCTION(BlueprintPure, Category = "Scene Director|Deployment")
 	bool CanDeployHero(const UHeroDataAsset* Hero) const;
 
-	// --- ZONAS DE DESPLIEGUE (salen del Level Data Asset del tablero: Board->CurrentLevelData) ---
+	// --- DÓNDE SE PUEDE COLOCAR (regla del Level Data Asset del tablero: Board->CurrentLevelData) ---
 
-	//Si la casilla es de una zona con hueco (o el nivel no tiene zonas). No mira si la casilla está ocupada
+	//Si se puede colocar un héroe en la casilla ahora mismo: casilla libre y, si hay nivel, fuera del alcance de los enemigos
 	UFUNCTION(BlueprintPure, Category = "Scene Director|Deployment")
-	bool IsTileInFreeDeployZone(const FTileCoord& Tile) const;
+	bool CanDeployOnTile(const FTileCoord& Tile) const;
 
-	//Casillas donde se puede colocar ahora mismo (de zonas con hueco y libres), para resaltarlas en el tablero.
-	//Devuelve false si el nivel no tiene zonas: entonces vale todo el tablero
+	//Casillas donde se puede colocar ahora mismo, para resaltarlas en el tablero
 	UFUNCTION(BlueprintCallable, Category = "Scene Director|Deployment")
 	bool GetDeployableTiles(TArray<FTileCoord>& OutTiles) const;
-
-	//Cuántos héroes hay ahora mismo en una zona (índice de DeployZones del Level Data Asset)
-	UFUNCTION(BlueprintPure, Category = "Scene Director|Deployment")
-	int32 GetNumHeroesInZone(int32 ZoneIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "Scene Director|Deployment")
 	bool HasDeployedHeroes() const { return DeployedHeroes.Num() > 0; }
@@ -78,7 +73,6 @@ public:
 private:
 	ABoard* GetBoard() const;
 	const ULevelDataAsset* GetLevelData() const;
-	bool LevelHasDeployZones() const;
 
 	//Puntero débil: si el personaje muere y se destruye, se queda vacío solo
 	TArray<TPair<TWeakObjectPtr<AAlly>, FName>> DeployedHeroes;
@@ -89,5 +83,5 @@ private:
 	//Se busca la primera vez que hace falta (o se guarda el que llega en TryDeployHeroAtTile)
 	mutable TWeakObjectPtr<ABoard> CachedBoard;
 
-	bool bWarnedNoDeployZones = false;
+	bool bWarnedNoLevelData = false;
 };

@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "CardTarget.h"
+#include "CardDisplayTypes.h"
 #include "Characters/CharacterBase.h"
 #include "CardEffect.generated.h"
 
 class UDeckManager;
 class UFMODEvent;
+class UTexture2D;
 
 UCLASS(Blueprintable, Abstract)
 class EGNISDEF_API UCardEffect : public UObject
@@ -22,6 +24,18 @@ public:
 	// de efecto que haya en la tabla Trigger Events del AudioDataAsset.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Audio")
 	TObjectPtr<UFMODEvent> SoundOverride;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	TObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	ECardEffectPolarity Polarity = ECardEffectPolarity::Auto;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	bool bShowOnCard = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect|Card UI")
+	bool bShowValue = true;
 	
 #pragma region Effects
 	virtual void Execute_None(UDeckManager* Deck) {};
@@ -35,6 +49,9 @@ public:
 	// Solo para efectos con Target Tile. Se consulta antes de gastar la energia y la carta, asi un clic invalido
 	// se ignora y la carta se queda en la mano.
 	virtual bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const { return true; }
+	// Para efectos con Target Ally o Enemy. Se consulta antes de gastar la energia y la carta (igual que CanTargetTile),
+	// asi un objetivo invalido se ignora y la carta se queda en la mano.
+	virtual bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const { return true; }
 
 	// Hooks para cartas/efectos que hacen algo por el simple
 	// hecho de estar en la mano, sin necesidad de jugarlas

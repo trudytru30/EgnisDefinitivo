@@ -25,11 +25,16 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void LossPoints(int32 Cost);
 	void GainPoints(int32 Bonus);
+	// Como GainPoints pero sin tope de MaxEnergy. La energia extra se pierde al reponerse al empezar el turno.
+	void GainPointsIgnoringMax(int32 Bonus);
 	void ResetEnergyForTurn();
 
 	UFUNCTION(BlueprintCallable, Category = "Setup")
 	virtual void InitializeFromData(UHeroDataAsset* HeroData);
 
+	virtual UFMODEvent* GetAttackSoundEvent() const override;
+	virtual float GetAudioPitch() const override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TObjectPtr<UHeroDataAsset> HeroAsset = nullptr;
 

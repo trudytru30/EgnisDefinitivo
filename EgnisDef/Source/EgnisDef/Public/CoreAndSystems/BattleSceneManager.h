@@ -28,7 +28,7 @@ public:
 
 	virtual UWorld* GetWorld() const override;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Scene Manager")
 	TArray<UBaseCard*> InitialDeck;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Scene Manager")

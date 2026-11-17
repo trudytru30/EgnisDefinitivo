@@ -4,6 +4,7 @@
 #include "LevelDataAssetCustomization.h"
 #include "CoreAndSystems/LevelDataAsset.h"
 #include "HeroClassesImporter.h"
+#include "EgnisBlockoutImporter.h"
 
 #define LOCTEXT_NAMESPACE "FEgnisEditorModule"
 class UEditorUtilitySubsystem;
@@ -91,6 +92,15 @@ void FEgnisEditorModule::FillMenu(FMenuBuilder& MenuBuilder)
         FText::FromString("Imports class stats from Google Sheets into DT_HeroClasses"),
         FSlateIcon(),
         FUIAction(FExecuteAction::CreateStatic(&UHeroClassesImporter::SyncFromGoogleSheets))
+    );
+
+    MenuBuilder.AddMenuSeparator();
+
+    MenuBuilder.AddMenuEntry(
+        FText::FromString("Import Egnis Blockout Levels (file)"),
+        FText::FromString("Creates or updates one Level Data Asset per level of a .json exported from Egnis Blockout"),
+        FSlateIcon(),
+        FUIAction(FExecuteAction::CreateStatic(&EgnisBlockout::ImportAllFromFile))
     );
 }
 

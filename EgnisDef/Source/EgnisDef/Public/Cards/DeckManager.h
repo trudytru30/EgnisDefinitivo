@@ -124,6 +124,10 @@ public:
 	int32 GetMaxHandSize();
 	TArray<UBaseCard*> GetHand();
 	void SetDeck(const TArray<UBaseCard*>& InDeck);
+	
+	// Efimero: tras jugar una carta, las efimeras que sigan en la mano se descartan y se sustituyen por cartas robadas.
+	// PlayedCard es la que se acaba de jugar: sigue en Hand hasta que quien llama la descarta, y no cuenta.
+	void ReplaceEphemeralCardsInHand(const UBaseCard* PlayedCard);
 #pragma endregion
 
 private:

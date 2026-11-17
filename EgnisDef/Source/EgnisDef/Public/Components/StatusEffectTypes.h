@@ -24,7 +24,13 @@ enum class EStatusType : uint8
 	Status_UnrestrainedRage,
 	Status_Slowed,
 	Status_Ecstatic,
-	Status_Elusive
+	Status_Elusive,
+	Status_SpiritAttraction,
+	Status_Perfume,
+	Status_Madness,
+	Status_Frightened,
+	Status_BoilingBlood,
+	Status_Ashes
 };
 
 // Si el turno en que se aplica un estado cuenta como uno de sus turnos

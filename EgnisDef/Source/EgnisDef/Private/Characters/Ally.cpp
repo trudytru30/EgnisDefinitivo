@@ -13,6 +13,7 @@
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Cards/EgnisCardSettings.h"
 #include "Components/StatusEffectComponent.h"
+#include "FMODEvent.h"
 
 AAlly::AAlly()
 {
@@ -234,6 +235,20 @@ void AAlly::GainPoints(int32 Bonus)
 		UEnergyAttributeSet::GetEnergyAttribute(), EGameplayModOp::Additive, +Bonus);
 }
 
+void AAlly::GainPointsIgnoringMax(int32 Bonus)
+{
+	if (!EnergyAttributeSet || !GetAbilitySystemComponent() || Bonus <= 0)
+	{
+		return;
+	}
+
+	// ApplyModToAttribute es sincrono: el flag solo vale durante esta ganancia
+	EnergyAttributeSet->bAllowOverMax = true;
+	GetAbilitySystemComponent()->ApplyModToAttribute(
+		UEnergyAttributeSet::GetEnergyAttribute(), EGameplayModOp::Additive, +Bonus);
+	EnergyAttributeSet->bAllowOverMax = false;
+}
+
 void AAlly::ResetEnergyForTurn()
 {
 	if (EnergyAttributeSet && GetAbilitySystemComponent())
@@ -378,4 +393,14 @@ bool AAlly::CounterAttack(ACharacterBase* Target)
 	UE_LOG(LogTemp, Log, TEXT("[%s] Riposte -> %s con %s"), *GetName(), *Target->GetName(), *RiposteCard->GetName());
 	RiposteCard->ExecuteAgainst(this, Target);
 	return true;
+}
+
+UFMODEvent* AAlly::GetAttackSoundEvent() const
+{
+	return HeroAsset ? HeroAsset->AttackSound : nullptr;
+}
+
+float AAlly::GetAudioPitch() const
+{
+	return HeroAsset ? HeroAsset->PitchModifier : 1.f;
 }
