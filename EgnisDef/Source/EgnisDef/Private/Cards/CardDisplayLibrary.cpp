@@ -179,7 +179,13 @@ namespace
 		}
 		else
 		{
-			Display.Label = Effect->GetClass()->GetDisplayNameText();
+			#if WITH_EDITOR
+				Display.Label = Effect->GetClass()->GetDisplayNameText();
+			#else
+				FString ClassName = Effect->GetClass()->GetName();
+				ClassName.RemoveFromEnd(TEXT("_C"));
+				Display.Label = FText::FromString(FName::NameToDisplayString(ClassName, false));
+			#endif
 		}
 	}
 }
