@@ -18,5 +18,5 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Draw")
 	int32 DrawAmount = 1;
 
-	virtual void Execute_None(UDeckManager* Deck) override;
+	virtual void Execute_Self(ACharacterBase* Source) override;
 };

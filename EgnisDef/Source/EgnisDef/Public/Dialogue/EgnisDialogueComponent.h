@@ -7,6 +7,7 @@
 
 class UEgnisDialogueWidget;
 class UDataTable;
+class UWorld;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEgnisDialogueStartedSignature, FName, StartRowID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FEgnisDialogueEndedSignature);
@@ -49,6 +50,14 @@ public:
 	/** Empieza el diálogo nada más empezar la partida (útil para probar). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	bool bStartOnBeginPlay = false;
+	
+	/** Evento de mapa: usa el EventID del nodo actual como fila de inicio y arranca solo. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Map")
+	bool bUseMapNodeEvent = false;
+
+	/** Al terminar el diálogo se completa el nodo actual del mapa y se vuelve a este nivel. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Map", meta = (EditCondition = "bUseMapNodeEvent"))
+	TSoftObjectPtr<UWorld> ReturnMap;
 
 	/** Si el actor no tiene ninguna colisión, crea una esfera trigger de este radio. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
@@ -190,7 +199,10 @@ private:
 	FEgnisDialogueLine CurrentLine;
 	TArray<FName> CurrentChoiceTargets;
 	FName CurrentNextRowID;
-
+	
+	void FinishMapEvent();
+	
+	bool bMapEventActive = false;
 	bool bActive = false;
 	bool bDataLoaded = false;
 	bool bAlreadyPlayed = false;

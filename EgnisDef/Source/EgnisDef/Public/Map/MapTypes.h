@@ -24,6 +24,10 @@ struct EGNISDEF_API FMapNodeData
 {
     GENERATED_BODY()
 
+    // TODO: Fila del Excel de diálogos con la que empieza el evento de este nodo (solo se usa en nodos Event)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Map")
+    FName EventID;
+    
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Map")
     FName NodeID;
 
