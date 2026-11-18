@@ -52,6 +52,7 @@ public:
 	// Para efectos con Target Ally o Enemy. Se consulta antes de gastar la energia y la carta (igual que CanTargetTile),
 	// asi un objetivo invalido se ignora y la carta se queda en la mano.
 	virtual bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const { return true; }
+	virtual int32 GetExtraRange(const ACharacterBase* Self) const { return 0; }
 
 	// Hooks para cartas/efectos que hacen algo por el simple
 	// hecho de estar en la mano, sin necesidad de jugarlas
@@ -61,5 +62,6 @@ public:
 	// obligadas a implementarlo si no lo necesitan.
 	virtual void Execute_OnHandEnter(ACharacterBase* Owner) {};
 	virtual void Execute_OnHandLeave(ACharacterBase* Owner) {};
+	virtual void Execute_OnTurnEndInHand(UDeckManager* Deck) {};
 #pragma endregion
 };

@@ -317,6 +317,13 @@ void UBattleManager::EndTurn()
 	{
 		case ETurnEnum::PlayerTurn:
 			NotifyTeamTurnEnd(0);
+			for (UBaseCard* Card : DeckManager->GetHand())
+			{
+				if (Card)
+				{
+					Card->NotifyTurnEndInHand(DeckManager);
+				}
+			}
 			if (DeckManager->GetHand().Num() > 0)
 			{
 				const TArray<UBaseCard*> HandCopy = DeckManager->GetHand();

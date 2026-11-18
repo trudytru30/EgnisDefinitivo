@@ -216,6 +216,17 @@ void UBaseCard::NotifyHandLeave(ACharacterBase* Owner)
 	}
 }
 
+void UBaseCard::NotifyTurnEndInHand(UDeckManager* Deck)
+{
+	for (UCardEffect* Effect : Effects)
+	{
+		if (Effect)
+		{
+			Effect->Execute_OnTurnEndInHand(Deck);
+		}
+	}
+}
+
 // ===== Getters =====
 FText UBaseCard::GetCardName() const
 {
@@ -282,6 +293,19 @@ bool UBaseCard::CanTargetObstacle() const
 		}
 	}
 	return false;
+}
+
+int32 UBaseCard::GetExtraRange(const ACharacterBase* Self) const
+{
+	int32 Extra = 0;
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Effect)
+		{
+			Extra = FMath::Max(Extra, Effect->GetExtraRange(Self));
+		}
+	}
+	return Extra;
 }
 
 int32 UBaseCard::GetCost() const

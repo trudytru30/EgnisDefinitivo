@@ -62,4 +62,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Abilities|Status")
 	static void SetBurnDamageTaken(ACharacterBase* Character, float Damage);
+
+	UFUNCTION(BlueprintPure, Category = "Abilities|Effects")
+	static int32 GetEffectStackLimit(TSubclassOf<UGameplayEffect> Effect);
 };

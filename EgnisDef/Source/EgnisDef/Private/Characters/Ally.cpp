@@ -272,7 +272,7 @@ int32 AAlly::GetEffectiveRange(const UBaseCard* Card) const
 	{
 		return 0;
 	}
-	return Card->GetRange() + GetCharacterRange();
+	return Card->GetRange() + GetCharacterRange() + Card->GetExtraRange(this);
 }
 
 bool AAlly::HasArchetypeColor(EColorType Color) const
