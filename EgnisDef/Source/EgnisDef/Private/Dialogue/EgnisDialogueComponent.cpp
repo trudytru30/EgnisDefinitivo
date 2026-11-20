@@ -2,6 +2,7 @@
 #include "Dialogue/EgnisDialogueWidget.h"
 #include "Dialogue/EgnisEventActions.h"
 #include "CoreAndSystems/GameTextRow.h"
+#include "Map/EventPoolSubsystem.h"
 
 #include "Components/PrimitiveComponent.h"
 #include "Components/SphereComponent.h"
@@ -85,7 +86,17 @@ void UEgnisDialogueComponent::BeginPlay()
 		UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 		UMapProgressionSubsystem* MapSub = GI ? GI->GetSubsystem<UMapProgressionSubsystem>() : nullptr;
 		FMapNodeData Node;
-		if (MapSub && MapSub->GetNodeData(MapSub->GetCurrentNode(), Node) && !Node.EventID.IsNone())
+		const bool bHasNode = MapSub && MapSub->GetNodeData(MapSub->GetCurrentNode(), Node);
+		if (bHasNode && Node.EventID.IsNone() && Node.NodeType == EMapNodeType::Event)
+		{
+			// TODO: el nodo no trae EventID fijo, el evento sale de la pool de su zona
+			if (UEventPoolSubsystem* Pool = GI->GetSubsystem<UEventPoolSubsystem>())
+			{
+				Pool->ResolveEventForNode(Node.NodeID, Node.Section, Node.EventID);
+			}
+		}
+
+		if (bHasNode && !Node.EventID.IsNone())
 		{
 			StartRowID = Node.EventID;
 			bMapEventActive = true;
@@ -96,7 +107,7 @@ void UEgnisDialogueComponent::BeginPlay()
 			UE_LOG(LogEgnisDialogue, Warning, TEXT("bUseMapNodeEvent: no hay nodo actual con EventID, se usa StartRowID y no se vuelve al mapa."));
 		}
 	}
-	
+
 	ReloadData();
 
 	if (bStartNow)
