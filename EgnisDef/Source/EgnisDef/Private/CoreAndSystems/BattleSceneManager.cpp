@@ -1,5 +1,4 @@
 #include "CoreAndSystems/BattleSceneManager.h"
-
 #include "Cards/DeckManager.h"
 #include "CoreAndSystems/BattleManager.h"
 #include "Characters/Ally.h"
@@ -7,7 +6,8 @@
 #include "CoreAndSystems/GameManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "CoreAndSystems/RunProgressionSubsystem.h"
-#include "Engine/GameInstance.h"                   
+#include "Engine/GameInstance.h"                 
+#include "Progression/RunModifierSubsystem.h"
 
 UBattleSceneManager::UBattleSceneManager()
 {
@@ -115,6 +115,14 @@ void UBattleSceneManager::StartCombatPhase()
 	DeckManager->InitializeDeck();
 	
 	ShowHUD();
+	
+	if (URunModifierSubsystem* Mods = GameInstance ? GameInstance->GetSubsystem<URunModifierSubsystem>() : nullptr)
+	{
+		for (const TPair<TWeakObjectPtr<AAlly>, FName>& Deployed : DeployManager->GetDeployedHeroes())
+		{
+			Mods->ApplyToAlly(Deployed.Key.Get(), Deployed.Value);
+		}
+	}
 
 	CurrentPhase = EScenePhase::Combat;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE COMBATE ---"));
@@ -156,6 +164,11 @@ void UBattleSceneManager::OnCombatEnded(bool bPlayerWon)
 		{
 			Run->LoseCampfire();
 		}
+	}
+	
+	if (URunModifierSubsystem* Mods = GameInstance ? GameInstance->GetSubsystem<URunModifierSubsystem>() : nullptr)
+	{
+		Mods->ConsumeCombat();
 	}
 
 	HideHUD();

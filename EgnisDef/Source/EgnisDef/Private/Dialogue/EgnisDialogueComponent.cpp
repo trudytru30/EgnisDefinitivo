@@ -1,6 +1,6 @@
 #include "Dialogue/EgnisDialogueComponent.h"
-
 #include "Dialogue/EgnisDialogueWidget.h"
+#include "Dialogue/EgnisEventActions.h"
 #include "CoreAndSystems/GameTextRow.h"
 
 #include "Components/PrimitiveComponent.h"
@@ -21,6 +21,7 @@
 
 #include "Map/MapProgressionSubsystem.h"
 #include "Kismet/GameplayStatics.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogEgnisDialogue, Log, All);
 
@@ -837,12 +838,15 @@ void UEgnisDialogueComponent::FireRowEvents(const FEgnisDialogueRow& Row)
 			FString Left, Right;
 			if (!Part.Split(TEXT("="), &Left, &Right))
 			{
+				UEgnisEventActions::ExecuteAction(this, Part);
 				continue;
 			}
 			Left.TrimStartAndEndInline();
 			Right.TrimStartAndEndInline();
 			if (Left.IsEmpty() || Left.Contains(TEXT(" ")))
 			{
+				// TODO: "Modifier all Power=1 x2" tiene '=' pero es un comando, no un flag
+				UEgnisEventActions::ExecuteAction(this, Part);
 				continue;
 			}
 			bool bValue;

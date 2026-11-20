@@ -212,6 +212,30 @@ void UBaseCard::NotifyHandLeave(ACharacterBase* Owner)
 	}
 }
 
+void UBaseCard::NotifyTurnEndInHand(UDeckManager* Deck)
+{
+	for (UCardEffect* Effect : Effects)
+	{
+		if (Effect)
+		{
+			Effect->Execute_OnTurnEndInHand(Deck);
+		}
+	}
+}
+
+int32 UBaseCard::GetExtraRange(const ACharacterBase* Self) const
+{
+	int32 Extra = 0;
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Effect)
+		{
+			Extra += Effect->GetExtraRange(Self);
+		}
+	}
+	return Extra;
+}
+
 // ===== Getters =====
 FText UBaseCard::GetCardName() const
 {

@@ -60,5 +60,12 @@ public:
 	// obligadas a implementarlo si no lo necesitan.
 	virtual void Execute_OnHandEnter(ACharacterBase* Owner) {};
 	virtual void Execute_OnHandLeave(ACharacterBase* Owner) {};
+	
+	// Se llama al terminar el turno del jugador si la carta sigue en la mano (BattleManager::EndTurn).
+	// Vacio por defecto, igual que OnHandEnter/OnHandLeave.
+	virtual void Execute_OnTurnEndInHand(UDeckManager* Deck) {};
+
+	// Rango extra que este efecto suma al de la carta (por ejemplo, el movimiento antes de golpear en Card_MoveEffect).
+	virtual int32 GetExtraRange(const ACharacterBase* Self) const { return 0; }
 #pragma endregion
 };

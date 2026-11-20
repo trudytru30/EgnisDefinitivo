@@ -11,6 +11,8 @@
 #include "Cards/Card_AttackEffect.h"
 #include "Cards/Card_AreaDamageEffect.h"
 #include "Components/GridMovementComponent.h"
+#include "Progression/RunModifierSubsystem.h"
+#include "Engine/GameInstance.h"
 
 namespace
 {
@@ -35,6 +37,16 @@ float UEgnisCombatLibrary::CalculateDamage(const ACharacterBase* Source, const A
 		Damage *= 0.5f;
 	}
 
+	// Modificadores de la run: solo afectan a los aliados desplegados
+	{
+		const UWorld* World = Source ? Source->GetWorld() : (Target ? Target->GetWorld() : nullptr);
+		const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+		if (const URunModifierSubsystem* Mods = GI ? GI->GetSubsystem<URunModifierSubsystem>() : nullptr)
+		{
+			Damage *= Mods->GetDamageDealtMultiplier(Source) * Mods->GetDamageTakenMultiplier(Target);
+		}
+	}
+	
 	// Expuesto: el objetivo recibe el doble de daño
 	if (HasStatusTag(Target, TAG_Status_Exposed))
 	{
