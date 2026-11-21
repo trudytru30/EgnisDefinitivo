@@ -8,6 +8,7 @@
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "Map/EventCombatSubsystem.h"
 #include "HAL/IConsoleManager.h"
 #include "Progression/RunModifierSubsystem.h"
 #include "Progression/RunState.h"
@@ -202,6 +203,51 @@ bool UEgnisEventActions::ExecuteAction(UObject* WorldContextObject, const FStrin
 			return false;
 		}
 		Mods->AddModifier(Mod);
+	}
+	else if (Command.Equals(TEXT("StartCombat"), ESearchCase::IgnoreCase)
+		|| Command.Equals(TEXT("OnWin"), ESearchCase::IgnoreCase)
+		|| Command.Equals(TEXT("OnLose"), ESearchCase::IgnoreCase)
+		|| Command.Equals(TEXT("CombatEnv"), ESearchCase::IgnoreCase))
+	{
+		// StartCombat [ClaveDeNivel]    -> al acabar el dialogo se abre un combate (nivel por defecto si no hay clave)
+		// OnWin <accion>                -> accion que se ejecuta si se gana ese combate (puede haber varias)
+		// OnLose <accion>               -> accion que se ejecuta si se pierde
+		// CombatEnv <Nombre>            -> entorno del combate (Geiser, Fog, EvilRain...); el combate lo lee con GetEnvironment()
+		UEventCombatSubsystem* EventCombat = GI->GetSubsystem<UEventCombatSubsystem>();
+		if (!EventCombat)
+		{
+			return false;
+		}
+
+		if (Command.Equals(TEXT("StartCombat"), ESearchCase::IgnoreCase))
+		{
+			EventCombat->RequestCombat(Arg.IsEmpty() ? NAME_None : FName(*Arg));
+		}
+		else if (Command.Equals(TEXT("CombatEnv"), ESearchCase::IgnoreCase))
+		{
+			if (Arg.IsEmpty())
+			{
+				return false;
+			}
+			EventCombat->SetEnvironment(FName(*Arg));
+		}
+		else
+		{
+			// Lo que va despues de OnWin / OnLose es una accion completa, tal cual
+			const FString Inner = Action.TrimStartAndEnd().Mid(Command.Len()).TrimStartAndEnd();
+			if (Inner.IsEmpty())
+			{
+				return false;
+			}
+			if (Command.Equals(TEXT("OnWin"), ESearchCase::IgnoreCase))
+			{
+				EventCombat->AddWinAction(Inner);
+			}
+			else
+			{
+				EventCombat->AddLoseAction(Inner);
+			}
+		}
 	}
 	else
 	{

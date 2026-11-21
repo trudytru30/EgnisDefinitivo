@@ -3,6 +3,7 @@
 #include "Dialogue/EgnisEventActions.h"
 #include "CoreAndSystems/GameTextRow.h"
 #include "Map/EventPoolSubsystem.h"
+#include "Map/EventCombatSubsystem.h"
 
 #include "Components/PrimitiveComponent.h"
 #include "Components/SphereComponent.h"
@@ -958,7 +959,24 @@ void UEgnisDialogueComponent::FinishMapEvent()
 		return;
 	}
 
-	// TODO (tanda 2): los eventos que acaban en combate (Ambush, FightForRewards, CombatEvent) se bifurcarán aquí
+	if (UEventCombatSubsystem* EventCombat = GI->GetSubsystem<UEventCombatSubsystem>())
+	{
+		FName CombatKey;
+		if (EventCombat->ConsumeCombatRequest(MapSub->GetCurrentNode(), CombatKey))
+		{
+			const TSoftObjectPtr<UWorld>* Keyed = EventCombatLevels.Find(CombatKey);
+			const TSoftObjectPtr<UWorld>& CombatLevel = (Keyed && !Keyed->IsNull()) ? *Keyed : DefaultEventCombatLevel;
+			if (!CombatLevel.IsNull())
+			{
+				// El nodo queda en curso: lo completa la salida del nivel de combate
+				UGameplayStatics::OpenLevelBySoftObjectPtr(this, CombatLevel);
+				return;
+			}
+			UE_LOG(LogEgnisDialogue, Error, TEXT("StartCombat: no hay nivel de combate configurado (DefaultEventCombatLevel)."));
+			EventCombat->ClearAll();
+		}
+	}
+	
 	if (MapSub->CompleteCurrentNode())
 	{
 		UGameplayStatics::OpenLevelBySoftObjectPtr(this, ReturnMap);

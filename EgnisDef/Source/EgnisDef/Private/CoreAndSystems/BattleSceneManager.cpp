@@ -8,6 +8,7 @@
 #include "CoreAndSystems/RunProgressionSubsystem.h"
 #include "Engine/GameInstance.h"                 
 #include "Progression/RunModifierSubsystem.h"
+#include "Map/EventCombatSubsystem.h"
 
 UBattleSceneManager::UBattleSceneManager()
 {
@@ -169,6 +170,11 @@ void UBattleSceneManager::OnCombatEnded(bool bPlayerWon)
 	if (URunModifierSubsystem* Mods = GameInstance ? GameInstance->GetSubsystem<URunModifierSubsystem>() : nullptr)
 	{
 		Mods->ConsumeCombat();
+	}
+	
+	if (UEventCombatSubsystem* EventCombat = GameInstance ? GameInstance->GetSubsystem<UEventCombatSubsystem>() : nullptr)
+	{
+		EventCombat->OnCombatFinished(this, bPlayerWon);
 	}
 
 	HideHUD();
