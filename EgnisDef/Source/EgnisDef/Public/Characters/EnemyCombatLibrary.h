@@ -149,5 +149,5 @@ public:
 	
 private:
 	static bool IsTileBlockingSight(const ABoard* Board, const FTileCoord& Tile);
-	static void BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps);
+	static void BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps, TMap<FTileCoord, FTileCoord>* OutParents = nullptr);
 };

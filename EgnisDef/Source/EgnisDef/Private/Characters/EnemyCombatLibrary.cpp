@@ -677,9 +677,10 @@ EEnemyStrikeResult UEnemyCombatLibrary::EnemyExecutionStrike(AEnemy* Attacker, A
 
 
 
-void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps)
+void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps, TMap<FTileCoord, FTileCoord>* OutParents)
 {
 	OutSteps.Reset();
+	if (OutParents) OutParents->Reset();
 	if (!IsValid(Enemy) || !Enemy->Board)
 	{
 		return;
@@ -712,6 +713,7 @@ void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord
 				continue;
 			}
 			OutSteps.Add(Next, Steps + 1);
+			if (OutParents) OutParents->Add(Next, Tile);
 			Frontier.Add(Next);
 		}
 	}
@@ -750,14 +752,24 @@ bool UEnemyCombatLibrary::EnemyMoveToTile(AEnemy* Enemy, const FTileCoord& Targe
 	}
 
 	TMap<FTileCoord, int32> Steps;
-	BuildReachableMap(Enemy, Steps);
+	TMap<FTileCoord, FTileCoord> Parents;
+	BuildReachableMap(Enemy, Steps, &Parents);
 	const int32* StepsToTarget = Steps.Find(Target);
 	if (!StepsToTarget)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[EnemyMove] %s no puede llegar a (%d,%d)."), *Enemy->GetName(), Target.X, Target.Y);
 		return false;
 	}
-
+	//casilla a casilla
+	TArray<FTileCoord> Path;
+	for (FTileCoord Tile = Target; ; )
+	{
+		Path.Insert(Tile, 0);
+		const FTileCoord* Parent = Parents.Find(Tile);
+		if (!Parent) break;
+		Tile = *Parent;
+	}
+	
 	const FTileCoord From = Enemy->CurrentTile;
 	if (!Enemy->SetCurrentTile(Target))
 	{
@@ -766,7 +778,7 @@ bool UEnemyCombatLibrary::EnemyMoveToTile(AEnemy* Enemy, const FTileCoord& Targe
 	
 	if (!IsValid(Enemy)) return true; // murio al pisar fuego
 	
-	Enemy->SnapToCurrentTile();
+	Enemy->MoveAlongTiles(Path);
 
 	if (UAudioManager* AM = Enemy->GetGameInstance()->GetSubsystem<UAudioManager>())
 	{

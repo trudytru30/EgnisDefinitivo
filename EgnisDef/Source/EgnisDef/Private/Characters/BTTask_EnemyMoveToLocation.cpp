@@ -10,6 +10,7 @@ UBTTask_EnemyMoveToLocation::UBTTask_EnemyMoveToLocation()
 {
 	NodeName = TEXT("Mover a ubicacion (Egnis)");
 	TargetLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_EnemyMoveToLocation, TargetLocationKey));
+	bNotifyTick = true;
 }
 
 void UBTTask_EnemyMoveToLocation::InitializeFromAsset(UBehaviorTree& Asset)
@@ -32,9 +33,24 @@ EBTNodeResult::Type UBTTask_EnemyMoveToLocation::ExecuteTask(UBehaviorTreeCompon
 	}
 
 	const FVector Location = TaskBlackboard->GetValueAsVector(TargetLocationKey.SelectedKeyName);
-	return UEnemyCombatLibrary::EnemyMoveToLocation(Enemy, Location) ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
+	if (!UEnemyCombatLibrary::EnemyMoveToLocation(Enemy, Location))
+	{
+		return EBTNodeResult::Failed;
+	}
+	
+	return (IsValid(Enemy) && Enemy->IsMovingOnBoard()) ? EBTNodeResult::InProgress : EBTNodeResult::Succeeded;
 }
 
+
+void UBTTask_EnemyMoveToLocation::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	const AAIController* AI = OwnerComp.GetAIOwner();
+	const AEnemy* Enemy = AI ? Cast<AEnemy>(AI->GetPawn()) : nullptr;
+	if (!IsValid(Enemy) || !Enemy->IsMovingOnBoard())
+	{
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	}
+}
 FString UBTTask_EnemyMoveToLocation::GetStaticDescription() const
 {
 	return FString::Printf(TEXT("Destino: %s"), *TargetLocationKey.SelectedKeyName.ToString());
