@@ -112,8 +112,7 @@ void AEnemy::TickBoardMove(float DeltaTime)
 
 int32 AEnemy::GetMoveRange() const
 {
-	// Ralentizado: mitad del movimiento (redondeo hacia arriba, minimo 1)
-	return UEgnisCombatLibrary::GetSlowedRange(this, MoveRange);
+	return UEgnisCombatLibrary::GetSlowedRange(this, MoveRange + EnvMoveRangeBonus);
 }
 
 void AEnemy::MoveTowardClosesPlayer()

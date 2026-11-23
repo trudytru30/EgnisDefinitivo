@@ -9,6 +9,7 @@
 #include "Engine/GameInstance.h"                 
 #include "Progression/RunModifierSubsystem.h"
 #include "Map/EventCombatSubsystem.h"
+#include "CoreAndSystems/CombatEnvironmentSubsystem.h"
 
 UBattleSceneManager::UBattleSceneManager()
 {
@@ -55,6 +56,15 @@ void UBattleSceneManager::StartDeploymentPhase()
 	CurrentPhase = EScenePhase::Deployment;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE DESPLIEGUE ---"));
 	DeployManager->Initialize(BaseAllyClass, MaxDeployedHeroes);
+	
+	if (UWorld* World = GetWorld())
+	{
+		if (UCombatEnvironmentSubsystem* Env = World->GetSubsystem<UCombatEnvironmentSubsystem>())
+		{
+			Env->BeginDeployment();
+		}
+	}
+	
 	ShowDeploymentUI();
 }
 
@@ -128,6 +138,14 @@ void UBattleSceneManager::StartCombatPhase()
 	CurrentPhase = EScenePhase::Combat;
 	UE_LOG(LogTemp, Log, TEXT("[BattleSceneManager]: --- FASE DE COMBATE ---"));
 
+	if (UWorld* World = GetWorld())
+	{
+		if (UCombatEnvironmentSubsystem* Env = World->GetSubsystem<UCombatEnvironmentSubsystem>())
+		{
+			Env->BeginCombat();
+		}
+	}
+	
 	if (BattleManager)
 	{
 		BattleManager->StartBattle(); 
@@ -170,6 +188,14 @@ void UBattleSceneManager::OnCombatEnded(bool bPlayerWon)
 	if (URunModifierSubsystem* Mods = GameInstance ? GameInstance->GetSubsystem<URunModifierSubsystem>() : nullptr)
 	{
 		Mods->ConsumeCombat();
+	}
+	
+	if (UWorld* World = GetWorld())
+	{
+		if (UCombatEnvironmentSubsystem* Env = World->GetSubsystem<UCombatEnvironmentSubsystem>())
+		{
+			Env->EndCombat();
+		}
 	}
 	
 	if (UEventCombatSubsystem* EventCombat = GameInstance ? GameInstance->GetSubsystem<UEventCombatSubsystem>() : nullptr)
