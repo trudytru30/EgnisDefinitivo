@@ -9,6 +9,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Map/EventCombatSubsystem.h"
 #include "TimerManager.h"
+#include "CoreAndSystems/GeyserSubsystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEgnisEnvironment, Log, All);
 
@@ -68,6 +69,14 @@ void UCombatEnvironmentSubsystem::BeginCombat()
 		bEvilRainApplied = true;
 		ApplyEvilRain();
 	}
+	
+	if (Active == ECombatEnvironment::Geiser)
+	{
+		if (UGeyserSubsystem* Geyser = GetWorld() ? GetWorld()->GetSubsystem<UGeyserSubsystem>() : nullptr)
+		{
+			Geyser->BeginCombat();
+		}
+	}
 }
 
 void UCombatEnvironmentSubsystem::EndCombat()
@@ -91,7 +100,10 @@ void UCombatEnvironmentSubsystem::StartEnvironment(FName Name)
 		UE_LOG(LogEgnisEnvironment, Log, TEXT("[Entorno] EvilRain activa: los enemigos mejoran al empezar el combate."));
 		break;
 	case ECombatEnvironment::Geiser:
-		UE_LOG(LogEgnisEnvironment, Warning, TEXT("[Entorno] Geiser todavia no tiene efecto (pendiente de diseño). Solo se lanza el evento de Blueprint."));
+		if (UGeyserSubsystem* Geyser = GetWorld() ? GetWorld()->GetSubsystem<UGeyserSubsystem>() : nullptr)
+		{
+			Geyser->Setup();
+		}
 		break;
 	case ECombatEnvironment::Other:
 		UE_LOG(LogEgnisEnvironment, Warning, TEXT("[Entorno] '%s' no es un entorno con efecto. Solo se lanza el evento de Blueprint."), *Name.ToString());
@@ -112,6 +124,13 @@ void UCombatEnvironmentSubsystem::StopEnvironment()
 	if (bFogActive)
 	{
 		SetFogActive(false);
+	}
+	if (Active == ECombatEnvironment::Geiser)
+	{
+		if (UGeyserSubsystem* Geyser = GetWorld() ? GetWorld()->GetSubsystem<UGeyserSubsystem>() : nullptr)
+		{
+			Geyser->Clear();
+		}
 	}
 	Active = ECombatEnvironment::None;
 	ActiveName = NAME_None;

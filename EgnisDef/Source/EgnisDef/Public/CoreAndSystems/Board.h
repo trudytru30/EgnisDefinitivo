@@ -112,6 +112,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Board|Occupancy")
 	void UnregisterOccupant(const FTileCoord& Tile, AActor* Occupant);
+	
+	// Casillas bloqueadas temporalmente (p. ej. un geiser en erupcion). IsTileOccupied las cuenta como ocupadas
+	UFUNCTION(BlueprintCallable, Category="Board|Occupancy")
+	void SetTileBlocked(const FTileCoord& Tile, bool bBlocked);
+
+	UFUNCTION(BlueprintPure, Category="Board|Occupancy")
+	bool IsTileBlocked(const FTileCoord& Tile) const;
 
 	UFUNCTION(BlueprintCallable, Category="Board|Occupancy")
 	void GetNeighbors4_Free(const FTileCoord& From, TArray<FTileCoord>& OutNeighbors) const;
@@ -196,6 +203,7 @@ private:
 	int32 BuildFloor();
 
 	TMap<FTileCoord, TWeakObjectPtr<AActor>> OccupiedBy;
+	TSet<FTileCoord> BlockedTiles;
 	TMap<FTileCoord, FFireTile> FireTiles;
 
 	void QueueBoardChanged();

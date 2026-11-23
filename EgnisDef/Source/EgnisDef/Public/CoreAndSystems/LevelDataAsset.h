@@ -84,6 +84,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Grid")
 	TArray<FTileRow> GridRows;
 
+	// Casillas fijas de los geiseres (solo se usan si el combate tiene el entorno Geiser). Vacio = al azar
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Environment")
+	TArray<FTileCoord> GeyserTiles;
+	
 	// Enemigos del nivel
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Enemies")
 	TArray<FEnemySpawnInfo> EnemiesToSpawn;

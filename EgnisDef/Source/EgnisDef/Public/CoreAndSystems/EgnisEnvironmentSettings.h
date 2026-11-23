@@ -28,4 +28,29 @@ public:
 	// Si es true, los enemigos se ocultan durante el despliegue y aparecen al empezar el combate
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Niebla")
 	bool bFogHidesEnemies = true;
+	
+	// ===== Geiser (valores de prueba, NO de balance) =====
+	// Cada cuantas rondas erupcionan (minimo 2). Una ronda = un turno del jugador + uno del enemigo
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Geiser", meta = (ClampMin = "2"))
+	int32 GeyserEruptionPeriod = 2;
+
+	// Cuantas rondas dura activo (bloqueado). Se limita a Periodo-1
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Geiser", meta = (ClampMin = "1"))
+	int32 GeyserActiveRounds = 1;
+
+	// Aviso la ronda antes de erupcionar (solo cambia el estado a Warning para el BP, no afecta a la jugabilidad)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Geiser")
+	bool bGeyserWarnBeforeEruption = true;
+
+	// Daño puro fijo a quien esta encima al erupcionar
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Geiser", meta = (ClampMin = "0"))
+	float GeyserDamage = 15.f;
+
+	// Diseño dijo "aliados": por defecto los enemigos solo se empujan, no se dañan
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Geiser")
+	bool bGeyserDamagesEnemies = false;
+
+	// Solo si el nivel no define GeyserTiles: cuantos geiseres al azar
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Geiser", meta = (ClampMin = "1"))
+	int32 GeyserDefaultCount = 3;
 };
