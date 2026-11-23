@@ -140,6 +140,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Movement")
 	static bool FindTileTowards(const AEnemy* Enemy, const ACharacterBase* Target, FTileCoord& OutTile);
 
+	//Distancia ANDANDO (4 direcciones) desde cada casilla hasta Goal, rodeando obstaculos y huecos.
+	//Los personajes no bloquean (se mueven). Las casillas sin camino no salen en el mapa.
+	static void BuildPathDistanceMap(const ABoard* Board, const FTileCoord& Goal, TMap<FTileCoord, int32>& OutDistance);
+
+	//Casillas que hay que andar de From a To rodeando obstaculos y huecos (-1 = no hay camino)
+	UFUNCTION(BlueprintPure, Category = "Enemy|Movement")
+	static int32 GetPathDistance(const AEnemy* Enemy, FTileCoord From, FTileCoord To);
+	
 	//FindTileTowards + EnemyMoveToTile
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Movement")
 	static bool EnemyMoveTowards(AEnemy* Enemy, ACharacterBase* Target);
@@ -149,5 +157,5 @@ public:
 	
 private:
 	static bool IsTileBlockingSight(const ABoard* Board, const FTileCoord& Tile);
-	static void BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps);
+	static void BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps, TMap<FTileCoord, FTileCoord>* OutParents = nullptr);
 };

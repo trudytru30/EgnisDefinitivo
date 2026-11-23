@@ -1,10 +1,13 @@
 #include "Cards/Card_ConsumeEffect.h"
 #include "Cards/DeckManager.h"
+#include "Abilities/EgnisAbilityLibrary.h"
 #include "Algo/RandomShuffle.h"
 
-void UCard_ConsumeEffect::Execute_None(UDeckManager* Deck)
+void UCard_ConsumeEffect::Execute_Self(ACharacterBase* Source)
 {
-	Super::Execute_None(Deck);
+	Super::Execute_Self(Source);
+
+	UDeckManager* Deck = UEgnisAbilityLibrary::GetDeckManager(Source);
 
 	if (!Deck) return;
 

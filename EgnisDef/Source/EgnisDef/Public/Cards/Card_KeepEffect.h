@@ -16,5 +16,5 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Keep", meta = (ClampMin = "1"))
 	int32 Count = 1;
 
-	virtual void Execute_None(UDeckManager* Deck) override;
+	virtual void Execute_Self(ACharacterBase* Source) override;
 };

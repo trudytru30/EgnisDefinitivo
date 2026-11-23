@@ -18,7 +18,7 @@ class EGNISDEF_API UCardEffect : public UObject
 public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Effect")
-	ECardTarget Target = ECardTarget::None;
+	ECardTarget Target = ECardTarget::Self;
 
 	// Sonido propio de este efecto (evento FMOD). Si se deja vacio suena el evento general de ese tipo
 	// de efecto que haya en la tabla Trigger Events del AudioDataAsset.
@@ -38,7 +38,6 @@ public:
 	bool bShowValue = true;
 	
 #pragma region Effects
-	virtual void Execute_None(UDeckManager* Deck) {};
 	virtual void Execute_Ally(ACharacterBase* Self, ACharacterBase* Ally) {};
 	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) {};
 	virtual void Execute_Obstacle(ACharacterBase* Self, class AObstacleBase* Obstacle) {};
@@ -52,7 +51,6 @@ public:
 	// Para efectos con Target Ally o Enemy. Se consulta antes de gastar la energia y la carta (igual que CanTargetTile),
 	// asi un objetivo invalido se ignora y la carta se queda en la mano.
 	virtual bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const { return true; }
-	virtual int32 GetExtraRange(const ACharacterBase* Self) const { return 0; }
 
 	// Hooks para cartas/efectos que hacen algo por el simple
 	// hecho de estar en la mano, sin necesidad de jugarlas
@@ -62,6 +60,12 @@ public:
 	// obligadas a implementarlo si no lo necesitan.
 	virtual void Execute_OnHandEnter(ACharacterBase* Owner) {};
 	virtual void Execute_OnHandLeave(ACharacterBase* Owner) {};
+	
+	// Se llama al terminar el turno del jugador si la carta sigue en la mano (BattleManager::EndTurn).
+	// Vacio por defecto, igual que OnHandEnter/OnHandLeave.
 	virtual void Execute_OnTurnEndInHand(UDeckManager* Deck) {};
+
+	// Rango extra que este efecto suma al de la carta (por ejemplo, el movimiento antes de golpear en Card_MoveEffect).
+	virtual int32 GetExtraRange(const ACharacterBase* Self) const { return 0; }
 #pragma endregion
 };

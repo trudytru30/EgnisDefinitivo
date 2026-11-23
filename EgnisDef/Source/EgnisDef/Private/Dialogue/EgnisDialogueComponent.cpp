@@ -1,12 +1,15 @@
 #include "Dialogue/EgnisDialogueComponent.h"
-
 #include "Dialogue/EgnisDialogueWidget.h"
+#include "Dialogue/EgnisEventActions.h"
 #include "CoreAndSystems/GameTextRow.h"
+#include "Map/EventPoolSubsystem.h"
+#include "Map/EventCombatSubsystem.h"
 
 #include "Components/PrimitiveComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/DataTable.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -17,6 +20,10 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "UObject/UObjectIterator.h"
+
+#include "Map/MapProgressionSubsystem.h"
+#include "Kismet/GameplayStatics.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogEgnisDialogue, Log, All);
 
@@ -74,9 +81,37 @@ void UEgnisDialogueComponent::BeginPlay()
 		}
 	}
 
+	bool bStartNow = bStartOnBeginPlay;
+	if (bUseMapNodeEvent)
+	{
+		UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+		UMapProgressionSubsystem* MapSub = GI ? GI->GetSubsystem<UMapProgressionSubsystem>() : nullptr;
+		FMapNodeData Node;
+		const bool bHasNode = MapSub && MapSub->GetNodeData(MapSub->GetCurrentNode(), Node);
+		if (bHasNode && Node.EventID.IsNone() && Node.NodeType == EMapNodeType::Event)
+		{
+			// TODO: el nodo no trae EventID fijo, el evento sale de la pool de su zona
+			if (UEventPoolSubsystem* Pool = GI->GetSubsystem<UEventPoolSubsystem>())
+			{
+				Pool->ResolveEventForNode(Node.NodeID, Node.Section, Node.EventID);
+			}
+		}
+
+		if (bHasNode && !Node.EventID.IsNone())
+		{
+			StartRowID = Node.EventID;
+			bMapEventActive = true;
+			bStartNow = true;
+		}
+		else
+		{
+			UE_LOG(LogEgnisDialogue, Warning, TEXT("bUseMapNodeEvent: no hay nodo actual con EventID, se usa StartRowID y no se vuelve al mapa."));
+		}
+	}
+
 	ReloadData();
 
-	if (bStartOnBeginPlay)
+	if (bStartNow)
 	{
 		StartDialogue(StartRowID);
 	}
@@ -815,12 +850,15 @@ void UEgnisDialogueComponent::FireRowEvents(const FEgnisDialogueRow& Row)
 			FString Left, Right;
 			if (!Part.Split(TEXT("="), &Left, &Right))
 			{
+				UEgnisEventActions::ExecuteAction(this, Part);
 				continue;
 			}
 			Left.TrimStartAndEndInline();
 			Right.TrimStartAndEndInline();
 			if (Left.IsEmpty() || Left.Contains(TEXT(" ")))
 			{
+				// TODO: "Modifier all Power=1 x2" tiene '=' pero es un comando, no un flag
+				UEgnisEventActions::ExecuteAction(this, Part);
 				continue;
 			}
 			bool bValue;
@@ -897,11 +935,52 @@ void UEgnisDialogueComponent::EndDialogue()
 	}
 	SetUIInput(false);
 	OnDialogueEnded.Broadcast();
+	
+	if (bMapEventActive)
+	{
+		FinishMapEvent();
+	}
 }
 
 void UEgnisDialogueComponent::SetFlag(FName Flag, bool bValue)
 {
 	Flags.Add(Flag, bValue);
+}
+
+void UEgnisDialogueComponent::FinishMapEvent()
+{
+	bMapEventActive = false;
+
+	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	UMapProgressionSubsystem* MapSub = GI ? GI->GetSubsystem<UMapProgressionSubsystem>() : nullptr;
+	if (!MapSub || ReturnMap.IsNull())
+	{
+		UE_LOG(LogEgnisDialogue, Error, TEXT("Fin de evento de mapa: falta ReturnMap o el subsistema del mapa."));
+		return;
+	}
+
+	if (UEventCombatSubsystem* EventCombat = GI->GetSubsystem<UEventCombatSubsystem>())
+	{
+		FName CombatKey;
+		if (EventCombat->ConsumeCombatRequest(MapSub->GetCurrentNode(), CombatKey))
+		{
+			const TSoftObjectPtr<UWorld>* Keyed = EventCombatLevels.Find(CombatKey);
+			const TSoftObjectPtr<UWorld>& CombatLevel = (Keyed && !Keyed->IsNull()) ? *Keyed : DefaultEventCombatLevel;
+			if (!CombatLevel.IsNull())
+			{
+				// El nodo queda en curso: lo completa la salida del nivel de combate
+				UGameplayStatics::OpenLevelBySoftObjectPtr(this, CombatLevel);
+				return;
+			}
+			UE_LOG(LogEgnisDialogue, Error, TEXT("StartCombat: no hay nivel de combate configurado (DefaultEventCombatLevel)."));
+			EventCombat->ClearAll();
+		}
+	}
+	
+	if (MapSub->CompleteCurrentNode())
+	{
+		UGameplayStatics::OpenLevelBySoftObjectPtr(this, ReturnMap);
+	}
 }
 
 // --------------------------------------------------------------------------------------

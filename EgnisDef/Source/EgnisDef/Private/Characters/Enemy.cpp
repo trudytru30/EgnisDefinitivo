@@ -50,12 +50,69 @@ void AEnemy::BeginPlay()
 void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (IsMovingOnBoard()) TickBoardMove(DeltaTime);
+}
+
+void AEnemy::MoveAlongTiles(const TArray<FTileCoord>& Tiles)
+{
+	MovePoints.Reset();
+	MoveDurations.Reset();
+	MoveSegment = 0;
+	MoveElapsed = 0.f;
+
+	if (SecondsPerTile <= 0.f || Tiles.Num() < 2 || !Board)
+	{
+		SnapToCurrentTile();
+		return;
+	}
+
+	MovePoints.Add(GetActorLocation()); //sale de donde se ve ahora
+	for (int32 i = 1; i < Tiles.Num(); ++i)
+	{
+		MovePoints.Add(GetStandLocationForTile(Tiles[i]));
+		const int32 Dist = FMath::Abs(Tiles[i].X - Tiles[i - 1].X) + FMath::Abs(Tiles[i].Y - Tiles[i - 1].Y);
+		MoveDurations.Add(SecondsPerTile * FMath::Max(1, Dist));
+	}
+	UE_LOG(LogTemp, Log, TEXT("[EnemyMove] %s anda %d tramos (%.2f s)."), *GetName(), MoveDurations.Num(), GetMoveSecondsLeft());
+}
+
+float AEnemy::GetMoveSecondsLeft() const
+{
+	float Left = -MoveElapsed;
+	for (int32 i = MoveSegment; i < MoveDurations.Num(); ++i)
+	{
+		Left += MoveDurations[i];
+	}
+	return FMath::Max(0.f, Left);
+}
+
+void AEnemy::TickBoardMove(float DeltaTime)
+{
+	MoveElapsed += DeltaTime;
+	while (MoveDurations.IsValidIndex(MoveSegment) && MoveElapsed >= MoveDurations[MoveSegment])
+	{
+		MoveElapsed -= MoveDurations[MoveSegment];
+		++MoveSegment;
+	}
+
+	if (!MoveDurations.IsValidIndex(MoveSegment))
+	{
+		MovePoints.Reset();
+		MoveDurations.Reset();
+		SnapToCurrentTile();
+		OnEnemyArrived();
+		return;
+	}
+
+	const float Alpha = MoveElapsed / MoveDurations[MoveSegment];
+	FVector Pos = FMath::Lerp(MovePoints[MoveSegment], MovePoints[MoveSegment + 1], Alpha);
+	Pos.Z += HopHeight * FMath::Sin(Alpha * PI);
+	SetActorLocation(Pos);
 }
 
 int32 AEnemy::GetMoveRange() const
 {
-	// Ralentizado: mitad del movimiento (redondeo hacia arriba, minimo 1)
-	return UEgnisCombatLibrary::GetSlowedRange(this, MoveRange);
+	return UEgnisCombatLibrary::GetSlowedRange(this, MoveRange + EnvMoveRangeBonus);
 }
 
 void AEnemy::MoveTowardClosesPlayer()
@@ -139,7 +196,7 @@ void AEnemy::MoveTowardClosesPlayer()
 	
 	if (!IsValid(this)) return; // murio al pisar fuego
 
-	SnapToCurrentTile();
+	MoveAlongTiles({ Start, CurrentTile });
 
 	if (!bTwoSteps)
 	{
@@ -160,7 +217,7 @@ void AEnemy::MoveTowardClosesPlayer()
 		UE_LOG(LogTemp, Log, TEXT("[%s] Step2 blocked after Step1. Stops at (%d,%d)."),
 			*GetName(), CurrentTile.X, CurrentTile.Y);
 
-		SnapToCurrentTile();
+		MoveAlongTiles({ Start, CurrentTile });
 		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
 			AM->PlayTrigger(EEgnisAudioTrigger::EnemyMove, nullptr, this);
 		return;
@@ -170,7 +227,7 @@ void AEnemy::MoveTowardClosesPlayer()
 		UE_LOG(LogTemp, Log, TEXT("[%s] Failed to move to Step2. Stops at (%d,%d)."),
 			*GetName(), CurrentTile.X, CurrentTile.Y);
 
-		SnapToCurrentTile();
+		MoveAlongTiles({ Start, CurrentTile });
 		if (UAudioManager* AM = GetGameInstance()->GetSubsystem<UAudioManager>()) 
 			AM->PlayTrigger(EEgnisAudioTrigger::EnemyMove, nullptr, this);
 		return;
@@ -178,7 +235,7 @@ void AEnemy::MoveTowardClosesPlayer()
 
 	if (!IsValid(this)) return; // murio al pisar fuego
 	
-	SnapToCurrentTile();
+	MoveAlongTiles({ Start, CurrentTile });
 
 	UE_LOG(LogTemp, Log, TEXT("[%s] Moved 2 tiles straight to (%d,%d) towards player (%d,%d)."),
 		*GetName(), CurrentTile.X, CurrentTile.Y, Goal.X, Goal.Y);

@@ -63,10 +63,6 @@ void UBaseCard::Execute(UDeckManager* Deck, ACharacterBase* Self, ACharacterBase
 		{
 			switch (Effect->Target)
 			{
-			case ECardTarget::None:
-				Effect->Execute_None(Deck);
-				break;
-				
 			case ECardTarget::Ally:
 				if (UEgnisAbilityLibrary::HasRule(Self, TAG_Rule_Targeting_Seeding))
 				{
@@ -227,6 +223,19 @@ void UBaseCard::NotifyTurnEndInHand(UDeckManager* Deck)
 	}
 }
 
+int32 UBaseCard::GetExtraRange(const ACharacterBase* Self) const
+{
+	int32 Extra = 0;
+	for (const UCardEffect* Effect : Effects)
+	{
+		if (Effect)
+		{
+			Extra += Effect->GetExtraRange(Self);
+		}
+	}
+	return Extra;
+}
+
 // ===== Getters =====
 FText UBaseCard::GetCardName() const
 {
@@ -295,19 +304,6 @@ bool UBaseCard::CanTargetObstacle() const
 	return false;
 }
 
-int32 UBaseCard::GetExtraRange(const ACharacterBase* Self) const
-{
-	int32 Extra = 0;
-	for (const UCardEffect* Effect : Effects)
-	{
-		if (Effect)
-		{
-			Extra = FMath::Max(Extra, Effect->GetExtraRange(Self));
-		}
-	}
-	return Extra;
-}
-
 int32 UBaseCard::GetCost() const
 {
 	return Cost;
@@ -333,7 +329,7 @@ ECardTarget UBaseCard::GetTarget() const
 	// Objetivo que se pide al jugador al jugar la carta, deducido de los efectos (el campo Target de la carta ya no se
 	// usa): el primer efecto que apunta a Ally, Enemy o Tile manda. Si no hay ninguno, Self si algun efecto es Self;
 	// si no, None. Los efectos Self y None no necesitan que el jugador elija nada, se aplican solos con el resto.
-	ECardTarget Result = ECardTarget::None;
+	ECardTarget Result = ECardTarget::Self;
 	for (const UCardEffect* Effect : Effects)
 	{
 		if (!Effect)
@@ -347,9 +343,6 @@ ECardTarget UBaseCard::GetTarget() const
 		case ECardTarget::Enemy:
 		case ECardTarget::Tile:
 			return Effect->Target;
-		case ECardTarget::Self:
-			Result = ECardTarget::Self;
-			break;
 		default:
 			break;
 		}
