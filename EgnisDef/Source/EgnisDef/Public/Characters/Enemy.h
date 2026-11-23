@@ -124,8 +124,15 @@ public:
 	int32 DamageBuffTurnsLeft = 0;
 
 	
+	// Lo pone el entorno del combate (Lluvia de corrupcion). Vale 1 / 0 si no hay entorno
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	float EnvDamageMultiplier = 1.f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	int32 EnvMoveRangeBonus = 0;
+
 	UFUNCTION(BlueprintPure, Category="Enemy|Combat")
-	float GetDamageMultiplier() const { return 1.f + (DamageBuffTurnsLeft > 0 ? DamageBuffPercent : 0.f) / 100.f; }
+	float GetDamageMultiplier() const { return (1.f + (DamageBuffTurnsLeft > 0 ? DamageBuffPercent : 0.f) / 100.f) * EnvDamageMultiplier; }
 
 	
 	void AddDamageBuff(float Percent, int32 Turns, bool bAppliedDuringOwnTurn);
