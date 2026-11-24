@@ -179,7 +179,14 @@ namespace
 		}
 		else
 		{
+		#if WITH_EDITOR
 			Display.Label = Effect->GetClass()->GetDisplayNameText();
+		#else
+			// En un juego empaquetado no hay nombre de editor: se usa el nombre de la clase (sin el prefijo "Card_")
+			FString ClassName = Effect->GetClass()->GetName();
+			ClassName.RemoveFromStart(TEXT("Card_"));
+			Display.Label = FText::FromString(ClassName);
+#endif
 		}
 	}
 }
