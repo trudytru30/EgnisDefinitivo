@@ -18,3 +18,8 @@ UEgnisCardDisplaySettings::UEgnisCardDisplaySettings()
 		Display.bBeneficial = Algo::Find(Beneficial, Status) != nullptr;
 	}
 }
+
+const FCardKeyword* UEgnisCardDisplaySettings::FindKeyword(FName Id) const
+{
+	return Id.IsNone() ? nullptr : Keywords.FindByPredicate([Id](const FCardKeyword& Keyword) { return Keyword.Id == Id; });
+}

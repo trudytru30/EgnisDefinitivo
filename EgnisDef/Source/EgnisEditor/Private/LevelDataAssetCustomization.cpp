@@ -522,7 +522,7 @@ void FLevelDataAssetCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
                 + SSegmentedControl<EObjectiveTool>::Slot(EObjectiveTool::Protect)
                 .Text(LOCTEXT("ToolProtect", "Proteger"))
                 + SSegmentedControl<EObjectiveTool>::Slot(EObjectiveTool::Destroy)
-                .Text(LOCTEXT("ToolDestroy", "Destruir"))
+                  .Text(LOCTEXT("ToolDestroy", "Destruir"))
             ]
         ]
         + SVerticalBox::Slot()

@@ -301,4 +301,307 @@ FText UCardDisplayLibrary::GetLaunchTypeName(ECardLaunchType LaunchType)
 	return StaticEnum<ECardLaunchType>()->GetDisplayNameTextByValue(static_cast<int64>(LaunchType));
 }
 
+namespace
+{
+	FString EscapeRichText(const FString& In)
+	{
+		FString Out;
+		Out.Reserve(In.Len());
+		for (const TCHAR Char : In)
+		{
+			switch (Char)
+			{
+			case TEXT('&'): Out += TEXT("&amp;"); break;
+			case TEXT('<'): Out += TEXT("&lt;"); break;
+			case TEXT('>'): Out += TEXT("&gt;"); break;
+			case TEXT('"'): Out += TEXT("&quot;"); break;
+			default: Out.AppendChar(Char); break;
+			}
+		}
+		return Out;
+	}
+
+	bool IsWordChar(TCHAR Char)
+	{
+		return FChar::IsAlnum(Char) || Char == TEXT('_');
+	}
+
+	struct FKeywordWord
+	{
+		FString Word;
+		const FCardKeyword* Keyword = nullptr;
+	};
+
+	// Las palabras que se marcan solas en el texto (no el nombre, para que "Daño" no salga en todas las cartas),
+	// de la más larga a la más corta para que "sangre hirviente" gane a "sangre"
+	TArray<FKeywordWord> GetKeywordWords()
+	{
+		TArray<FKeywordWord> Words;
+		for (const FCardKeyword& Keyword : GetDefault<UEgnisCardDisplaySettings>()->Keywords)
+		{
+			if (Keyword.Id.IsNone())
+			{
+				continue;
+			}
+			for (const FString& Word : Keyword.Words)
+			{
+				if (!Word.TrimStartAndEnd().IsEmpty())
+				{
+					Words.Add({ Word.TrimStartAndEnd(), &Keyword });
+				}
+			}
+		}
+		Words.StableSort([](const FKeywordWord& A, const FKeywordWord& B) { return A.Word.Len() > B.Word.Len(); });
+		return Words;
+	}
+
+	const FCardKeyword* FindKeywordByText(const FString& Text)
+	{
+		const FString Wanted = Text.TrimStartAndEnd();
+		for (const FCardKeyword& Keyword : GetDefault<UEgnisCardDisplaySettings>()->Keywords)
+		{
+			if (Keyword.Id.IsNone())
+			{
+				continue;
+			}
+			if (Keyword.Id.ToString().Equals(Wanted, ESearchCase::IgnoreCase) || Keyword.Name.ToString().Equals(Wanted, ESearchCase::IgnoreCase))
+			{
+				return &Keyword;
+			}
+			for (const FString& Word : Keyword.Words)
+			{
+				if (Word.TrimStartAndEnd().Equals(Wanted, ESearchCase::IgnoreCase))
+				{
+					return &Keyword;
+				}
+			}
+		}
+		return nullptr;
+	}
+
+	const FCardKeyword* FindStatusKeyword(EStatusType Status)
+	{
+		return GetDefault<UEgnisCardDisplaySettings>()->Keywords.FindByPredicate(
+			[Status](const FCardKeyword& Keyword) { return Keyword.bIsStatus && Keyword.Status == Status; });
+	}
+
+	UTexture2D* GetKeywordIcon(const FCardKeyword& Keyword)
+	{
+		if (UTexture2D* Icon = Keyword.Icon.LoadSynchronous())
+		{
+			return Icon;
+		}
+		if (Keyword.bIsStatus)
+		{
+			if (const FCardStatusDisplay* Status = GetDefault<UEgnisCardDisplaySettings>()->Statuses.Find(Keyword.Status))
+			{
+				return Status->Icon.LoadSynchronous();
+			}
+		}
+		return nullptr;
+	}
+
+	FLinearColor GetColorOf(const FCardKeyword& Keyword)
+	{
+		const UEgnisCardDisplaySettings* Settings = GetDefault<UEgnisCardDisplaySettings>();
+		if (Keyword.bOverrideColor)
+		{
+			return Keyword.Color;
+		}
+		switch (Keyword.Polarity)
+		{
+		case ECardEffectPolarity::Good: return Settings->GoodColor;
+		case ECardEffectPolarity::Bad:  return Settings->BadColor;
+		default: break;
+		}
+		if (Keyword.bIsStatus)
+		{
+			return IsBeneficialStatus(Keyword.Status) ? Settings->GoodColor : Settings->BadColor;
+		}
+		return Settings->KeywordColor;
+	}
+
+	FString KeywordMarkup(const FCardKeyword& Keyword, const FString& Text)
+	{
+		FString Markup = FString::Printf(TEXT("<kw id=\"%s\">%s</>"), *Keyword.Id.ToString(), *EscapeRichText(Text));
+		if (GetKeywordIcon(Keyword))
+		{
+			Markup += FString::Printf(TEXT("<kwicon id=\"%s\"/>"), *Keyword.Id.ToString());
+		}
+		return Markup;
+	}
+
+	// Recorre el texto buscando palabras clave enteras ([Palabra] a mano o las de la lista). Las apunta en orden de
+	// aparición y, si se pide, devuelve el texto marcado para el Rich Text Block
+	void ScanKeywords(const FString& Text, TArray<const FCardKeyword*>& OutKeywords, FString* OutMarkup)
+	{
+		const TArray<FKeywordWord> Words = GetKeywordWords();
+		int32 Index = 0;
+		while (Index < Text.Len())
+		{
+			if (Text[Index] == TEXT('['))
+			{
+				const int32 Close = Text.Find(TEXT("]"), ESearchCase::CaseSensitive, ESearchDir::FromStart, Index + 1);
+				if (Close != INDEX_NONE)
+				{
+					const FString Inner = Text.Mid(Index + 1, Close - Index - 1);
+					if (const FCardKeyword* Keyword = FindKeywordByText(Inner))
+					{
+						OutKeywords.AddUnique(Keyword);
+						if (OutMarkup)
+						{
+							*OutMarkup += KeywordMarkup(*Keyword, Inner);
+						}
+					}
+					else if (OutMarkup)
+					{
+						*OutMarkup += EscapeRichText(Inner);
+					}
+					Index = Close + 1;
+					continue;
+				}
+			}
+
+			if (Index == 0 || !IsWordChar(Text[Index - 1]))
+			{
+				const FKeywordWord* Match = nullptr;
+				for (const FKeywordWord& Word : Words)
+				{
+					const int32 End = Index + Word.Word.Len();
+					if (End <= Text.Len() && (End == Text.Len() || !IsWordChar(Text[End]))
+						&& Text.Mid(Index, Word.Word.Len()).Equals(Word.Word, ESearchCase::IgnoreCase))
+					{
+						Match = &Word;
+						break;
+					}
+				}
+				if (Match)
+				{
+					OutKeywords.AddUnique(Match->Keyword);
+					if (OutMarkup)
+					{
+						*OutMarkup += KeywordMarkup(*Match->Keyword, Text.Mid(Index, Match->Word.Len()));
+					}
+					Index += Match->Word.Len();
+					continue;
+				}
+			}
+
+			if (OutMarkup)
+			{
+				*OutMarkup += EscapeRichText(Text.Mid(Index, 1));
+			}
+			++Index;
+		}
+	}
+
+	FCardKeywordInfo MakeKeywordInfo(const FCardKeyword& Keyword)
+	{
+		FCardKeywordInfo Info;
+		Info.Id = Keyword.Id;
+		Info.Name = Keyword.Name;
+		Info.Description = Keyword.Description;
+		Info.Icon = GetKeywordIcon(Keyword);
+		Info.Color = GetColorOf(Keyword);
+		return Info;
+	}
+
+	// Palabra clave que explica cada efecto de carta
+	const FCardKeyword* KeywordForEffect(const UCardEffect* Effect)
+	{
+		const UEgnisCardDisplaySettings* Settings = GetDefault<UEgnisCardDisplaySettings>();
+		if (const UCard_StatusEffect* Status = Cast<UCard_StatusEffect>(Effect))
+		{
+			return FindStatusKeyword(Status->Status);
+		}
+		if (const UCard_PushPullEffect* PushPull = Cast<UCard_PushPullEffect>(Effect))
+		{
+			return Settings->FindKeyword(PushPull->Mode == EForcedMoveMode::Push ? TEXT("Push") : TEXT("Pull"));
+		}
+		if (Effect->IsA<UCard_AttackEffect>() || Effect->IsA<UCard_AreaDamageEffect>()) return Settings->FindKeyword(TEXT("Damage"));
+		if (Effect->IsA<UCard_HealEffect>())    return Settings->FindKeyword(TEXT("Heal"));
+		if (Effect->IsA<UCard_ShieldEffect>())  return Settings->FindKeyword(TEXT("Shield"));
+		if (Effect->IsA<UCard_MoveEffect>())    return Settings->FindKeyword(TEXT("Move"));
+		if (Effect->IsA<UCard_DrawEffect>())    return Settings->FindKeyword(TEXT("Draw"));
+		if (Effect->IsA<UCard_DiscardEffect>()) return Settings->FindKeyword(TEXT("Discard"));
+		if (Effect->IsA<UCard_ConsumeEffect>()) return Settings->FindKeyword(TEXT("Consume"));
+		if (Effect->IsA<UCard_KeepEffect>())    return Settings->FindKeyword(TEXT("Keep"));
+		if (Effect->IsA<UCard_CreateEffect>())  return Settings->FindKeyword(TEXT("Obstacle"));
+		if (Effect->IsA<UCard_SummonEffect>())  return Settings->FindKeyword(TEXT("Spirit"));
+		if (Effect->IsA<UCard_TimeEffect>())    return Settings->FindKeyword(TEXT("Time"));
+		return nullptr;
+	}
+}
+
+FText UCardDisplayLibrary::MarkupKeywords(const FText& Text)
+{
+	TArray<const FCardKeyword*> Found;
+	FString Markup;
+	ScanKeywords(Text.ToString(), Found, &Markup);
+	return FText::FromString(Markup);
+}
+
+FText UCardDisplayLibrary::GetRichDescription(const UBaseCard* Card)
+{
+	return Card ? MarkupKeywords(Card->GetDescription()) : FText::GetEmpty();
+}
+
+TArray<FCardKeywordInfo> UCardDisplayLibrary::GetCardKeywords(const UBaseCard* Card)
+{
+	TArray<FCardKeywordInfo> Infos;
+	if (!Card)
+	{
+		return Infos;
+	}
+
+	const UEgnisCardDisplaySettings* Settings = GetDefault<UEgnisCardDisplaySettings>();
+	TArray<const FCardKeyword*> Found;
+	for (const UCardEffect* Effect : Card->GetEffects())
+	{
+		if (const FCardKeyword* Keyword = Effect ? KeywordForEffect(Effect) : nullptr)
+		{
+			Found.AddUnique(Keyword);
+		}
+	}
+
+	const TPair<bool, const TCHAR*> CardWords[] = {
+		{ Card->IsEphemeral(), TEXT("Ephemeral") },
+		{ Card->PlaysTwice(), TEXT("PlaysTwice") },
+		{ Card->GetEnergyOnKill() > 0, TEXT("EnergyOnKill") }
+	};
+	for (const TPair<bool, const TCHAR*>& CardWord : CardWords)
+	{
+		const FCardKeyword* Keyword = CardWord.Key ? Settings->FindKeyword(CardWord.Value) : nullptr;
+		if (Keyword)
+		{
+			Found.AddUnique(Keyword);
+		}
+	}
+
+	ScanKeywords(Card->GetDescription().ToString(), Found, nullptr);
+
+	for (const FCardKeyword* Keyword : Found)
+	{
+		Infos.Add(MakeKeywordInfo(*Keyword));
+	}
+	return Infos;
+}
+
+bool UCardDisplayLibrary::GetKeywordInfo(FName Id, FCardKeywordInfo& OutInfo)
+{
+	if (const FCardKeyword* Keyword = GetDefault<UEgnisCardDisplaySettings>()->FindKeyword(Id))
+	{
+		OutInfo = MakeKeywordInfo(*Keyword);
+		return true;
+	}
+	return false;
+}
+
+FLinearColor UCardDisplayLibrary::GetKeywordColor(FName Id)
+{
+	const UEgnisCardDisplaySettings* Settings = GetDefault<UEgnisCardDisplaySettings>();
+	const FCardKeyword* Keyword = Settings->FindKeyword(Id);
+	return Keyword ? GetColorOf(*Keyword) : Settings->KeywordColor;
+}
+
 #undef LOCTEXT_NAMESPACE

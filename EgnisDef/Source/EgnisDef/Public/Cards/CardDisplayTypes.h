@@ -57,3 +57,25 @@ struct EGNISDEF_API FCardEffectDisplay
 			&& Color == Other.Color && bHasValue == Other.bHasValue && Value == Other.Value;
 	}
 };
+
+// Lo que sale en el recuadro de una palabra clave del inspector
+USTRUCT(BlueprintType)
+struct EGNISDEF_API FCardKeywordInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Card UI")
+	FName Id;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Card UI")
+	FText Name;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Card UI")
+	FText Description;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Card UI")
+	TObjectPtr<UTexture2D> Icon = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Card UI")
+	FLinearColor Color = FLinearColor::White;
+};
