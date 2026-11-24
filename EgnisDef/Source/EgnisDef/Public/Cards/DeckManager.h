@@ -43,6 +43,15 @@ public:
 	UFUNCTION(BlueprintPure, Category="Cards")
 	TArray<UBaseCard*> GetDiscardPile() const { return DiscardedPile; }
 
+	UFUNCTION(BlueprintPure, Category="Cards")
+	TArray<UBaseCard*> GetDrawPile() const { return DrawPile; }
+
+	UFUNCTION(BlueprintPure, Category="Cards")
+	TArray<UBaseCard*> GetConsumedPile() const { return ConsumedPile; }
+
+	UFUNCTION(BlueprintPure, Category="Cards")
+	TArray<UBaseCard*> GetCombatDeck() const { return Deck; }
+
 	UFUNCTION(BlueprintCallable, Category="Cards")
 	bool ReturnCardFromDiscardToHand(UBaseCard* Card);
 	// Consumir: saca la carta de la mano o de las pilas y la guarda en ConsumedPile hasta que acabe el combate.

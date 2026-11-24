@@ -124,8 +124,15 @@ public:
 	int32 DamageBuffTurnsLeft = 0;
 
 	
+	// Lo pone el entorno del combate (Lluvia de corrupcion). Vale 1 / 0 si no hay entorno
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	float EnvDamageMultiplier = 1.f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Enemy|Combat")
+	int32 EnvMoveRangeBonus = 0;
+
 	UFUNCTION(BlueprintPure, Category="Enemy|Combat")
-	float GetDamageMultiplier() const { return 1.f + (DamageBuffTurnsLeft > 0 ? DamageBuffPercent : 0.f) / 100.f; }
+	float GetDamageMultiplier() const { return (1.f + (DamageBuffTurnsLeft > 0 ? DamageBuffPercent : 0.f) / 100.f) * EnvDamageMultiplier; }
 
 	
 	void AddDamageBuff(float Percent, int32 Turns, bool bAppliedDuringOwnTurn);
@@ -141,6 +148,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI")
 	int32 TurnOrder = 0;
 
+	//Segundos que tarda en pasar de una casilla a la siguiente (0 = se teletransporta como antes)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Movement", meta = (ClampMin = "0.0"))
+	float SecondsPerTile = 0.25f; 
+
+	//Altura del saltito en cada casilla (0 = se desliza)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Movement", meta = (ClampMin = "0.0"))
+	float HopHeight = 0.f; //[Nicky]
+
+	//Recorre las casillas en orden. La logica ya tiene que estar en la casilla final
+	void MoveAlongTiles(const TArray<FTileCoord>& Tiles); 
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Movement") 
+	bool IsMovingOnBoard() const { return MoveDurations.Num() > 0; } 
+
+	float GetMoveSecondsLeft() const; 
+
+	//Salta al llegar a la casilla final (para parar la animacion de andar)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy|Animation") 
+	void OnEnemyArrived(); 
+
+	
 	//conexiones para animaciones / efectos
 	//Se implementan en el BP del enemigo (Add Event)
 
@@ -194,4 +222,10 @@ private:
 
 	bool ApplyStatsFromTable();
 	bool bSkipNextBuffDecrement = false;
+
+	void TickBoardMove(float DeltaTime); 
+	TArray<FVector> MovePoints;
+	TArray<float> MoveDurations;
+	int32 MoveSegment = 0;
+	float MoveElapsed = 0.f;
 };

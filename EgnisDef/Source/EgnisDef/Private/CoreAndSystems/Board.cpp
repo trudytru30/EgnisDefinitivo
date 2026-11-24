@@ -361,6 +361,11 @@ bool ABoard::IsTileOccupied(const FTileCoord& Tile) const
 	{
 		return true; // fuera del tablero o en un hueco (Void) se considera no caminable
 	}
+	
+	if (BlockedTiles.Contains(Tile))
+	{
+		return true; // bloqueada temporalmente (geiser en erupcion)
+	}
 
 	if (const TWeakObjectPtr<AActor>* Found = OccupiedBy.Find(Tile))
 	{
@@ -368,6 +373,20 @@ bool ABoard::IsTileOccupied(const FTileCoord& Tile) const
 	}
 
 	return false;
+}
+
+void ABoard::SetTileBlocked(const FTileCoord& Tile, bool bBlocked)
+{
+	if (!IsInside(Tile)) return;
+
+	const bool bChanged = bBlocked ? !BlockedTiles.Contains(Tile) : BlockedTiles.Remove(Tile) > 0;
+	if (bBlocked) BlockedTiles.Add(Tile);
+	if (bChanged) QueueBoardChanged(); // las cartas y la UI recalculan casillas validas
+}
+
+bool ABoard::IsTileBlocked(const FTileCoord& Tile) const
+{
+	return BlockedTiles.Contains(Tile);
 }
 
 bool ABoard::RegisterOccupant(const FTileCoord& Tile, AActor* Occupant)

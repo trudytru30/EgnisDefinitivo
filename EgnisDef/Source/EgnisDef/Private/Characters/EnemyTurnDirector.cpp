@@ -6,6 +6,16 @@
 #include "TimerManager.h"
 #include "Algo/StableSort.h"
 
+#include "HAL/IConsoleManager.h"
+
+namespace
+{
+	//Egnis.EnemyAI 0 = los enemigos se saltan su turno (para probar sin que molesten), 1 = normal
+	TAutoConsoleVariable<int32> CVarEnemyAI(
+		TEXT("Egnis.EnemyAI"), 1,
+		TEXT("Egnis.EnemyAI 0/1: 0 = los enemigos se saltan su turno, 1 = actuan normal."));
+}
+
 void UEnemyTurnDirector::Initialize(UBattleManager* InBattleManager, const FEnemyTurnSettings& InSettings)
 {
 	BattleManager = InBattleManager;
@@ -17,6 +27,16 @@ void UEnemyTurnDirector::StartEnemyPhase(const TArray<AEnemy*>& Enemies, FOnEnem
 	Abort();
 
 	Queue.Reset();
+	//IA apagada por consola: la fase enemiga se acaba al momento
+	if (CVarEnemyAI.GetValueOnGameThread() == 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[EnemyTurn] IA enemiga desactivada (Egnis.EnemyAI 0): se salta la fase enemiga."));
+		CurrentIndex = 0;
+		OnPhaseFinished = OnFinished;
+		bRunning = true;
+		Schedule(0.f);
+		return;
+	}
 	for (AEnemy* Enemy : Enemies)
 	{
 		if (IsValid(Enemy))
@@ -193,6 +213,10 @@ void UEnemyTurnDirector::OnEnemyDone()
 		}
 	}
 
+	float MoveWait = 0.f; 
+	if (Queue.IsValidIndex(CurrentIndex) && Queue[CurrentIndex].IsValid())
+		MoveWait = Queue[CurrentIndex]->GetMoveSecondsLeft();
+	
 	if (Queue.IsValidIndex(CurrentIndex) && Queue[CurrentIndex].IsValid() && Queue[CurrentIndex]->ConsumeExtraTurn())
 	{
 		Schedule(Settings.DelayBetweenEnemies);
@@ -200,4 +224,6 @@ void UEnemyTurnDirector::OnEnemyDone()
 	}
 	++CurrentIndex;
 	Schedule(Settings.DelayBetweenEnemies);
+
+	Schedule(Settings.DelayBetweenEnemies + MoveWait);
 }

@@ -72,10 +72,12 @@ public:
 	// de la mano sin haberse jugado. DeckManager llama a esto en DrawCard/DiscardCardFromHand.
 	void NotifyHandEnter(ACharacterBase* Owner);
 	void NotifyHandLeave(ACharacterBase* Owner);
+	void NotifyTurnEndInHand(UDeckManager* Deck);
 	
 	bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const;
 	bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const;
 	bool CanTargetObstacle() const;
+	int32 GetExtraRange(const ACharacterBase* Self) const;
 	
 	// Efimero: si no es la primera carta que se juega, se descarta y se sustituye por otra
 	UFUNCTION(BlueprintPure, Category="Card")

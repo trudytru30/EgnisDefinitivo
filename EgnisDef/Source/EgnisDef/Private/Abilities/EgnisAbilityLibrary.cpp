@@ -255,3 +255,9 @@ void UEgnisAbilityLibrary::SetBurnDamageTaken(ACharacterBase* Character, float D
 		Character->StatusComp->BurnDamage = FMath::Max(0.f, Damage);
 	}
 }
+
+int32 UEgnisAbilityLibrary::GetEffectStackLimit(TSubclassOf<UGameplayEffect> Effect)
+{
+	const UGameplayEffect* Default = Effect ? Effect->GetDefaultObject<UGameplayEffect>() : nullptr;
+	return Default ? Default->GetStackLimitCount() : 0;
+}

@@ -677,9 +677,10 @@ EEnemyStrikeResult UEnemyCombatLibrary::EnemyExecutionStrike(AEnemy* Attacker, A
 
 
 
-void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps)
+void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord, int32>& OutSteps, TMap<FTileCoord, FTileCoord>* OutParents)
 {
 	OutSteps.Reset();
+	if (OutParents) OutParents->Reset();
 	if (!IsValid(Enemy) || !Enemy->Board)
 	{
 		return;
@@ -712,6 +713,7 @@ void UEnemyCombatLibrary::BuildReachableMap(const AEnemy* Enemy, TMap<FTileCoord
 				continue;
 			}
 			OutSteps.Add(Next, Steps + 1);
+			if (OutParents) OutParents->Add(Next, Tile);
 			Frontier.Add(Next);
 		}
 	}
@@ -750,14 +752,24 @@ bool UEnemyCombatLibrary::EnemyMoveToTile(AEnemy* Enemy, const FTileCoord& Targe
 	}
 
 	TMap<FTileCoord, int32> Steps;
-	BuildReachableMap(Enemy, Steps);
+	TMap<FTileCoord, FTileCoord> Parents;
+	BuildReachableMap(Enemy, Steps, &Parents);
 	const int32* StepsToTarget = Steps.Find(Target);
 	if (!StepsToTarget)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[EnemyMove] %s no puede llegar a (%d,%d)."), *Enemy->GetName(), Target.X, Target.Y);
 		return false;
 	}
-
+	//casilla a casilla
+	TArray<FTileCoord> Path;
+	for (FTileCoord Tile = Target; ; )
+	{
+		Path.Insert(Tile, 0);
+		const FTileCoord* Parent = Parents.Find(Tile);
+		if (!Parent) break;
+		Tile = *Parent;
+	}
+	
 	const FTileCoord From = Enemy->CurrentTile;
 	if (!Enemy->SetCurrentTile(Target))
 	{
@@ -766,7 +778,7 @@ bool UEnemyCombatLibrary::EnemyMoveToTile(AEnemy* Enemy, const FTileCoord& Targe
 	
 	if (!IsValid(Enemy)) return true; // murio al pisar fuego
 	
-	Enemy->SnapToCurrentTile();
+	Enemy->MoveAlongTiles(Path);
 
 	if (UAudioManager* AM = Enemy->GetGameInstance()->GetSubsystem<UAudioManager>())
 	{
@@ -781,6 +793,51 @@ bool UEnemyCombatLibrary::EnemyMoveToTile(AEnemy* Enemy, const FTileCoord& Targe
 	return true;
 }
 
+//Distancia andando hasta Goal: busqueda por anchura desde Goal hacia fuera
+void UEnemyCombatLibrary::BuildPathDistanceMap(const ABoard* Board, const FTileCoord& Goal, TMap<FTileCoord, int32>& OutDistance)
+{
+	OutDistance.Reset();
+	if (!Board || !Board->IsInside(Goal))
+	{
+		return;
+	}
+
+	static const FTileCoord Dirs[4] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+	TArray<FTileCoord> Frontier;
+	Frontier.Add(Goal);
+	OutDistance.Add(Goal, 0);
+
+	for (int32 Index = 0; Index < Frontier.Num(); ++Index)
+	{
+		const FTileCoord Tile = Frontier[Index];
+		const int32 Dist = OutDistance[Tile];
+		for (const FTileCoord& Dir : Dirs)
+		{
+			const FTileCoord Next(Tile.X + Dir.X, Tile.Y + Dir.Y);
+			//fuera, hueco u obstaculo = no se pasa (los personajes si, porque se mueven)
+			if (OutDistance.Contains(Next) || !Board->IsInside(Next)
+				|| Board->GetTileType(Next) == ETileType::Void || IsTileBlockingSight(Board, Next))
+			{
+				continue;
+			}
+			OutDistance.Add(Next, Dist + 1);
+			Frontier.Add(Next);
+		}
+	}
+}
+
+int32 UEnemyCombatLibrary::GetPathDistance(const AEnemy* Enemy, FTileCoord From, FTileCoord To)
+{
+	if (!IsValid(Enemy) || !Enemy->Board)
+	{
+		return -1;
+	}
+	TMap<FTileCoord, int32> Dist;
+	BuildPathDistanceMap(Enemy->Board, To, Dist);
+	const int32* Found = Dist.Find(From);
+	return Found ? *Found : -1;
+}
+
 bool UEnemyCombatLibrary::FindTileTowards(const AEnemy* Enemy, const ACharacterBase* Target, FTileCoord& OutTile)
 {
 	if (!IsValid(Enemy) || !IsValid(Target) || !Enemy->Board)
@@ -790,6 +847,10 @@ bool UEnemyCombatLibrary::FindTileTowards(const AEnemy* Enemy, const ACharacterB
 
 	TMap<FTileCoord, int32> Steps;
 	BuildReachableMap(Enemy, Steps);
+
+	//Lo que hay que andar desde cada casilla hasta el objetivo, rodeando obstaculos y huecos
+	TMap<FTileCoord, int32> PathDist;
+	BuildPathDistanceMap(Enemy->Board, Target->CurrentTile, PathDist);
 
 	bool bBestCanAttack = false;
 	int32 BestDistance = MAX_int32;
@@ -803,7 +864,11 @@ bool UEnemyCombatLibrary::FindTileTowards(const AEnemy* Enemy, const ACharacterB
 		const bool bCanAttack = Distance <= Enemy->GetAttackRange()
 			&& (Enemy->bAttacksOverObstacles || HasLineOfSight(Enemy->Board, Tile, Target->CurrentTile));
 
-		//Prioridad: 1) poder atacar  2) estar mas cerca  3) andar menos
+		//Para acercarse cuenta lo que hay que ANDAR (sin camino = muy lejos, se usa la linea recta)
+		const int32* Walk = PathDist.Find(Tile);
+		const int32 ApproachDistance = Walk ? *Walk : 10000 + Distance;
+
+		//Prioridad: 1) poder atacar  2) estar mas cerca andando  3) andar menos
 		bool bBetter;
 		if (bCanAttack != bBestCanAttack)
 		{
@@ -815,13 +880,13 @@ bool UEnemyCombatLibrary::FindTileTowards(const AEnemy* Enemy, const ACharacterB
 		}
 		else
 		{
-			bBetter = Distance < BestDistance || (Distance == BestDistance && Pair.Value < BestSteps);
+			bBetter = ApproachDistance < BestDistance || (ApproachDistance == BestDistance && Pair.Value < BestSteps);
 		}
 
 		if (bBetter)
 		{
 			bBestCanAttack = bCanAttack;
-			BestDistance = Distance;
+			BestDistance = ApproachDistance;
 			BestSteps = Pair.Value;
 			OutTile = Tile;
 		}
@@ -903,11 +968,16 @@ bool UEnemyCombatLibrary::FindTileTowardsHeroesCenter(const AEnemy* Enemy, FTile
 	TMap<FTileCoord, int32> Steps;
 	BuildReachableMap(Enemy, Steps);
 
+	//Distancia andando al centro (rodeando)
+	TMap<FTileCoord, int32> PathDist;
+	BuildPathDistanceMap(Enemy->Board, Center, PathDist);
+
 	int32 BestDistance = MAX_int32;
 	int32 BestSteps = MAX_int32;
 	for (const TPair<FTileCoord, int32>& Pair : Steps)
 	{
-		const int32 Distance = TileDistance(Pair.Key, Center);
+		const int32* Walk = PathDist.Find(Pair.Key);
+		const int32 Distance = Walk ? *Walk : 10000 + TileDistance(Pair.Key, Center);
 		if (Distance < BestDistance || (Distance == BestDistance && Pair.Value < BestSteps))
 		{
 			BestDistance = Distance;

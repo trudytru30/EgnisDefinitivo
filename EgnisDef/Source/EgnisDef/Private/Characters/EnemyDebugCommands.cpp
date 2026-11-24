@@ -11,7 +11,8 @@
 #include "DrawDebugHelpers.h"
 #include "CoreAndSystems/CombatLibrary.h"
 #include "Components/StatusEffectComponent.h"
-
+#include "CoreAndSystems/CombatTimerSubsystem.h"
+#include "Engine/GameInstance.h"
 namespace
 {
 	FAutoConsoleCommandWithWorldAndArgs CmdEnemyDebug(
@@ -508,4 +509,29 @@ FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& 
 	}
 	UE_LOG(LogTemp, Warning, TEXT("[StatusDebug] No hay heroe con indice %d."), HeroIndex);
 }));
-}
+
+	//Pausa o reanuda el temporizador del combate (usa la pausa que ya tiene el temporizador)
+FAutoConsoleCommandWithWorldAndArgs CmdTimer(
+	TEXT("Egnis.Timer"),
+	TEXT("Egnis.Timer 0/1: 0 = pausa el temporizador del combate, 1 = lo reanuda. Sin numero lo cambia."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+		UCombatTimerSubsystem* Timer = GI ? GI->GetSubsystem<UCombatTimerSubsystem>() : nullptr;
+		if (!Timer)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[EnemyDebug] No se encuentra el temporizador del combate."));
+			return;
+		}
+
+		const bool bTurnOn = Args.Num() > 0 ? FCString::Atoi(*Args[0]) != 0 : Timer->IsTimerPaused();
+		if (bTurnOn)
+		{
+			Timer->ResumeTimer(TEXT("Debug"));
+		}
+		else
+		{
+			Timer->PauseTimer(TEXT("Debug"));
+		}
+		UE_LOG(LogTemp, Log, TEXT("[EnemyDebug] Temporizador %s."), bTurnOn ? TEXT("reanudado") : TEXT("en pausa"));
+	}));}

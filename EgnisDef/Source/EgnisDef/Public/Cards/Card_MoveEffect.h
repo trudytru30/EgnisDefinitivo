@@ -32,4 +32,9 @@ public:
 	virtual bool CanTargetTile(const ACharacterBase* Self, const FTileCoord& Tile) const override;
 
 	virtual void Execute_Tile(ACharacterBase* Self, FVector Location) override;
+
+	virtual void Execute_Enemy(ACharacterBase* Self, ACharacterBase* Enemy) override;
+	virtual bool CanTargetCharacter(const ACharacterBase* Self, const ACharacterBase* Victim) const override;
+	virtual int32 GetExtraRange(const ACharacterBase* Self) const override;
+	bool FindTileBeforeTarget(const ACharacterBase* Self, const ACharacterBase* Victim, FTileCoord& OutTile) const;
 };

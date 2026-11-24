@@ -15,6 +15,7 @@
 #include "CoreAndSystems/CombatTimerSubsystem.h"
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "Engine/World.h"
+#include "CoreAndSystems/GeyserSubsystem.h"
 
 class AAlly;
 
@@ -202,6 +203,11 @@ void UBattleManager::StartPlayerTurn()
 	// Gasta un turno a las casillas en llamas
 	if (Board) Board->AdvanceFireTiles();
 	
+	if (UGeyserSubsystem* Geyser = GetWorld()->GetSubsystem<UGeyserSubsystem>())
+	{
+		Geyser->OnPlayerTurnStarted();
+	}
+	
 	NotifyTeamTurnStart(0);	// Notificar al equipo del jugador
 	
 	// Robar mano al inicio del turno y establecer energia
@@ -317,6 +323,13 @@ void UBattleManager::EndTurn()
 	{
 		case ETurnEnum::PlayerTurn:
 			NotifyTeamTurnEnd(0);
+			for (UBaseCard* Card : DeckManager->GetHand())
+			{
+				if (Card)
+				{
+					Card->NotifyTurnEndInHand(DeckManager);
+				}
+			}
 			if (DeckManager->GetHand().Num() > 0)
 			{
 				const TArray<UBaseCard*> HandCopy = DeckManager->GetHand();
