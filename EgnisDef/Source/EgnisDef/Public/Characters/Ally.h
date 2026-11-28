@@ -133,12 +133,14 @@ public:
 	// No gasta energia, no toca la mano y no comprueba CanAct (un aturdido tambien responde).
 	// Devuelve true si golpeo.
 	bool CounterAttack(ACharacterBase* Target);
+
+	// Mantiene GridMovementComponent::moveRange igual que el atributo Speed
+	void RefreshMoveRange();//movido a public cuando el characterbase entra o sale del rio
 	
 protected:
 	virtual void BeginPlay() override;
 	
-	// Mantiene GridMovementComponent::moveRange igual que el atributo Speed
-	void RefreshMoveRange();
+	
 	void OnSpeedChanged(const struct FOnAttributeChangeData& Data);
 	
 	UFUNCTION()

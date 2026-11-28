@@ -10,6 +10,8 @@
 #include "EngineUtils.h"
 #include "CoreAndSystems/AudioManager.h"
 #include "Engine/GameInstance.h"
+#include "CoreAndSystems/PlatformTileSubsystem.h"
+#include "Characters/Ally.h"
 
 ACharacterBase::ACharacterBase()
 {
@@ -157,6 +159,19 @@ bool ACharacterBase::SetCurrentTile(const FTileCoord& NewTile)
 			*GetName(), LeftTile.X, LeftTile.Y, StatusComp->BurnTrailTurns, StatusComp->BurnTrailDamage);
 	}
 
+	//Nenufares / escarcha: al salir se hunde, al pisar empieza a contar
+	if (UPlatformTileSubsystem* Platforms = GetWorld()->GetSubsystem<UPlatformTileSubsystem>())
+	{
+		Platforms->NotifyCharacterMoved(this, LeftTile, NewTile);
+	}
+	//Zona de rio: al entrar o salir del agua cambia el movimiento del heroe
+	if (AAlly* Ally = Cast<AAlly>(this))
+	{
+		Ally->RefreshMoveRange();
+	}
+
+	
+	
 	// Pisar una casilla en llamas: daño puro. Puede matar y destruir a este personaje,
 	// por eso va lo ultimo y quien llame a SetCurrentTile debe comprobar IsValid despues.
 	FFireTile Fire;

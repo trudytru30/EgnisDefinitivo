@@ -104,8 +104,6 @@ bool UEnemyCombatLibrary::IsTileBlockingSight(const ABoard* Board, const FTileCo
 	{
 	case ETileType::Obstacle:
 	case ETileType::DamagingObstacle:
-	case ETileType::BreakableObstacle:
-	case ETileType::ExplosiveObstacle:
 		return true;
 	default:
 		break;
@@ -816,7 +814,8 @@ void UEnemyCombatLibrary::BuildPathDistanceMap(const ABoard* Board, const FTileC
 			const FTileCoord Next(Tile.X + Dir.X, Tile.Y + Dir.Y);
 			//fuera, hueco u obstaculo = no se pasa (los personajes si, porque se mueven)
 			if (OutDistance.Contains(Next) || !Board->IsInside(Next)
-				|| Board->GetTileType(Next) == ETileType::Void || IsTileBlockingSight(Board, Next))
+				|| Board->GetTileType(Next) == ETileType::Void || IsTileBlockingSight(Board, Next)
+				|| Board->IsTileBlocked(Next))
 			{
 				continue;
 			}

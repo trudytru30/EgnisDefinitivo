@@ -16,6 +16,7 @@
 #include "CoreAndSystems/EgnisGameplayTags.h"
 #include "Engine/World.h"
 #include "CoreAndSystems/GeyserSubsystem.h"
+#include "CoreAndSystems/PlatformTileSubsystem.h"
 
 class AAlly;
 
@@ -202,6 +203,9 @@ void UBattleManager::StartPlayerTurn()
 	
 	// Gasta un turno a las casillas en llamas
 	if (Board) Board->AdvanceFireTiles();
+
+
+	if (UPlatformTileSubsystem* Platforms = GetWorld()->GetSubsystem<UPlatformTileSubsystem>()) Platforms->AdvancePlatforms(); 
 	
 	if (UGeyserSubsystem* Geyser = GetWorld()->GetSubsystem<UGeyserSubsystem>())
 	{
@@ -268,7 +272,8 @@ void UBattleManager::StartEnemyTurn()
 
 	// Gasta un turno a las casillas en llamas
 	if (Board) Board->AdvanceFireTiles();
-	
+
+	if (UPlatformTileSubsystem* Platforms = GetWorld()->GetSubsystem<UPlatformTileSubsystem>()) Platforms->AdvancePlatforms(); 
 	NotifyTeamTurnStart(1);
 	
 	

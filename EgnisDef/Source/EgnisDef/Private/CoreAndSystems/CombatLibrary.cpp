@@ -332,14 +332,22 @@ bool UEgnisCombatLibrary::IsCardTargetInRange(const UBaseCard* Card, const AAlly
 
 int32 UEgnisCombatLibrary::GetSlowedRange(const ACharacterBase* Character, int32 BaseRange)
 {
-	if (BaseRange <= 0 || !IsValid(Character) || !Character->StatusComp
-		|| !Character->StatusComp->HasStatus(EStatusType::Status_Slowed))
+	if (BaseRange <= 0 || !IsValid(Character))
 	{
 		return BaseRange;
 	}
 
+	const bool bSlowed = Character->StatusComp && Character->StatusComp->HasStatus(EStatusType::Status_Slowed);
+	//Zona de rio: dentro del agua tambien va a la mitad (no se suma con Ralentizado)
+	const bool bInRiver = Character->Board && Character->Board->GetTileType(Character->CurrentTile) == ETileType::Water;
+	if (!bSlowed && !bInRiver)
+	{
+		return BaseRange;
+	}
+
+	const float Factor = Character->StatusComp ? Character->StatusComp->SlowMovementFactor : 0.5f;
 	// El margen pequeño evita que un error de decimales suba o baje un punto de mas
-	return FMath::Max(1, FMath::CeilToInt(BaseRange * Character->StatusComp->SlowMovementFactor - KINDA_SMALL_NUMBER));
+	return FMath::Max(1, FMath::CeilToInt(BaseRange * Factor - KINDA_SMALL_NUMBER));
 }
 
 ACharacterBase* UEgnisCombatLibrary::GetFearSource(const ACharacterBase* Character)

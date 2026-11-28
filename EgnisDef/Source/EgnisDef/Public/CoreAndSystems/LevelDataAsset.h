@@ -96,6 +96,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Deploy", meta = (ClampMin = "0"))
 	int32 DeployMinDistanceToEnemies = 2;
 
+	//Nenufares y plataformas de escarcha (casillas WaterPlatform / Ice)
+	// Turnos que aguanta con alguien encima antes de hundirse
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Obstacles", meta = (ClampMin = "1")) //[Nicky]
+	int32 PlatformStandTurns = 3; //[Nicky]
+
+	// Turnos que tarda en volver a salir despues de hundirse
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Obstacles", meta = (ClampMin = "1")) //[Nicky]
+	int32 PlatformSunkTurns = 4; //[Nicky]
+
+
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level|Objectives")
 	FSecondaryObjectives SecondaryObjectives;
 
